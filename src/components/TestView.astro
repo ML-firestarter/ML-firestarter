@@ -1,0 +1,105 @@
+---
+import { render } from 'astro:content';
+import { editUrl, testGroupId, type Course, type Test } from '../lib/course.ts';
+import { langAttr, localizeUrl, ui } from '../lib/i18n.ts';
+import { TESTS_PATH } from '../lib/paths.ts';
+import { site } from '../site.config.ts';
+import Crumbs from './Crumbs.astro';
+import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+import Untranslated from './Untranslated.astro';
+
+interface Props {
+  course: Course;
+  test: Test;
+}
+
+const { course, test } = Astro.props;
+const { lang } = course;
+const { lesson } = test;
+const t = ui[lang];
+/** Set when the test isn't translated yet and shows the original. */
+const contentLang = langAttr(test.lang, lang);
+const { Content } = await render(test.note);
+const overview = localizeUrl(TESTS_PATH, lang);
+const chapter = lesson.parents[0];
+const crumbs = [
+  { title: t.tests.title, url: overview, lang },
+  ...(chapter ? [{ title: chapter.title, url: `${overview}#${testGroupId(chapter)}`, lang: chapter.lang }] : []),
+];
+const index = course.tests.indexOf(test);
+const previous = course.tests[index - 1];
+const next = course.tests[index + 1];
+const passPercent = Math.round(site.passScore * 100);
+---
+
+<div class="test-page">
+  <header class="page-header">
+    <Crumbs lang={lang} parents={crumbs} />
+    <h1 class="page-title" lang={langAttr(lesson.lang, lang)}>{test.title}</h1>
+    {
+      test.description ? (
+        <p class="lede" lang={contentLang}>{test.description}</p>
+      ) : (
+        <p class="lede">{t.tests.lede}</p>
+      )
+    }
+    <div class="meta" data-test={lesson.path}>
+      <span class="meta-item"><Icon name="quiz" />{t.tests.questionCount(test.questions)}</span>
+      <span class="meta-item best-chip">
+        <Icon name="award" />
+        <span><Phrase text={t.tests.best}><strong data-test-score></strong></Phrase></span>
+      </span>
+      <a class="meta-item" href={lesson.url}><Icon name="book" />{t.tests.readLesson}</a>
+      <a class="meta-item" href={editUrl(site.repo, site.branch, test.note)}><Icon name="edit" />{t.edit}</a>
+    </div>
+  </header>
+
+  {contentLang && <Untranslated lang={lang} note={test.note} noteLang={test.lang} />}
+
+  <form class="quiz" data-quiz={lesson.path} autocomplete="off">
+    <div class="prose" lang={contentLang}>
+      <Content />
+    </div>
+
+    <div class="quiz-submit" data-submit-row>
+      <button class="button primary" type="submit"><Icon name="check" />{t.tests.check}</button>
+      <p><Phrase text={t.tests.answered}><strong data-answered>0/{test.questions}</strong></Phrase></p>
+    </div>
+
+    <div class="quiz-result" data-result tabindex="-1" hidden>
+      <p class="result-percent" data-result-percent>0%</p>
+      <div class="result-text">
+        <p class="result-verdict">
+          <span class="when-passed">{t.tests.pass}</span>
+          <span class="when-failed">{t.tests.fail(passPercent)}</span>
+        </p>
+        <p><Phrase text={t.tests.result}><strong data-result-count>0/{test.questions}</strong></Phrase></p>
+      </div>
+      <button class="button" type="button" data-retry><Icon name="refresh" />{t.tests.retry}</button>
+    </div>
+  </form>
+
+  {
+    (previous || next) && (
+      <footer class="lesson-end">
+        <nav class="pager" aria-label={t.tests.pager}>
+          {previous && (
+            <a class="previous" href={previous.url}>
+              <small><Icon name="left" />{t.previous}</small>
+              <strong lang={langAttr(previous.lesson.lang, lang)}>{previous.title}</strong>
+            </a>
+          )}
+          {next && (
+            <a class="next" href={next.url}>
+              <small>{t.next}<Icon name="right" /></small>
+              <strong lang={langAttr(next.lesson.lang, lang)}>{next.title}</strong>
+            </a>
+          )}
+        </nav>
+      </footer>
+    )
+  }
+</div>
+
+<script src="../scripts/quiz.ts"></script>

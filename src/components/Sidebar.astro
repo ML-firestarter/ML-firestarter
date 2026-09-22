@@ -1,7 +1,7 @@
 ---
 import { getCourse } from '../lib/course.ts';
 import { ui, type Lang } from '../lib/i18n.ts';
-import { NOTES_DIR } from '../lib/paths.ts';
+import { NOTES_DIR, TESTS_DIR } from '../lib/paths.ts';
 import Phrase from './Phrase.astro';
 import TreeItem from './TreeItem.astro';
 
@@ -9,26 +9,45 @@ interface Props {
   lang: Lang;
   /** Language-neutral URL of the current page. */
   current: string;
+  /** Lists the lessons, or the lessons that have a test. */
+  section: 'lessons' | 'tests';
 }
 
-const { lang, current } = Astro.props;
+const { lang, current, section } = Astro.props;
 const t = ui[lang];
 const course = await getCourse(lang);
 ---
 
-<nav aria-label={t.lessonsNav}>
-  <div class="course-progress" data-progress={JSON.stringify(course.lessons.map((lesson) => lesson.path))}>
-    <div class="bar"><span></span></div>
-    <p><Phrase text={t.lessonsDone}><strong data-progress-label>0/{course.lessons.length}</strong></Phrase></p>
-  </div>
-  <ol class="tree">
-    {course.root.children.map((node) => <TreeItem node={node} lang={lang} current={current} />)}
-  </ol>
-  {
-    course.lessons.length === 0 && (
-      <p class="empty">
-        <Phrase text={t.empty}><code>{NOTES_DIR}</code></Phrase>
-      </p>
-    )
-  }
-</nav>
+{
+  section === 'tests' ? (
+    <nav aria-label={t.tests.title}>
+      <div class="course-progress" data-test-progress={JSON.stringify(course.tests.map((test) => test.lesson.path))}>
+        <div class="bar"><span></span></div>
+        <p><Phrase text={t.tests.passed}><strong data-progress-label>0/{course.tests.length}</strong></Phrase></p>
+      </div>
+      <ol class="tree">
+        {course.root.children.map((node) => <TreeItem node={node} lang={lang} current={current} section="tests" />)}
+      </ol>
+      {course.tests.length === 0 && (
+        <p class="empty">
+          <Phrase text={t.tests.empty}><code>{TESTS_DIR}</code></Phrase>
+        </p>
+      )}
+    </nav>
+  ) : (
+    <nav aria-label={t.lessonsNav}>
+      <div class="course-progress" data-progress={JSON.stringify(course.lessons.map((lesson) => lesson.path))}>
+        <div class="bar"><span></span></div>
+        <p><Phrase text={t.lessonsDone}><strong data-progress-label>0/{course.lessons.length}</strong></Phrase></p>
+      </div>
+      <ol class="tree">
+        {course.root.children.map((node) => <TreeItem node={node} lang={lang} current={current} section="lessons" />)}
+      </ol>
+      {course.lessons.length === 0 && (
+        <p class="empty">
+          <Phrase text={t.empty}><code>{NOTES_DIR}</code></Phrase>
+        </p>
+      )}
+    </nav>
+  )
+}

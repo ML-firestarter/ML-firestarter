@@ -2,7 +2,7 @@
 
 My machine learning notes, published as a course website in English and Polish.
 
-Every Markdown file in [`notes/`](notes/) becomes a lesson and every folder becomes a chapter. Each push to `main` makes Netlify build and publish a new version of the site.
+Every Markdown file in [`notes/`](notes/) becomes a lesson and every folder becomes a chapter. Lessons can have multiple-choice tests, kept in [`tests/`](tests/). Each push to `main` makes Netlify build and publish a new version of the site.
 
 ## Writing lessons
 
@@ -28,9 +28,30 @@ notes/
 
 The [How this works](notes/01-start-here/01-how-this-works.md) and [Markdown cheatsheet](notes/01-start-here/02-markdown-cheatsheet.md) lessons have the details.
 
+## Writing tests
+
+A lesson's test sits in [`tests/`](tests/) at the same path as the lesson in `notes/`: `tests/vocabulary/sft.md` tests `notes/vocabulary/sft.md`, and `tests/vocabulary/sft.pl.md` is its Polish translation. The site lists the tests in the **Tests** tab.
+
+```md
+## What does SFT train on?
+
+- [ ] Pairs of better and worse responses
+- [x] Prompts paired with high-quality responses
+- [ ] Raw text from the web
+
+The model is trained to produce the responses in its examples.
+```
+
+- Every `## Heading` is a question, and the checklist under it holds the answers: `[x]` for right ones, `[ ]` for wrong ones. Several `[x]` make checkboxes, and the question counts as right only when exactly those are picked.
+- Anything between the heading and the list is part of the question. Anything after the list explains the answer and shows once the answers are checked.
+- The answers are shuffled on every attempt. A test is passed at 80% (`passScore` in `src/site.config.ts`).
+- `draft: true` hides a test, and a hidden lesson's test is hidden too. A test with a mistake, or without a lesson, fails the build with an explanation.
+
+The [Tests](notes/01-start-here/01-how-this-works.md#tests) section of *How this works* has the details.
+
 ## Translations
 
-English pages are at the root of the site and Polish ones under `/pl/`. A translation sits next to its original: `sft.pl.md` is the Polish version of `sft.md` and is published at `/pl/vocabulary/sft/`. Until a note is translated, the Polish site shows the original with a notice and a link for adding the translation on GitHub. Progress is shared between the languages.
+English pages are at the root of the site and Polish ones under `/pl/`. A translation sits next to its original: `sft.pl.md` is the Polish version of `sft.md` and is published at `/pl/vocabulary/sft/`. Tests are translated the same way. Until a note or test is translated, the Polish site shows the original with a notice and a link for adding the translation on GitHub. Progress and test scores are shared between the languages.
 
 ## Running it locally
 
@@ -52,11 +73,11 @@ Netlify builds the site from this repository. The settings are in [`netlify.toml
 Built with [Astro](https://astro.build). The code is in `src/`:
 
 - `lib/i18n.ts` lists the languages and holds the interface text in each of them.
-- `lib/course.ts` turns the notes into chapters and lessons, one course per language, and picks each note's translation.
+- `lib/course.ts` turns the notes into chapters and lessons, one course per language, picks each note's translation and gives each lesson its test.
 - `lib/paths.ts` turns file paths into titles and addresses.
-- `lib/markdown.ts` handles math, callouts, footnotes, the leading heading and links between notes.
-- `pages/` holds the home, chapter, lesson and 404 pages, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
-- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu.
-- `site.config.ts` holds the site title, the tagline in each language and the GitHub repository.
+- `lib/markdown.ts` handles math, callouts, footnotes, the leading heading and links between notes, and turns tests into question forms.
+- `pages/` holds the home, chapter, lesson, test and 404 pages and the tests overview, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
+- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them.
+- `site.config.ts` holds the site title, the tagline in each language, the GitHub repository and the tests' pass mark.
 
 To add a language, add its code to `LANGS` in `lib/i18n.ts` and run `npm run check`, which lists the text still missing for it. Then add a "page not found" rule for it to `netlify.toml`, like the one for `/pl/`.

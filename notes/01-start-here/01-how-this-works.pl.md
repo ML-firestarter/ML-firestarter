@@ -91,6 +91,29 @@ npm run dev
 
 Potem otwórz <http://localhost:4321>. Strony odświeżają się przy każdym zapisie pliku.
 
+## Testy
+
+Każda lekcja może mieć krótki test w zakładce **Testy**. Test to plik Markdown w folderze `tests`, pod tą samą ścieżką co jego lekcja w `notes`: `tests/vocabulary/sft.md` to test do `notes/vocabulary/sft.md`, a `tests/vocabulary/sft.pl.md` to jego polskie tłumaczenie. Test ma ten sam tytuł co jego lekcja.
+
+Każdy nagłówek `## Nagłówek` w teście to pytanie. Lista zadań pod nim zawiera odpowiedzi: `[x]` przy dobrych i `[ ]` przy złych. Tekst pod listą to wyjaśnienie, które pojawia się po sprawdzeniu odpowiedzi:
+
+```md
+## Dlaczego SFT nazywa się dostrajaniem *nadzorowanym*?
+
+- [x] Każdy przykład ma odpowiedź do naśladowania
+- [ ] Ludzie obserwują model podczas treningu
+- [ ] Model sam nadzoruje swój trening
+
+W RL model dostaje za to tylko ocenę.
+```
+
+- Pytanie z kilkoma odpowiedziami oznaczonymi `[x]` dostaje pola wyboru i jest rozwiązane poprawnie tylko wtedy, gdy zaznaczysz dokładnie jego dobre odpowiedzi.
+- Tekst, wzór, kod albo obraz między nagłówkiem a listą należy do pytania.
+- Przy każdym podejściu odpowiedzi są w innej kolejności, więc unikaj odpowiedzi w rodzaju „Obie powyższe”.
+- Test jest zaliczony, gdy dobrze odpowiesz na co najmniej 80% pytań. Próg zaliczenia to pole `passScore` w pliku `src/site.config.ts`.
+- `draft: true` we frontmatterze ukrywa test, a test ukrytej lekcji też jest ukryty.
+- Jeśli w teście jest błąd, na przykład pytanie bez dobrej odpowiedzi, albo pod jego ścieżką nie ma lekcji, budowanie się nie powiedzie, a komunikat błędu powie, co poprawić.
+
 ## Śledzenie postępów
 
-Na końcu lekcji naciśnij **Oznacz lekcję jako ukończoną**. Postęp jest zapisywany tylko w tej przeglądarce, więc nie synchronizuje się między urządzeniami.
+Na końcu lekcji naciśnij **Oznacz lekcję jako ukończoną**. Po rozwiązaniu testu twój najlepszy wynik widać w zakładce **Testy** i na końcu lekcji. Postęp i wyniki są wspólne dla obu języków i zapisywane tylko w tej przeglądarce, więc nie synchronizują się między urządzeniami.

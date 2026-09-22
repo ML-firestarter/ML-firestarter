@@ -49,11 +49,22 @@ const chapter = lesson.parents.at(-1);
     </div>
 
     <footer class="lesson-end">
-      <button class="button done-button" type="button" data-done-toggle={lesson.path} aria-pressed="false">
-        <Icon name="check" />
-        <span class="when-not-done">{t.markDone}</span>
-        <span class="when-done">{t.lessonDone}</span>
-      </button>
+      <div class="lesson-actions">
+        <button class="button done-button" type="button" data-done-toggle={lesson.path} aria-pressed="false">
+          <Icon name="check" />
+          <span class="when-not-done">{t.markDone}</span>
+          <span class="when-done">{t.lessonDone}</span>
+        </button>
+        {
+          lesson.test && (
+            <a class="button test-button" href={lesson.test.url} data-test={lesson.path}>
+              <Icon name="quiz" />
+              <span>{t.tests.take}</span>
+              <span class="score-pill" data-test-score></span>
+            </a>
+          )
+        }
+      </div>
       <nav class="pager" aria-label={t.pager}>
         {
           previous && (

@@ -1,0 +1,106 @@
+---
+import { render } from 'astro:content';
+import { getCourse, testGroupId, type Chapter, type Test } from '../lib/course.ts';
+import { langAttr, ui, type Lang } from '../lib/i18n.ts';
+import { TESTS_DIR } from '../lib/paths.ts';
+import { site } from '../site.config.ts';
+import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+import Untranslated from './Untranslated.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const course = await getCourse(lang);
+const { tests, testsIntro: intro } = course;
+/** Set when the introduction isn't translated yet and shows the original. */
+const contentLang = intro && langAttr(intro.lang, lang);
+const Intro = intro ? (await render(intro.note)).Content : undefined;
+/** Tests of lessons outside any chapter first, then one group per top-level chapter. */
+const groups: { chapter?: Chapter; tests: Test[] }[] = [
+  { tests: tests.filter((test) => test.lesson.parents.length === 0) },
+  ...course.root.children.flatMap((node) =>
+    node.kind === 'chapter' ? [{ chapter: node, tests: node.lessons.flatMap((lesson) => lesson.test ?? []) }] : [],
+  ),
+].filter((group) => group.tests.length > 0);
+const first = tests[0];
+const paths = (list: Test[]) => JSON.stringify(list.map((test) => test.lesson.path));
+---
+
+<div class="tests-page">
+  <section class="hero">
+    <h1>{t.tests.title}</h1>
+    <p class="tagline">{t.tests.tagline}</p>
+    {
+      first ? (
+        <>
+          <div class="progress-summary" data-test-progress={paths(tests)}>
+            <div class="bar"><span></span></div>
+            <p>
+              <Phrase text={t.tests.passed}><strong data-progress-label>0/{tests.length}</strong></Phrase> · {t.tests.passMark(Math.round(site.passScore * 100))}
+            </p>
+          </div>
+          <a
+            class="button primary"
+            href={first.url}
+            data-next-test={JSON.stringify(tests.map((test) => ({ path: test.lesson.path, url: test.url, title: test.title })))}
+            data-next-labels={JSON.stringify(t.tests.nextUp)}
+          >
+            <span><span data-next-label>{t.tests.nextUp.start}</span> <span data-next-title>{first.title}</span></span>
+            <Icon name="right" />
+          </a>
+        </>
+      ) : (
+        <p class="lede">
+          <Phrase text={t.tests.empty}><code>{TESTS_DIR}</code></Phrase>
+        </p>
+      )
+    }
+  </section>
+
+  {intro && contentLang && <Untranslated lang={lang} note={intro.note} noteLang={intro.lang} />}
+
+  {
+    Intro && (
+      <div class="prose tests-intro" lang={contentLang}>
+        <Intro />
+      </div>
+    )
+  }
+
+  {
+    groups.map(({ chapter, tests }) => (
+      <section class="test-group" aria-labelledby={chapter && testGroupId(chapter)} data-test-progress={paths(tests)}>
+        {chapter && (
+          <div class="group-header">
+            <h2 id={testGroupId(chapter)} lang={langAttr(chapter.lang, lang)}>
+              {chapter.title}
+            </h2>
+            <span class="count" data-progress-label>
+              0/{tests.length}
+            </span>
+          </div>
+        )}
+        <ol class="lesson-rows">
+          {tests.map((test) => (
+            <li>
+              <a class="lesson-row" href={test.url} data-test={test.lesson.path}>
+                <span class="status">
+                  <Icon name="check" />
+                </span>
+                <span class="row-text" lang={langAttr(test.lesson.lang, lang)}>
+                  <span class="row-title">{test.title}</span>
+                </span>
+                <span class="row-meta">{t.tests.questionCount(test.questions)}</span>
+                <span class="score-pill" data-test-score></span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))
+  }
+</div>

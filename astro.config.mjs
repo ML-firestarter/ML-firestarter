@@ -2,8 +2,11 @@
 import { fileURLToPath } from 'node:url';
 import { satteri } from '@astrojs/markdown-satteri';
 import { defineConfig } from 'astro/config';
-import { dropLeadingH1, githubAlerts, katexMath, localizedFootnotes, noteLinks } from './src/lib/markdown.ts';
-import { NOTES_DIR } from './src/lib/paths.ts';
+import { dropLeadingH1, githubAlerts, katexMath, localizedFootnotes, noteLinks, quizzes } from './src/lib/markdown.ts';
+import { NOTES_DIR, TESTS_DIR } from './src/lib/paths.ts';
+
+/** Absolute path of a folder in the project. */
+const folder = (/** @type {string} */ dir) => fileURLToPath(new URL(`./${dir}/`, import.meta.url));
 
 export default defineConfig({
   // Netlify sets URL to the site's address during builds; pages use it to link their translations.
@@ -16,7 +19,9 @@ export default defineConfig({
         dropLeadingH1,
         githubAlerts,
         localizedFootnotes,
-        noteLinks(fileURLToPath(new URL(`./${NOTES_DIR}/`, import.meta.url))),
+        noteLinks({ notes: folder(NOTES_DIR), tests: folder(TESTS_DIR) }),
+        // Turns tests/ into forms; runs last so answers and explanations get the plugins above.
+        quizzes(folder(TESTS_DIR)),
       ],
     }),
     shikiConfig: {

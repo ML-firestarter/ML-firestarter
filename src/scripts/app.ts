@@ -1,7 +1,8 @@
 /**
- * Browser-side behaviour: lesson progress (kept in this browser's localStorage),
- * the light/dark switch and the mobile lessons menu.
+ * Browser-side behaviour: lesson progress and test scores (kept in this browser's
+ * localStorage), the light/dark switch and the mobile lessons menu.
  */
+import { SCORES_KEY, paintCounter, paintScores } from './scores.ts';
 
 /** Lessons marked as done, by language-neutral path, so progress carries over between languages. */
 const DONE_KEY = 'ml-workout:done';
@@ -33,12 +34,7 @@ function paintProgress() {
 
   for (const el of document.querySelectorAll<HTMLElement>('[data-progress]')) {
     const paths: string[] = JSON.parse(el.dataset.progress!);
-    const count = paths.filter((path) => done.has(path)).length;
-    el.style.setProperty('--progress', paths.length ? String(count / paths.length) : '0');
-    el.classList.toggle('is-complete', paths.length > 0 && count === paths.length);
-    for (const label of el.querySelectorAll<HTMLElement>('[data-progress-label]')) {
-      if (label.closest('[data-progress]') === el) label.textContent = `${count}/${paths.length}`;
-    }
+    paintCounter(el, paths.filter((path) => done.has(path)).length, paths.length);
   }
 
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-done-toggle]')) {
@@ -89,12 +85,21 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') setNavOpen(false);
 });
 
-// Another tab marked a lesson as done.
+// Another tab marked a lesson as done or finished a test.
 window.addEventListener('storage', (event) => {
   if (event.key === DONE_KEY) {
     done = readDone();
     paintProgress();
   }
+  if (event.key === SCORES_KEY) paintScores();
+});
+
+// The back button can bring back a page as it was left, before a lesson was marked or a test taken.
+window.addEventListener('pageshow', (event) => {
+  if (!event.persisted) return;
+  done = readDone();
+  paintProgress();
+  paintScores();
 });
 
 function setNavOpen(open: boolean) {
@@ -103,6 +108,7 @@ function setNavOpen(open: boolean) {
 }
 
 paintProgress();
+paintScores();
 
 // Long course? Scroll the sidebar so the current lesson is visible.
 const sidebar = document.querySelector<HTMLElement>('.sidebar');

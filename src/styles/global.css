@@ -82,6 +82,10 @@ a {
   border-radius: 4px;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .icon {
   display: inline-block;
   flex: none;
@@ -183,6 +187,42 @@ a {
   height: 1.25rem;
 }
 
+/* Lessons | Tests */
+.section-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 1rem;
+}
+
+.section-tabs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 2.25rem;
+  padding: 0 0.8rem;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.section-tabs a:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.section-tabs a[aria-current] {
+  background: var(--accent-soft);
+  color: var(--link);
+}
+
+.section-tabs .icon {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
 /* Language switch: the code of the other language, like PL. */
 .lang-link {
   font-size: 0.8rem;
@@ -281,13 +321,42 @@ main {
 }
 
 @media (max-width: 639px) {
-  .text-button span {
+  .text-button span,
+  .brand span {
     position: absolute;
     width: 1px;
     height: 1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
+  }
+
+  .topbar {
+    gap: 0.25rem;
+    padding: 0 0.75rem;
+  }
+
+  .topbar-actions {
+    gap: 0.1rem;
+  }
+
+  .icon-button,
+  .text-button {
+    min-width: 2.25rem;
+    padding: 0 0.45rem;
+  }
+
+  .section-tabs {
+    margin-left: 0.35rem;
+  }
+
+  .section-tabs a {
+    padding: 0 0.6rem;
+    font-size: 0.875rem;
+  }
+
+  .section-tabs .icon {
+    display: none;
   }
 }
 
@@ -463,6 +532,46 @@ main {
   opacity: 1;
 }
 
+/* Tests: a filled circle once passed, an amber ring while not yet passed. */
+.is-passed .status {
+  border-color: var(--done);
+  background: var(--done);
+}
+
+.is-passed .status .icon {
+  opacity: 1;
+}
+
+.is-attempted:not(.is-passed) .status {
+  border-color: var(--warning);
+}
+
+.score-pill {
+  --c: var(--warning);
+  flex: none;
+  margin-left: auto;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+  color: color-mix(in srgb, var(--c) 75%, var(--text));
+  font-size: 0.75rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.6;
+}
+
+.is-passed .score-pill {
+  --c: var(--done);
+}
+
+[data-test]:not(.is-attempted) .score-pill {
+  display: none;
+}
+
+.lesson-link .score-pill {
+  margin-top: 0.05rem;
+}
+
 .empty {
   padding: 0.5rem;
   color: var(--muted);
@@ -516,12 +625,16 @@ main {
 .home,
 .chapter-page,
 .lesson,
+.tests-page,
+.test-page,
 .not-found {
   margin-inline: auto;
 }
 
 .chapter-page,
 .lesson,
+.tests-page,
+.test-page,
 .not-found {
   max-width: 46rem;
 }
@@ -810,8 +923,14 @@ main {
   border-top: 1px solid var(--border);
 }
 
-.done-button {
-  justify-self: start;
+.lesson-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.test-button .score-pill {
+  margin-left: 0.1rem;
 }
 
 .done-button .when-done {
@@ -1186,6 +1305,385 @@ main {
   text-decoration: var(--shiki-dark-text-decoration) !important;
 }
 
+/* ---------- Tests overview ---------- */
+
+.tests-intro {
+  margin-top: 2rem;
+}
+
+.test-group {
+  margin-top: 2.5rem;
+}
+
+.group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.25rem;
+}
+
+.group-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  scroll-margin-top: calc(var(--topbar-h) + 1.25rem);
+}
+
+.group-header .count {
+  font-size: 0.85rem;
+}
+
+.test-group.is-complete .count {
+  color: var(--done);
+}
+
+.test-group .lesson-rows {
+  margin: 0.75rem 0 0;
+}
+
+.lesson-row .score-pill {
+  margin-left: 0;
+  font-size: 0.8rem;
+}
+
+@media (max-width: 479px) {
+  .test-group .row-meta {
+    display: none;
+  }
+}
+
+/* ---------- Test page ---------- */
+
+.best-chip {
+  display: none;
+  color: var(--warning);
+  font-weight: 600;
+}
+
+.meta.is-attempted .best-chip {
+  display: inline-flex;
+}
+
+.meta.is-passed .best-chip {
+  color: var(--done);
+}
+
+.best-chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.quiz .prose {
+  counter-reset: question;
+}
+
+.question {
+  --c: var(--accent);
+  counter-increment: question;
+  padding: 1.2rem 1.35rem 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.prose > .question + .question {
+  margin-top: 1.25rem;
+}
+
+.question > * {
+  margin-block: 0;
+}
+
+.question > * + * {
+  margin-top: 0.85rem;
+}
+
+.prose .question h2 {
+  position: relative;
+  margin: 0;
+  padding-left: 2.6rem;
+  font-size: 1.15rem;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+/* Question number; turns green or red once the answers are checked. */
+.question h2::before {
+  content: counter(question);
+  position: absolute;
+  top: -0.05rem;
+  left: 0;
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--c) 14%, transparent);
+  color: color-mix(in srgb, var(--c) 80%, var(--text));
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.question.is-right {
+  --c: var(--done);
+}
+
+.question.is-wrong {
+  --c: var(--caution);
+}
+
+.question.is-skipped {
+  --c: var(--warning);
+}
+
+.select-all {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.prose .question h2 + * {
+  margin-top: 0.85rem;
+}
+
+.answers {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  margin-inline: 0;
+  padding: 0;
+  border: 0;
+}
+
+.answer {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 0.95rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  line-height: 1.55;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.answer:hover {
+  border-color: var(--accent);
+}
+
+.answer:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.answer:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.quiz .answer input {
+  flex: none;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0.25rem 0 0;
+  accent-color: var(--accent);
+  vertical-align: baseline;
+}
+
+.quiz .answer input:focus-visible {
+  outline: none;
+}
+
+.answer-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.answer-text > * {
+  margin-block: 0;
+}
+
+.answer-text > * + * {
+  margin-top: 0.5em;
+}
+
+.answer-mark {
+  display: none;
+  flex: none;
+  margin-top: 0.2rem;
+}
+
+.answer-mark .icon {
+  display: none;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+/* Checked: right answers green (dashed when missed), wrong picks red. */
+.is-checked .answer {
+  cursor: default;
+}
+
+.is-checked .answer:hover {
+  border-color: var(--border-strong);
+}
+
+.is-checked .answer:not(.is-answer, .is-picked) {
+  color: var(--muted);
+}
+
+.is-checked .answer.is-answer {
+  border-color: var(--done);
+  background: color-mix(in srgb, var(--done) 10%, var(--surface));
+}
+
+.is-checked .answer.is-answer:not(.is-picked) {
+  border-style: dashed;
+}
+
+.is-checked .answer.is-picked:not(.is-answer) {
+  border-color: var(--caution);
+  background: color-mix(in srgb, var(--caution) 8%, var(--surface));
+}
+
+.is-checked .answer-mark {
+  display: block;
+}
+
+.is-answer .mark-right {
+  display: block;
+  color: var(--done);
+}
+
+.is-picked:not(.is-answer) .mark-wrong {
+  display: block;
+  color: var(--caution);
+}
+
+.feedback {
+  padding: 0.85rem 1.1rem;
+  border-left: 4px solid var(--c);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--c) 8%, var(--surface));
+}
+
+.feedback > * {
+  margin-block: 0;
+}
+
+.feedback > * + * {
+  margin-top: 0.6em;
+}
+
+.verdict {
+  color: color-mix(in srgb, var(--c) 80%, var(--text));
+  font-weight: 700;
+}
+
+.verdict span {
+  display: none;
+}
+
+.is-right .when-right,
+.is-wrong .when-wrong,
+.is-skipped .when-skipped {
+  display: inline;
+}
+
+.quiz-submit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 2rem;
+}
+
+.quiz-submit p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.quiz-submit strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.quiz-result {
+  --c: var(--warning);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: 2rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--c) 9%, var(--surface));
+  scroll-margin: calc(var(--topbar-h) + 1rem) 0 1rem;
+}
+
+.quiz-result.is-passed {
+  --c: var(--done);
+}
+
+.quiz-result:focus {
+  outline: none;
+}
+
+.result-percent {
+  margin: 0;
+  color: color-mix(in srgb, var(--c) 85%, var(--text));
+  font-size: 2.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.result-text p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.result-text strong {
+  color: var(--text);
+}
+
+.result-text .result-verdict {
+  margin-bottom: 0.15rem;
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.quiz-result.is-passed .when-failed,
+.quiz-result:not(.is-passed) .when-passed {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .question {
+    padding: 1rem 1rem 1.1rem;
+  }
+
+  .quiz-result {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 1.1rem 1.2rem;
+  }
+
+  .quiz-result .button {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}
+
 /* ---------- 404 ---------- */
 
 .not-found {
@@ -1217,7 +1715,9 @@ main {
   .sidebar,
   .scrim,
   .lesson-end,
-  .on-this-page {
+  .on-this-page,
+  .quiz-submit,
+  .quiz-result {
     display: none !important;
   }
 

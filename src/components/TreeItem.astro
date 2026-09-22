@@ -1,6 +1,7 @@
 ---
 import type { Chapter, Lesson } from '../lib/course.ts';
 import { langAttr, ui, type Lang } from '../lib/i18n.ts';
+import { testUrl } from '../lib/paths.ts';
 import Icon from './Icon.astro';
 
 interface Props {
@@ -8,13 +9,54 @@ interface Props {
   lang: Lang;
   /** Language-neutral URL of the current page. */
   current: string;
+  /** Links lessons, or the tests of the lessons that have one. */
+  section: 'lessons' | 'tests';
 }
 
-const { node, lang, current } = Astro.props;
+const { node, lang, current, section } = Astro.props;
+/** Lessons with a test, inside a chapter; the tests sidebar leaves out chapters without any. */
+const tested = node.kind === 'chapter' ? node.lessons.filter((lesson) => lesson.test) : [];
 ---
 
 {
-  node.kind === 'lesson' ? (
+  section === 'tests' ? (
+    node.kind === 'lesson' ? (
+      node.test && (
+        <li>
+          <a
+            class="lesson-link"
+            href={node.test.url}
+            data-test={node.path}
+            aria-current={node.test.path === current ? 'page' : undefined}
+          >
+            <span class="status">
+              <Icon name="check" />
+            </span>
+            <span lang={langAttr(node.lang, lang)}>{node.title}</span>
+            <span class="score-pill" data-test-score></span>
+          </a>
+        </li>
+      )
+    ) : (
+      tested.length > 0 && (
+        <li>
+          <details open={current.startsWith(testUrl(node.path))}>
+            <summary data-test-progress={JSON.stringify(tested.map((lesson) => lesson.path))}>
+              <span lang={langAttr(node.lang, lang)}>{node.title}</span>
+              <span class="count" data-progress-label>
+                {tested.length}
+              </span>
+            </summary>
+            <ol>
+              {node.children.map((child) => (
+                <Astro.self node={child} lang={lang} current={current} section={section} />
+              ))}
+            </ol>
+          </details>
+        </li>
+      )
+    )
+  ) : node.kind === 'lesson' ? (
     <li>
       <a
         class="lesson-link"
@@ -46,7 +88,7 @@ const { node, lang, current } = Astro.props;
             </li>
           )}
           {node.children.map((child) => (
-            <Astro.self node={child} lang={lang} current={current} />
+            <Astro.self node={child} lang={lang} current={current} section={section} />
           ))}
         </ol>
       </details>

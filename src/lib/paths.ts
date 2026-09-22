@@ -10,6 +10,17 @@ import { DEFAULT_LANG, isLang, type Lang } from './i18n.ts';
 /** Folder, relative to the project root, that holds every lesson. */
 export const NOTES_DIR = 'notes';
 
+/** Folder, relative to the project root, that holds the tests: `tests/vocabulary/sft.md` tests `notes/vocabulary/sft.md`. */
+export const TESTS_DIR = 'tests';
+
+/** Language-neutral URL of the tests overview; each test is published under it. */
+export const TESTS_PATH = '/tests/';
+
+/** URL of the test for the lesson at `lessonPath`: `/vocabulary/sft/` → `/tests/vocabulary/sft/` */
+export function testUrl(lessonPath: string): string {
+  return TESTS_PATH + lessonPath.slice(1);
+}
+
 /** A folder's `README.md` / `index.md` is its chapter intro, not a lesson. */
 const INDEX_NAMES = new Set(['readme', 'index']);
 

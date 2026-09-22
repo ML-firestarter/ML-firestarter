@@ -4,7 +4,7 @@ import '../styles/global.css';
 import Icon from '../components/Icon.astro';
 import Sidebar from '../components/Sidebar.astro';
 import { DEFAULT_LANG, LANGS, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
-import { NOTES_DIR } from '../lib/paths.ts';
+import { NOTES_DIR, TESTS_PATH } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
 
 interface Props {
@@ -17,10 +17,16 @@ interface Props {
   /** Page title; the site name is appended. */
   title?: string;
   description?: string;
+  /** Part of the site the page belongs to: picks the tab and what the sidebar lists. */
+  section?: 'lessons' | 'tests';
 }
 
-const { lang, path, title, description = site.tagline[lang] } = Astro.props;
+const { lang, path, title, description = site.tagline[lang], section = 'lessons' } = Astro.props;
 const t = ui[lang];
+const tabs = [
+  { section: 'lessons', path: '/', icon: 'book', label: t.lessonsTab },
+  { section: 'tests', path: TESTS_PATH, icon: 'quiz', label: t.tests.title },
+] as const;
 const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path, code), Astro.site).href;
 ---
 
@@ -64,6 +70,19 @@ const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path,
         <img src="/favicon.svg" alt="" width="28" height="28" />
         <span>{site.title}</span>
       </a>
+      <nav class="section-tabs" aria-label={t.sections}>
+        {
+          tabs.map((tab) => (
+            <a
+              href={localizeUrl(tab.path, lang)}
+              aria-current={tab.section !== section ? undefined : tab.path === path ? 'page' : 'true'}
+            >
+              <Icon name={tab.icon} />
+              <span>{tab.label}</span>
+            </a>
+          ))
+        }
+      </nav>
       <div class="topbar-actions">
         <a class="text-button" href={`${site.repo}/tree/${site.branch}/${NOTES_DIR}`}>
           <Icon name="book" />
@@ -92,7 +111,7 @@ const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path,
     </header>
     <div class="shell">
       <aside class="sidebar" id="sidebar">
-        <Sidebar lang={lang} current={path ?? ''} />
+        <Sidebar lang={lang} current={path ?? ''} section={section} />
       </aside>
       <div class="scrim" data-nav-close></div>
       <main id="content">

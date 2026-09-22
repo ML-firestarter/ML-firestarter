@@ -91,6 +91,29 @@ npm run dev
 
 Then open <http://localhost:4321>. Pages update as you save.
 
+## Tests
+
+Every lesson can have a short test in the **Tests** tab. A test is a Markdown file in the `tests` folder, at the same path as its lesson in `notes`: `tests/vocabulary/sft.md` tests `notes/vocabulary/sft.md`, and `tests/vocabulary/sft.pl.md` is its Polish translation. The test takes its title from the lesson.
+
+Each `## Heading` in a test is a question. The checklist under it holds the answers, `[x]` for right ones and `[ ]` for wrong ones. Anything after the list explains the answer and shows once the answers are checked:
+
+```md
+## Why is SFT called *supervised*?
+
+- [x] Every example comes with the answer to imitate
+- [ ] People watch the model while it trains
+- [ ] The model supervises its own training
+
+In RL, by contrast, the model only gets a score.
+```
+
+- A question with several `[x]` answers gets checkboxes, and counts as right only when exactly its right answers are picked.
+- Text, math, code or a picture between the heading and the list is part of the question.
+- The answers come in a new order on every attempt, so avoid answers like "Both of the above".
+- A test is passed when at least 80% of its questions are answered right. The pass mark is `passScore` in `src/site.config.ts`.
+- `draft: true` in its frontmatter hides a test, and a hidden lesson's test is hidden too.
+- If a test has a mistake, such as a question without a right answer, or there's no lesson at its path, the build fails and says what to fix.
+
 ## Tracking progress
 
-Press **Mark lesson as done** at the end of a lesson. Progress is stored in this browser only, so it doesn't sync between devices.
+Press **Mark lesson as done** at the end of a lesson. After you take a test, your best score shows in the **Tests** tab and at the end of the lesson. Progress and scores are shared between the languages and stored in this browser only, so they don't sync between devices.

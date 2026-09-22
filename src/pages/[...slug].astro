@@ -1,15 +1,23 @@
 ---
 import ChapterView from '../components/ChapterView.astro';
 import LessonView from '../components/LessonView.astro';
+import TestsView from '../components/TestsView.astro';
+import TestView from '../components/TestView.astro';
 import Base from '../layouts/Base.astro';
 import { getCourse } from '../lib/course.ts';
-import { LANGS, type Lang } from '../lib/i18n.ts';
+import { LANGS, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
+import { TESTS_PATH } from '../lib/paths.ts';
 
-/** Every lesson and chapter, once per language. */
+/** Every lesson, chapter and test, and the tests overview, once per language. */
 export async function getStaticPaths() {
   const courses = await Promise.all(LANGS.map((lang) => getCourse(lang)));
   return courses.flatMap((course) =>
-    [...course.lessons, ...course.chapters].map((node) => ({
+    [
+      ...course.lessons,
+      ...course.chapters,
+      ...course.tests,
+      { path: TESTS_PATH, url: localizeUrl(TESTS_PATH, course.lang) },
+    ].map((node) => ({
       params: { slug: node.url.slice(1, -1) },
       props: { lang: course.lang, path: node.path },
     })),
@@ -18,15 +26,34 @@ export async function getStaticPaths() {
 
 interface Props {
   lang: Lang;
-  /** Language-neutral URL of the lesson or chapter. */
+  /** Language-neutral URL of the page. */
   path: string;
 }
 
 const { lang, path } = Astro.props;
 const course = await getCourse(lang);
-const node = course.byPath.get(path)!;
+const t = ui[lang].tests;
+const node = path === TESTS_PATH ? undefined : course.byPath.get(path)!;
 ---
 
-<Base lang={lang} path={path} title={node.title} description={node.description}>
-  {node.kind === 'lesson' ? <LessonView course={course} lesson={node} /> : <ChapterView lang={lang} chapter={node} />}
-</Base>
+{
+  !node ? (
+    <Base lang={lang} path={path} title={t.title} description={t.tagline} section="tests">
+      <TestsView lang={lang} />
+    </Base>
+  ) : node.kind === 'test' ? (
+    <Base
+      lang={lang}
+      path={path}
+      title={t.pageTitle(node.title)}
+      description={node.description ?? node.lesson.description}
+      section="tests"
+    >
+      <TestView course={course} test={node} />
+    </Base>
+  ) : (
+    <Base lang={lang} path={path} title={node.title} description={node.description}>
+      {node.kind === 'lesson' ? <LessonView course={course} lesson={node} /> : <ChapterView lang={lang} chapter={node} />}
+    </Base>
+  )
+}

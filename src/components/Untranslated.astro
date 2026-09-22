@@ -8,8 +8,8 @@ import Icon from './Icon.astro';
 interface Props {
   /** Language of the page. */
   lang: Lang;
-  /** The note shown because it has no translation into `lang` yet. */
-  note: CollectionEntry<'notes'>;
+  /** The note or test shown because it has no translation into `lang` yet. */
+  note: CollectionEntry<'notes'> | CollectionEntry<'tests'>;
   noteLang: Lang;
 }
 
