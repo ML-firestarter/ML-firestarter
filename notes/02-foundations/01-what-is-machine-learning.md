@@ -34,6 +34,8 @@ Supervised learning splits further by what it predicts:
 - **Parameters**: the numbers inside the model that learning adjusts.
 - **Loss**: how far the predictions are from the labels. Training means making it small.
 
+More terms, such as [SFT](../vocabulary/sft.md) and [RL](../vocabulary/rl.md), are in the [Vocabulary](../vocabulary/) chapter.
+
 ## Training, validation and test data
 
 A model that has memorized its training data can look perfect and still fail on new data. That's called **overfitting**. To catch it, split the data three ways:
