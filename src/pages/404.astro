@@ -1,12 +1,9 @@
 ---
+import NotFoundView from '../components/NotFoundView.astro';
 import Base from '../layouts/Base.astro';
+import { DEFAULT_LANG, ui } from '../lib/i18n.ts';
 ---
 
-<Base title="Page not found" current="">
-  <div class="not-found">
-    <p class="eyebrow">404</p>
-    <h1 class="page-title">This page doesn't exist</h1>
-    <p class="lede">The lesson may have been renamed or moved. Pick one from the list, or start from the home page.</p>
-    <a class="button primary" href="/">Go to the home page</a>
-  </div>
+<Base lang={DEFAULT_LANG} title={ui[DEFAULT_LANG].notFound.title}>
+  <NotFoundView lang={DEFAULT_LANG} />
 </Base>

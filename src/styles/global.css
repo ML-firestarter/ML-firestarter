@@ -183,6 +183,13 @@ a {
   height: 1.25rem;
 }
 
+/* Language switch: the code of the other language, like PL. */
+.lang-link {
+  font-size: 0.8rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+}
+
 .nav-button {
   display: none;
 }
@@ -591,6 +598,25 @@ main {
 
 .meta a:hover {
   color: var(--link);
+}
+
+/* Shown instead of a translation that doesn't exist yet. */
+.untranslated {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0 0 2rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.untranslated .icon {
+  margin-top: 0.15rem;
 }
 
 .done-chip {

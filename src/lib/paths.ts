@@ -5,6 +5,7 @@
  * so a link to `../02-foundations/01-intro.md` points at the exact URL
  * that lesson is published under.
  */
+import { DEFAULT_LANG, isLang, type Lang } from './i18n.ts';
 
 /** Folder, relative to the project root, that holds every lesson. */
 export const NOTES_DIR = 'notes';
@@ -15,6 +16,9 @@ const INDEX_NAMES = new Set(['readme', 'index']);
 /** Leading ordering number such as `01-`, `2_`, `03. ` or `4 `. */
 const ORDER_PREFIX = /^\d+[ ._-]+(?=\S)/;
 
+/** Language code before the extension, as in `sft.pl.md`. */
+const LANG_SUFFIX = /\.([a-z]{2})(\.md)$/i;
+
 export function stripExtension(name: string): string {
   return name.replace(/\.md$/i, '');
 }
@@ -23,8 +27,32 @@ export function stripOrder(name: string): string {
   return name.replace(ORDER_PREFIX, '') || name;
 }
 
+/** Whether a file or folder name starts with an ordering number. */
+export function hasOrder(name: string): boolean {
+  return ORDER_PREFIX.test(stripExtension(name));
+}
+
 export function isIndexFile(name: string): boolean {
   return /\.md$/i.test(name) && INDEX_NAMES.has(stripExtension(name).toLowerCase());
+}
+
+/**
+ * Separates a note's language from its path. Notes without a language code
+ * are in the default language.
+ *
+ *   `vocabulary/sft.pl.md` → `{ file: 'vocabulary/sft.md', lang: 'pl' }`
+ *   `vocabulary/sft.md`    → `{ file: 'vocabulary/sft.md', lang: 'en' }`
+ */
+export function splitLang(file: string): { file: string; lang: Lang } {
+  const match = LANG_SUFFIX.exec(file);
+  const lang = match?.[1].toLowerCase() ?? '';
+  if (match && isLang(lang)) return { file: file.slice(0, match.index) + match[2], lang };
+  return { file, lang: DEFAULT_LANG };
+}
+
+/** `sft.md` → `sft.pl.md`; the default language keeps the plain name. */
+export function withLang(file: string, lang: Lang): string {
+  return lang === DEFAULT_LANG ? file : file.replace(/(\.md)$/i, `.${lang}$1`);
 }
 
 /** `02-linear-regression.md` → `Linear regression` */
@@ -49,17 +77,30 @@ function segmentSlug(name: string): string {
 }
 
 /**
- * URL of a lesson file or folder, given its path inside `notes/`.
- * Ordering numbers are dropped, so renumbering files keeps URLs stable.
+ * Language-neutral URL of a lesson file or folder, given its path inside `notes/`.
+ * Ordering numbers and language codes are dropped, so renumbering files keeps
+ * URLs stable and every translation shares its original's address.
  *
- *   `02-foundations/01-what-is-ml.md` → `/foundations/what-is-ml/`
- *   `02-foundations/README.md`        → `/foundations/`
- *   `02-foundations`                  → `/foundations/`
+ *   `02-foundations/01-what-is-ml.md`    → `/foundations/what-is-ml/`
+ *   `02-foundations/01-what-is-ml.pl.md` → `/foundations/what-is-ml/`
+ *   `02-foundations/README.md`           → `/foundations/`
+ *   `02-foundations`                     → `/foundations/`
  */
 export function noteUrl(relativePath: string): string {
-  const parts = relativePath.split('/').filter(Boolean);
+  const parts = splitLang(relativePath).file.split('/').filter(Boolean);
   if (parts.length > 0 && isIndexFile(parts[parts.length - 1])) parts.pop();
   return '/' + parts.map((part) => `${segmentSlug(part)}/`).join('');
+}
+
+/** Relative link between two URLs from `noteUrl`, so it works under any language prefix. */
+export function relativeUrl(from: string, to: string): string {
+  const source = from.split('/').filter(Boolean);
+  const target = to.split('/').filter(Boolean);
+  let shared = 0;
+  while (shared < source.length && shared < target.length && source[shared] === target[shared]) shared++;
+  const up = '../'.repeat(source.length - shared);
+  const down = target.slice(shared).map((part) => `${part}/`).join('');
+  return up + down || './';
 }
 
 /**

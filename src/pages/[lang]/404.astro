@@ -1,0 +1,20 @@
+---
+import NotFoundView from '../../components/NotFoundView.astro';
+import Base from '../../layouts/Base.astro';
+import { DEFAULT_LANG, LANGS, ui, type Lang } from '../../lib/i18n.ts';
+
+/** Error page of each translation; netlify.toml serves it for missing pages under /pl/. */
+export function getStaticPaths() {
+  return LANGS.filter((lang) => lang !== DEFAULT_LANG).map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<Base lang={lang} title={ui[lang].notFound.title}>
+  <NotFoundView lang={lang} />
+</Base>

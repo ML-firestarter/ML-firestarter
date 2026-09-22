@@ -1,34 +1,46 @@
 ---
 import { render } from 'astro:content';
-import { newLessonUrl, type Chapter } from '../lib/course.ts';
+import { newLessonUrl, type Chapter, type Lesson } from '../lib/course.ts';
+import { langAttr, ui, type Lang } from '../lib/i18n.ts';
 import { site } from '../site.config.ts';
 import Crumbs from './Crumbs.astro';
 import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+import Untranslated from './Untranslated.astro';
 
 interface Props {
+  lang: Lang;
   chapter: Chapter;
 }
 
-const { chapter } = Astro.props;
+const { lang, chapter } = Astro.props;
+const t = ui[lang];
+/** Set when the chapter's intro isn't translated yet and shows the original. */
+const contentLang = langAttr(chapter.lang, lang);
 const Intro = chapter.intro ? (await render(chapter.intro)).Content : undefined;
 const minutes = chapter.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
 const first = chapter.lessons[0];
+const paths = (lessons: Lesson[]) => JSON.stringify(lessons.map((lesson) => lesson.path));
 ---
 
 <div class="chapter-page">
   <header class="page-header">
-    <Crumbs parents={chapter.parents} />
-    <h1 class="page-title">{chapter.title}</h1>
-    {chapter.description && <p class="lede">{chapter.description}</p>}
-    <div class="progress-summary" data-progress={JSON.stringify(chapter.lessons.map((lesson) => lesson.url))}>
+    <Crumbs lang={lang} parents={chapter.parents} />
+    <h1 class="page-title" lang={contentLang}>{chapter.title}</h1>
+    {chapter.description && <p class="lede" lang={contentLang}>{chapter.description}</p>}
+    <div class="progress-summary" data-progress={paths(chapter.lessons)}>
       <div class="bar"><span></span></div>
-      <p><strong data-progress-label>0/{chapter.lessons.length}</strong> lessons done · about {minutes} min of reading</p>
+      <p>
+        <Phrase text={t.lessonsDone}><strong data-progress-label>0/{chapter.lessons.length}</strong></Phrase> · {t.readingTotal(minutes)}
+      </p>
     </div>
   </header>
 
+  {chapter.intro && contentLang && <Untranslated lang={lang} note={chapter.intro} noteLang={chapter.lang} />}
+
   {
     Intro && (
-      <div class="prose">
+      <div class="prose" lang={contentLang}>
         <Intro />
       </div>
     )
@@ -39,24 +51,26 @@ const first = chapter.lessons[0];
       chapter.children.map((child) =>
         child.kind === 'lesson' ? (
           <li>
-            <a class="lesson-row" href={child.url} data-lesson={child.url}>
+            <a class="lesson-row" href={child.url} data-lesson={child.path}>
               <span class="status"><Icon name="check" /></span>
-              <span class="row-text">
+              <span class="row-text" lang={langAttr(child.lang, lang)}>
                 <span class="row-title">{child.title}</span>
                 {child.description && <span class="row-description">{child.description}</span>}
               </span>
-              <span class="row-meta">{child.minutes} min</span>
+              <span class="row-meta">{t.minutes(child.minutes)}</span>
             </a>
           </li>
         ) : (
           <li>
-            <a class="lesson-row" href={child.url} data-progress={JSON.stringify(child.lessons.map((lesson) => lesson.url))}>
+            <a class="lesson-row" href={child.url} data-progress={paths(child.lessons)}>
               <span class="status section"><Icon name="book" /></span>
-              <span class="row-text">
+              <span class="row-text" lang={langAttr(child.lang, lang)}>
                 <span class="row-title">{child.title}</span>
                 {child.description && <span class="row-description">{child.description}</span>}
               </span>
-              <span class="row-meta"><span data-progress-label>{child.lessons.length}</span> lessons</span>
+              <span class="row-meta">
+                <Phrase text={t.sectionLessons}><span data-progress-label>0/{child.lessons.length}</span></Phrase>
+              </span>
             </a>
           </li>
         ),
@@ -65,7 +79,7 @@ const first = chapter.lessons[0];
   </ol>
 
   <div class="actions">
-    {first && <a class="button primary" href={first.url}>Start chapter<Icon name="right" /></a>}
-    <a class="button" href={newLessonUrl(site.repo, site.branch, chapter)}><Icon name="plus" />Add a lesson on GitHub</a>
+    {first && <a class="button primary" href={first.url}>{t.startChapter}<Icon name="right" /></a>}
+    <a class="button" href={newLessonUrl(site.repo, site.branch, chapter)}><Icon name="plus" />{t.addLesson}</a>
   </div>
 </div>

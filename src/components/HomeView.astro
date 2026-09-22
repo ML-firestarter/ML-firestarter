@@ -1,0 +1,128 @@
+---
+import { render } from 'astro:content';
+import { getCourse, type Lesson } from '../lib/course.ts';
+import { langAttr, ui, type Lang } from '../lib/i18n.ts';
+import { NOTES_DIR } from '../lib/paths.ts';
+import { site } from '../site.config.ts';
+import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+import Untranslated from './Untranslated.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const PREVIEW_LESSONS = 8;
+
+const { lang } = Astro.props;
+const t = ui[lang];
+const course = await getCourse(lang);
+const { root } = course;
+/** Set when the home intro isn't translated yet and shows the original. */
+const contentLang = langAttr(root.lang, lang);
+const Intro = root.intro ? (await render(root.intro)).Content : undefined;
+const chapters = root.children.filter((node) => node.kind === 'chapter');
+const looseLessons = root.children.filter((node) => node.kind === 'lesson');
+const minutes = course.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
+const first = course.lessons[0];
+const paths = (lessons: Lesson[]) => JSON.stringify(lessons.map((lesson) => lesson.path));
+---
+
+<div class="home">
+  <section class="hero">
+    <p class="eyebrow">{t.eyebrow}</p>
+    <h1>{site.title}</h1>
+    <p class="tagline">{site.tagline[lang]}</p>
+    {
+      first ? (
+        <>
+          <div class="progress-summary" data-progress={paths(course.lessons)}>
+            <div class="bar"><span></span></div>
+            <p>
+              <Phrase text={t.lessonsDone}><strong data-progress-label>0/{course.lessons.length}</strong></Phrase> · {t.chapterCount(chapters.length)} · {t.readingTotal(minutes)}
+            </p>
+          </div>
+          <a
+            class="button primary"
+            href={first.url}
+            data-next-up={JSON.stringify(course.lessons.map(({ path, url, title }) => ({ path, url, title })))}
+            data-next-labels={JSON.stringify(t.nextUp)}
+          >
+            <span><span data-next-label>{t.nextUp.start}</span> <span data-next-title>{first.title}</span></span>
+            <Icon name="right" />
+          </a>
+        </>
+      ) : (
+        <p class="lede">
+          <Phrase text={t.empty}><code>{NOTES_DIR}</code></Phrase>
+        </p>
+      )
+    }
+  </section>
+
+  {root.intro && contentLang && <Untranslated lang={lang} note={root.intro} noteLang={root.lang} />}
+
+  {
+    Intro && (
+      <div class="prose home-intro" lang={contentLang}>
+        <Intro />
+      </div>
+    )
+  }
+
+  {
+    looseLessons.length > 0 && (
+      <section class="loose-lessons" aria-label={t.lessonsNav}>
+        <ol class="card-lessons">
+          {looseLessons.map((lesson) => (
+            <li>
+              <a class="lesson-link" href={lesson.url} data-lesson={lesson.path}>
+                <span class="status"><Icon name="check" /></span>
+                <span lang={langAttr(lesson.lang, lang)}>{lesson.title}</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )
+  }
+
+  {
+    chapters.length > 0 && (
+      <section class="chapter-grid" aria-label={t.chaptersNav}>
+        {chapters.map((chapter, index) => (
+          <article class="chapter-card" data-progress={paths(chapter.lessons)}>
+            <p class="eyebrow">{t.chapterNumber(index + 1)}</p>
+            <h2 lang={langAttr(chapter.lang, lang)}>
+              <a href={chapter.url}>{chapter.title}</a>
+            </h2>
+            {chapter.description && (
+              <p class="card-description" lang={langAttr(chapter.lang, lang)}>
+                {chapter.description}
+              </p>
+            )}
+            <ol class="card-lessons">
+              {chapter.lessons.slice(0, PREVIEW_LESSONS).map((lesson) => (
+                <li>
+                  <a class="lesson-link" href={lesson.url} data-lesson={lesson.path}>
+                    <span class="status"><Icon name="check" /></span>
+                    <span lang={langAttr(lesson.lang, lang)}>{lesson.title}</span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+            {chapter.lessons.length > PREVIEW_LESSONS && (
+              <a class="more-link" href={chapter.url}>
+                {t.moreLessons(chapter.lessons.length - PREVIEW_LESSONS)}
+              </a>
+            )}
+            <div class="card-footer">
+              <div class="bar"><span></span></div>
+              <span data-progress-label>0/{chapter.lessons.length}</span>
+            </div>
+          </article>
+        ))}
+      </section>
+    )
+  }
+</div>

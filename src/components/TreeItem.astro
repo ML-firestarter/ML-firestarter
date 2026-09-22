@@ -1,13 +1,16 @@
 ---
 import type { Chapter, Lesson } from '../lib/course.ts';
+import { langAttr, ui, type Lang } from '../lib/i18n.ts';
 import Icon from './Icon.astro';
 
 interface Props {
   node: Chapter | Lesson;
+  lang: Lang;
+  /** Language-neutral URL of the current page. */
   current: string;
 }
 
-const { node, current } = Astro.props;
+const { node, lang, current } = Astro.props;
 ---
 
 {
@@ -16,20 +19,20 @@ const { node, current } = Astro.props;
       <a
         class="lesson-link"
         href={node.url}
-        data-lesson={node.url}
-        aria-current={node.url === current ? 'page' : undefined}
+        data-lesson={node.path}
+        aria-current={node.path === current ? 'page' : undefined}
       >
         <span class="status">
           <Icon name="check" />
         </span>
-        <span>{node.title}</span>
+        <span lang={langAttr(node.lang, lang)}>{node.title}</span>
       </a>
     </li>
   ) : (
     <li>
-      <details open={current.startsWith(node.url)}>
-        <summary data-progress={JSON.stringify(node.lessons.map((lesson) => lesson.url))}>
-          <span>{node.title}</span>
+      <details open={current.startsWith(node.path)}>
+        <summary data-progress={JSON.stringify(node.lessons.map((lesson) => lesson.path))}>
+          <span lang={langAttr(node.lang, lang)}>{node.title}</span>
           <span class="count" data-progress-label>
             {node.lessons.length}
           </span>
@@ -37,13 +40,13 @@ const { node, current } = Astro.props;
         <ol>
           {node.intro && (
             <li>
-              <a class="lesson-link overview" href={node.url} aria-current={node.url === current ? 'page' : undefined}>
-                Overview
+              <a class="lesson-link overview" href={node.url} aria-current={node.path === current ? 'page' : undefined}>
+                {ui[lang].overview}
               </a>
             </li>
           )}
           {node.children.map((child) => (
-            <Astro.self node={child} current={current} />
+            <Astro.self node={child} lang={lang} current={current} />
           ))}
         </ol>
       </details>

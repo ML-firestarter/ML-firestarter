@@ -3,28 +3,43 @@ import 'katex/dist/katex.min.css';
 import '../styles/global.css';
 import Icon from '../components/Icon.astro';
 import Sidebar from '../components/Sidebar.astro';
+import { DEFAULT_LANG, LANGS, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
 import { NOTES_DIR } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
 
 interface Props {
+  lang: Lang;
+  /**
+   * Language-neutral URL of the page, like `/vocabulary/sft/`. Highlights the page
+   * in the sidebar and links to it in the other languages; error pages leave it out.
+   */
+  path?: string;
   /** Page title; the site name is appended. */
   title?: string;
   description?: string;
-  /** URL of the page, used to highlight it in the sidebar. */
-  current: string;
 }
 
-const { title, description = site.tagline, current } = Astro.props;
+const { lang, path, title, description = site.tagline[lang] } = Astro.props;
+const t = ui[lang];
+const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path, code), Astro.site).href;
 ---
 
 <!doctype html>
-<html lang={site.lang}>
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title ? `${title} · ${site.title}` : site.title}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    {
+      absolute(lang) && (
+        <>
+          {LANGS.map((code) => <link rel="alternate" hreflang={code} href={absolute(code)} />)}
+          <link rel="alternate" hreflang="x-default" href={absolute(DEFAULT_LANG)} />
+        </>
+      )
+    }
     <script is:inline>
       (() => {
         let theme;
@@ -39,31 +54,45 @@ const { title, description = site.tagline, current } = Astro.props;
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#content">Skip to content</a>
+    <a class="skip-link" href="#content">{t.skipLink}</a>
     <header class="topbar">
       <button class="icon-button nav-button" type="button" data-nav-toggle aria-controls="sidebar" aria-expanded="false">
         <Icon name="menu" />
-        <span class="visually-hidden">Lessons menu</span>
+        <span class="visually-hidden">{t.menu}</span>
       </button>
-      <a class="brand" href="/">
+      <a class="brand" href={localizeUrl('/', lang)}>
         <img src="/favicon.svg" alt="" width="28" height="28" />
         <span>{site.title}</span>
       </a>
       <div class="topbar-actions">
         <a class="text-button" href={`${site.repo}/tree/${site.branch}/${NOTES_DIR}`}>
           <Icon name="book" />
-          <span>Notes on GitHub</span>
+          <span>{t.github}</span>
         </a>
+        {
+          LANGS.filter((code) => code !== lang).map((code) => (
+            <a
+              class="icon-button lang-link"
+              href={localizeUrl(path ?? '/', code)}
+              hreflang={code}
+              lang={code}
+              title={ui[code].readIn}
+            >
+              <span aria-hidden="true">{code.toUpperCase()}</span>
+              <span class="visually-hidden">{ui[code].readIn}</span>
+            </a>
+          ))
+        }
         <button class="icon-button" type="button" data-theme-toggle>
           <Icon name="moon" class="when-light" />
           <Icon name="sun" class="when-dark" />
-          <span class="visually-hidden">Switch light or dark theme</span>
+          <span class="visually-hidden">{t.theme}</span>
         </button>
       </div>
     </header>
     <div class="shell">
       <aside class="sidebar" id="sidebar">
-        <Sidebar current={current} />
+        <Sidebar lang={lang} current={path ?? ''} />
       </aside>
       <div class="scrim" data-nav-close></div>
       <main id="content">

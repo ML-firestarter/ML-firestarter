@@ -15,8 +15,10 @@ Common revenue models for AI products:
 - **Freemium**: a free tier that brings users in, with limits that nudge heavy users to pay.
 - **Advertising**: the product is free to use and advertisers pay to reach its users.
 
-AI products have an unusual cost structure. Serving one more user of traditional software costs almost nothing, but every AI response takes GPU time to generate (see [inference](inference.md)). That's why AI pricing often follows usage, why flat subscriptions come with usage limits, and why gross margin, the share of revenue left after paying for what was sold, gets so much attention.
+AI products have an unusual cost structure. Serving one more user of traditional software costs almost nothing, but every AI response takes GPU time to generate (see [inference](inference.md)). That's why AI pricing often follows usage, why flat subscriptions come with usage limits, and why [gross margin](gross-margin.md), the share of revenue left after paying for what was sold, gets so much attention.
+
+A subscription business also watches [ARR](arr.md) and [churn](churn.md), and [unit economics](unit-economics.md) shows whether each customer is worth what it costs to win them.
 
 **Example:** a chat app charges \$20 a month, and each message costs it about \$0.004 of GPU time to answer. A user who sends 30 messages a day costs about \$3.60 a month to serve (30 × 30 × \$0.004), a gross margin of 82%. A user who sends 1,000 messages a day costs \$120 a month, six times what they pay.
 
-**Related:** [Inference](inference.md) · [Token](token.md)
+**Related:** [Gross margin](gross-margin.md) · [ARR](arr.md) · [Unit economics](unit-economics.md) · [Inference](inference.md) · [Token](token.md)

@@ -1,20 +1,24 @@
 ---
 import type { Chapter } from '../lib/course.ts';
+import { langAttr, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
 
 interface Props {
+  lang: Lang;
   parents: Chapter[];
 }
 
-const { parents } = Astro.props;
+const { lang, parents } = Astro.props;
 ---
 
-<nav class="crumbs" aria-label="Breadcrumb">
-  <a href="/">Home</a>
+<nav class="crumbs" aria-label={ui[lang].crumbs}>
+  <a href={localizeUrl('/', lang)}>{ui[lang].home}</a>
   {
     parents.map((chapter) => (
       <>
         <span class="sep" aria-hidden="true">/</span>
-        <a href={chapter.url}>{chapter.title}</a>
+        <a href={chapter.url} lang={langAttr(chapter.lang, lang)}>
+          {chapter.title}
+        </a>
       </>
     ))
   }

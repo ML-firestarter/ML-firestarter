@@ -15,20 +15,27 @@ This site is built from the `notes` folder of the ML-workout repository on GitHu
 ```text
 notes/
 ├── README.md                        ← home page introduction
+├── README.pl.md                     ← the same in Polish
 ├── 01-start-here/
+│   ├── README.md                    ← chapter introduction
 │   ├── 01-how-this-works.md         ← a lesson
+│   ├── 01-how-this-works.pl.md      ← its Polish translation
 │   └── 02-markdown-cheatsheet.md
-└── 02-foundations/
-    ├── README.md                    ← chapter introduction
-    ├── 01-what-is-machine-learning.md
-    ├── 02-linear-regression.md
-    └── images/
-        └── linear-regression.svg
+├── 02-foundations/
+│   ├── README.md
+│   ├── 01-what-is-machine-learning.md
+│   ├── 02-linear-regression.md
+│   └── images/
+│       └── linear-regression.svg
+└── vocabulary/                      ← no numbers: sorted by title
+    ├── README.md
+    ├── agent.md
+    └── arr.md
 ```
 
 ## Order and names
 
-Files and folders are sorted by name, so start each name with a number: `01-`, `02-`, `03-`… The number is left out of the page address and the title, so `02-foundations/01-what-is-machine-learning.md` is published at `/foundations/what-is-machine-learning/`.
+Files and folders whose names start with a number, like `01-`, `02-`, `03-`…, come first, in number order. Everything else follows alphabetically by title, which suits reference chapters such as the vocabulary. The number is left out of the page address and the title, so `02-foundations/01-what-is-machine-learning.md` is published at `/foundations/what-is-machine-learning/`.
 
 A lesson's title is, in order of preference:
 
@@ -39,7 +46,7 @@ A lesson's title is, in order of preference:
 A chapter's title is the first heading of its `README.md`, or else its folder name.
 
 > [!NOTE]
-> Renaming a file changes its address. Links between your notes keep working because they're resolved on every build, but a renamed lesson loses its "done" tick.
+> Renaming a file changes its address, unless only its number changes. Links between your notes keep working because they're resolved on every build, but a renamed lesson loses its "done" tick.
 
 ## Frontmatter
 
@@ -58,6 +65,16 @@ draft: true # hides the lesson until you remove this line or set it to false
 Link to another note by its file path, just as you would on GitHub, for example `[Linear regression](../02-foundations/02-linear-regression.md)`. The link works on GitHub and on this site. Add `#section-name` to jump to a heading, like [the normal equation](../02-foundations/02-linear-regression.md#the-normal-equation).
 
 Keep images next to your notes (an `images` folder works well) and use a relative path: `![A scatter plot](images/scatter.png)`.
+
+## Translations
+
+The site comes in English and Polish. English pages are at the usual addresses, like `/vocabulary/sft/`, and Polish ones under `/pl/`, like `/pl/vocabulary/sft/`. The **PL** and **EN** buttons at the top switch to the same page in the other language.
+
+To translate a note, save the translation next to it with the language code before `.md`: `sft.pl.md` is the Polish version of `sft.md`. Translate each chapter's `README.md` too, because the chapter's title comes from it. Pictures with text in them can have a translated copy of their own, like the `images/linear-regression.pl.svg` used by the Polish linear regression lesson.
+
+- A page that isn't translated yet still appears in the Polish version, in English, with a link for adding the translation on GitHub.
+- On the site, a link to `sft.md` and a link to `sft.pl.md` both open the page in the reader's language. Link Polish notes to Polish files anyway, so the links work on GitHub too.
+- Progress is shared: a lesson marked as done in one language counts as done in the other.
 
 ## Writing and publishing
 

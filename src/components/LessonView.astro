@@ -1,9 +1,11 @@
 ---
 import { render } from 'astro:content';
 import { editUrl, type Course, type Lesson } from '../lib/course.ts';
+import { langAttr, ui } from '../lib/i18n.ts';
 import { site } from '../site.config.ts';
 import Crumbs from './Crumbs.astro';
 import Icon from './Icon.astro';
+import Untranslated from './Untranslated.astro';
 
 interface Props {
   course: Course;
@@ -11,6 +13,10 @@ interface Props {
 }
 
 const { course, lesson } = Astro.props;
+const { lang } = course;
+const t = ui[lang];
+/** Set when the lesson isn't translated yet and shows the original. */
+const contentLang = langAttr(lesson.lang, lang);
 const { Content, headings } = await render(lesson.note);
 // Footnotes come with a hidden "Footnotes" heading that doesn't belong in the contents.
 const toc = headings.filter(
@@ -25,41 +31,43 @@ const chapter = lesson.parents.at(-1);
 <div class:list={['lesson', { 'has-toc': toc.length > 1 }]}>
   <article class="lesson-main">
     <header class="page-header">
-      <Crumbs parents={lesson.parents} />
-      <h1 class="page-title">{lesson.title}</h1>
-      {lesson.description && <p class="lede">{lesson.description}</p>}
-      <div class="meta" data-lesson={lesson.url}>
-        {chapter && <span>Lesson {chapter.lessons.indexOf(lesson) + 1} of {chapter.lessons.length}</span>}
-        <span class="meta-item"><Icon name="clock" />{lesson.minutes} min read</span>
-        <span class="meta-item done-chip"><Icon name="check" />Done</span>
-        <a class="meta-item" href={editUrl(site.repo, site.branch, lesson.note)}><Icon name="edit" />Edit on GitHub</a>
+      <Crumbs lang={lang} parents={lesson.parents} />
+      <h1 class="page-title" lang={contentLang}>{lesson.title}</h1>
+      {lesson.description && <p class="lede" lang={contentLang}>{lesson.description}</p>}
+      <div class="meta" data-lesson={lesson.path}>
+        {chapter && <span>{t.lessonOf(chapter.lessons.indexOf(lesson) + 1, chapter.lessons.length)}</span>}
+        <span class="meta-item"><Icon name="clock" />{t.minRead(lesson.minutes)}</span>
+        <span class="meta-item done-chip"><Icon name="check" />{t.done}</span>
+        <a class="meta-item" href={editUrl(site.repo, site.branch, lesson.note)}><Icon name="edit" />{t.edit}</a>
       </div>
     </header>
 
-    <div class="prose">
+    {contentLang && <Untranslated lang={lang} note={lesson.note} noteLang={lesson.lang} />}
+
+    <div class="prose" lang={contentLang}>
       <Content />
     </div>
 
     <footer class="lesson-end">
-      <button class="button done-button" type="button" data-done-toggle={lesson.url} aria-pressed="false">
+      <button class="button done-button" type="button" data-done-toggle={lesson.path} aria-pressed="false">
         <Icon name="check" />
-        <span class="when-not-done">Mark lesson as done</span>
-        <span class="when-done">Lesson done</span>
+        <span class="when-not-done">{t.markDone}</span>
+        <span class="when-done">{t.lessonDone}</span>
       </button>
-      <nav class="pager" aria-label="Other lessons">
+      <nav class="pager" aria-label={t.pager}>
         {
           previous && (
             <a class="previous" href={previous.url}>
-              <small><Icon name="left" />Previous</small>
-              <strong>{previous.title}</strong>
+              <small><Icon name="left" />{t.previous}</small>
+              <strong lang={langAttr(previous.lang, lang)}>{previous.title}</strong>
             </a>
           )
         }
         {
           next && (
             <a class="next" href={next.url}>
-              <small>Next<Icon name="right" /></small>
-              <strong>{next.title}</strong>
+              <small>{t.next}<Icon name="right" /></small>
+              <strong lang={langAttr(next.lang, lang)}>{next.title}</strong>
             </a>
           )
         }
@@ -69,9 +77,9 @@ const chapter = lesson.parents.at(-1);
 
   {
     toc.length > 1 && (
-      <aside class="on-this-page" aria-label="On this page">
-        <p class="toc-title">On this page</p>
-        <ol>
+      <aside class="on-this-page" aria-label={t.onThisPage}>
+        <p class="toc-title">{t.onThisPage}</p>
+        <ol lang={contentLang}>
           {toc.map((heading) => (
             <li class={`depth-${heading.depth}`}>
               <a href={`#${heading.slug}`}>{heading.text}</a>

@@ -1,0 +1,23 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { translateUrl } from '../lib/course.ts';
+import { ui, type Lang } from '../lib/i18n.ts';
+import { site } from '../site.config.ts';
+import Icon from './Icon.astro';
+
+interface Props {
+  /** Language of the page. */
+  lang: Lang;
+  /** The note shown because it has no translation into `lang` yet. */
+  note: CollectionEntry<'notes'>;
+  noteLang: Lang;
+}
+
+const { lang, note, noteLang } = Astro.props;
+const t = ui[lang];
+---
+
+<p class="untranslated">
+  <Icon name="globe" />
+  <span>{t.untranslated(t.inLanguage[noteLang])} <a href={translateUrl(site.repo, site.branch, note, lang)}>{t.translate}</a></span>
+</p>

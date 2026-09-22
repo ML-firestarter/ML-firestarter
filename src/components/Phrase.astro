@@ -1,0 +1,10 @@
+---
+/** A translated phrase with this component's children in place of `{}`, as in `{} lessons done`. */
+interface Props {
+  text: string;
+}
+
+const [before, after = ''] = Astro.props.text.split('{}');
+---
+
+{before}<slot />{after}

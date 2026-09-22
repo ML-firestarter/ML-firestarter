@@ -1,0 +1,17 @@
+---
+import { localizeUrl, ui, type Lang } from '../lib/i18n.ts';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang].notFound;
+---
+
+<div class="not-found">
+  <p class="eyebrow">404</p>
+  <h1 class="page-title">{t.heading}</h1>
+  <p class="lede">{t.lede}</p>
+  <a class="button primary" href={localizeUrl('/', lang)}>{t.home}</a>
+</div>

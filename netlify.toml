@@ -11,3 +11,10 @@
   for = "/_astro/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Missing pages under /pl/ get the Polish "page not found" page; the rest get 404.html.
+# Existing pages are never affected, because Netlify serves files before applying this rule.
+[[redirects]]
+  from = "/pl/*"
+  to = "/pl/404/index.html"
+  status = 404

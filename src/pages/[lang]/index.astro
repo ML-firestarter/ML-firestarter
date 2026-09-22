@@ -1,0 +1,20 @@
+---
+import HomeView from '../../components/HomeView.astro';
+import Base from '../../layouts/Base.astro';
+import { DEFAULT_LANG, LANGS, type Lang } from '../../lib/i18n.ts';
+
+/** Home page of each translation, like /pl/. */
+export function getStaticPaths() {
+  return LANGS.filter((lang) => lang !== DEFAULT_LANG).map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+---
+
+<Base lang={lang} path="/">
+  <HomeView lang={lang} />
+</Base>

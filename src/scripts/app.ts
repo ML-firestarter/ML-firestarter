@@ -3,13 +3,14 @@
  * the light/dark switch and the mobile lessons menu.
  */
 
+/** Lessons marked as done, by language-neutral path, so progress carries over between languages. */
 const DONE_KEY = 'ml-workout:done';
 const THEME_KEY = 'ml-workout:theme';
 
 function readDone(): Set<string> {
   try {
     const stored: unknown = JSON.parse(localStorage.getItem(DONE_KEY) ?? '[]');
-    return new Set(Array.isArray(stored) ? stored.filter((url) => typeof url === 'string') : []);
+    return new Set(Array.isArray(stored) ? stored.filter((path) => typeof path === 'string') : []);
   } catch {
     return new Set();
   }
@@ -31,12 +32,12 @@ function paintProgress() {
   }
 
   for (const el of document.querySelectorAll<HTMLElement>('[data-progress]')) {
-    const urls: string[] = JSON.parse(el.dataset.progress!);
-    const count = urls.filter((url) => done.has(url)).length;
-    el.style.setProperty('--progress', urls.length ? String(count / urls.length) : '0');
-    el.classList.toggle('is-complete', urls.length > 0 && count === urls.length);
+    const paths: string[] = JSON.parse(el.dataset.progress!);
+    const count = paths.filter((path) => done.has(path)).length;
+    el.style.setProperty('--progress', paths.length ? String(count / paths.length) : '0');
+    el.classList.toggle('is-complete', paths.length > 0 && count === paths.length);
     for (const label of el.querySelectorAll<HTMLElement>('[data-progress-label]')) {
-      if (label.closest('[data-progress]') === el) label.textContent = `${count}/${urls.length}`;
+      if (label.closest('[data-progress]') === el) label.textContent = `${count}/${paths.length}`;
     }
   }
 
@@ -46,16 +47,13 @@ function paintProgress() {
 
   const nextUp = document.querySelector<HTMLAnchorElement>('[data-next-up]');
   if (nextUp) {
-    const lessons: { url: string; title: string }[] = JSON.parse(nextUp.dataset.nextUp!);
-    const next = lessons.find((lesson) => !done.has(lesson.url));
-    const started = lessons.some((lesson) => done.has(lesson.url));
+    const lessons: { path: string; url: string; title: string }[] = JSON.parse(nextUp.dataset.nextUp!);
+    const labels: Record<'start' | 'continue' | 'review', string> = JSON.parse(nextUp.dataset.nextLabels!);
+    const next = lessons.find((lesson) => !done.has(lesson.path));
+    const started = lessons.some((lesson) => done.has(lesson.path));
     const target = next ?? lessons[0];
     nextUp.href = target.url;
-    nextUp.querySelector('[data-next-label]')!.textContent = !next
-      ? 'All done! Review'
-      : started
-        ? 'Continue with'
-        : 'Start with';
+    nextUp.querySelector('[data-next-label]')!.textContent = !next ? labels.review : started ? labels.continue : labels.start;
     nextUp.querySelector('[data-next-title]')!.textContent = target.title;
   }
 }
@@ -65,10 +63,10 @@ document.addEventListener('click', (event) => {
 
   const doneToggle = target.closest<HTMLButtonElement>('[data-done-toggle]');
   if (doneToggle) {
-    const url = doneToggle.dataset.doneToggle!;
+    const path = doneToggle.dataset.doneToggle!;
     done = readDone();
-    if (done.has(url)) done.delete(url);
-    else done.add(url);
+    if (done.has(path)) done.delete(path);
+    else done.add(path);
     writeDone(done);
     paintProgress();
   }
