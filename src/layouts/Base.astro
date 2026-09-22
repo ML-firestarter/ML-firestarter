@@ -1,0 +1,75 @@
+---
+import 'katex/dist/katex.min.css';
+import '../styles/global.css';
+import Icon from '../components/Icon.astro';
+import Sidebar from '../components/Sidebar.astro';
+import { NOTES_DIR } from '../lib/paths.ts';
+import { site } from '../site.config.ts';
+
+interface Props {
+  /** Page title; the site name is appended. */
+  title?: string;
+  description?: string;
+  /** URL of the page, used to highlight it in the sidebar. */
+  current: string;
+}
+
+const { title, description = site.tagline, current } = Astro.props;
+---
+
+<!doctype html>
+<html lang={site.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title ? `${title} · ${site.title}` : site.title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline>
+      (() => {
+        let theme;
+        try {
+          theme = localStorage.getItem('ml-workout:theme');
+        } catch {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+    <header class="topbar">
+      <button class="icon-button nav-button" type="button" data-nav-toggle aria-controls="sidebar" aria-expanded="false">
+        <Icon name="menu" />
+        <span class="visually-hidden">Lessons menu</span>
+      </button>
+      <a class="brand" href="/">
+        <img src="/favicon.svg" alt="" width="28" height="28" />
+        <span>{site.title}</span>
+      </a>
+      <div class="topbar-actions">
+        <a class="text-button" href={`${site.repo}/tree/${site.branch}/${NOTES_DIR}`}>
+          <Icon name="book" />
+          <span>Notes on GitHub</span>
+        </a>
+        <button class="icon-button" type="button" data-theme-toggle>
+          <Icon name="moon" class="when-light" />
+          <Icon name="sun" class="when-dark" />
+          <span class="visually-hidden">Switch light or dark theme</span>
+        </button>
+      </div>
+    </header>
+    <div class="shell">
+      <aside class="sidebar" id="sidebar">
+        <Sidebar current={current} />
+      </aside>
+      <div class="scrim" data-nav-close></div>
+      <main id="content">
+        <slot />
+      </main>
+    </div>
+    <script src="../scripts/app.ts"></script>
+  </body>
+</html>

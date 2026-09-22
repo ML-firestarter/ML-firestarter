@@ -1,0 +1,84 @@
+---
+import { render } from 'astro:content';
+import { editUrl, type Course, type Lesson } from '../lib/course.ts';
+import { site } from '../site.config.ts';
+import Crumbs from './Crumbs.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  course: Course;
+  lesson: Lesson;
+}
+
+const { course, lesson } = Astro.props;
+const { Content, headings } = await render(lesson.note);
+// Footnotes come with a hidden "Footnotes" heading that doesn't belong in the contents.
+const toc = headings.filter(
+  (heading) => (heading.depth === 2 || heading.depth === 3) && heading.slug !== 'footnote-label',
+);
+const index = course.lessons.indexOf(lesson);
+const previous = course.lessons[index - 1];
+const next = course.lessons[index + 1];
+const chapter = lesson.parents.at(-1);
+---
+
+<div class:list={['lesson', { 'has-toc': toc.length > 1 }]}>
+  <article class="lesson-main">
+    <header class="page-header">
+      <Crumbs parents={lesson.parents} />
+      <h1 class="page-title">{lesson.title}</h1>
+      {lesson.description && <p class="lede">{lesson.description}</p>}
+      <div class="meta" data-lesson={lesson.url}>
+        {chapter && <span>Lesson {chapter.lessons.indexOf(lesson) + 1} of {chapter.lessons.length}</span>}
+        <span class="meta-item"><Icon name="clock" />{lesson.minutes} min read</span>
+        <span class="meta-item done-chip"><Icon name="check" />Done</span>
+        <a class="meta-item" href={editUrl(site.repo, site.branch, lesson.note)}><Icon name="edit" />Edit on GitHub</a>
+      </div>
+    </header>
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    <footer class="lesson-end">
+      <button class="button done-button" type="button" data-done-toggle={lesson.url} aria-pressed="false">
+        <Icon name="check" />
+        <span class="when-not-done">Mark lesson as done</span>
+        <span class="when-done">Lesson done</span>
+      </button>
+      <nav class="pager" aria-label="Other lessons">
+        {
+          previous && (
+            <a class="previous" href={previous.url}>
+              <small><Icon name="left" />Previous</small>
+              <strong>{previous.title}</strong>
+            </a>
+          )
+        }
+        {
+          next && (
+            <a class="next" href={next.url}>
+              <small>Next<Icon name="right" /></small>
+              <strong>{next.title}</strong>
+            </a>
+          )
+        }
+      </nav>
+    </footer>
+  </article>
+
+  {
+    toc.length > 1 && (
+      <aside class="on-this-page" aria-label="On this page">
+        <p class="toc-title">On this page</p>
+        <ol>
+          {toc.map((heading) => (
+            <li class={`depth-${heading.depth}`}>
+              <a href={`#${heading.slug}`}>{heading.text}</a>
+            </li>
+          ))}
+        </ol>
+      </aside>
+    )
+  }
+</div>

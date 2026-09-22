@@ -1,0 +1,22 @@
+---
+import { getCourse } from '../lib/course.ts';
+import TreeItem from './TreeItem.astro';
+
+interface Props {
+  current: string;
+}
+
+const { current } = Astro.props;
+const course = await getCourse();
+---
+
+<nav aria-label="Lessons">
+  <div class="course-progress" data-progress={JSON.stringify(course.lessons.map((lesson) => lesson.url))}>
+    <div class="bar"><span></span></div>
+    <p><strong data-progress-label>0/{course.lessons.length}</strong> lessons done</p>
+  </div>
+  <ol class="tree">
+    {course.root.children.map((node) => <TreeItem node={node} current={current} />)}
+  </ol>
+  {course.lessons.length === 0 && <p class="empty">No lessons yet. Add a Markdown file to the notes folder.</p>}
+</nav>

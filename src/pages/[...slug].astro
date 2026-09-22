@@ -1,0 +1,21 @@
+---
+import ChapterView from '../components/ChapterView.astro';
+import LessonView from '../components/LessonView.astro';
+import Base from '../layouts/Base.astro';
+import { getCourse } from '../lib/course.ts';
+
+export async function getStaticPaths() {
+  const course = await getCourse();
+  return [...course.lessons, ...course.chapters].map((node) => ({
+    params: { slug: node.url.slice(1, -1) },
+    props: { url: node.url },
+  }));
+}
+
+const course = await getCourse();
+const node = course.byUrl.get(Astro.props.url)!;
+---
+
+<Base title={node.title} description={node.description} current={node.url}>
+  {node.kind === 'lesson' ? <LessonView course={course} lesson={node} /> : <ChapterView chapter={node} />}
+</Base>

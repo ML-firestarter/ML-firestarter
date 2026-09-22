@@ -1,0 +1,104 @@
+---
+import { render } from 'astro:content';
+import Icon from '../components/Icon.astro';
+import Base from '../layouts/Base.astro';
+import { getCourse } from '../lib/course.ts';
+import { NOTES_DIR } from '../lib/paths.ts';
+import { site } from '../site.config.ts';
+
+const PREVIEW_LESSONS = 8;
+
+const course = await getCourse();
+const Intro = course.root.intro ? (await render(course.root.intro)).Content : undefined;
+const chapters = course.root.children.filter((node) => node.kind === 'chapter');
+const looseLessons = course.root.children.filter((node) => node.kind === 'lesson');
+const minutes = course.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
+const first = course.lessons[0];
+const urls = (lessons: { url: string }[]) => JSON.stringify(lessons.map((lesson) => lesson.url));
+---
+
+<Base current="/">
+  <div class="home">
+    <section class="hero">
+      <p class="eyebrow">Learning log</p>
+      <h1>{site.title}</h1>
+      <p class="tagline">{site.tagline}</p>
+      {
+        first ? (
+          <>
+            <div class="progress-summary" data-progress={urls(course.lessons)}>
+              <div class="bar"><span></span></div>
+              <p><strong data-progress-label>0/{course.lessons.length}</strong> lessons done · {chapters.length} chapters · about {minutes} min of reading</p>
+            </div>
+            <a
+              class="button primary"
+              href={first.url}
+              data-next-up={JSON.stringify(course.lessons.map(({ url, title }) => ({ url, title })))}
+            >
+              <span><span data-next-label>Start with</span> <span data-next-title>{first.title}</span></span>
+              <Icon name="right" />
+            </a>
+          </>
+        ) : (
+          <p class="lede">No lessons yet. Add a Markdown file to the <code>{NOTES_DIR}</code> folder and push it to GitHub.</p>
+        )
+      }
+    </section>
+
+    {
+      Intro && (
+        <div class="prose home-intro">
+          <Intro />
+        </div>
+      )
+    }
+
+    {
+      looseLessons.length > 0 && (
+        <section class="loose-lessons" aria-label="Lessons">
+          <ol class="card-lessons">
+            {looseLessons.map((lesson) => (
+              <li>
+                <a class="lesson-link" href={lesson.url} data-lesson={lesson.url}>
+                  <span class="status"><Icon name="check" /></span>
+                  <span>{lesson.title}</span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )
+    }
+
+    {
+      chapters.length > 0 && (
+        <section class="chapter-grid" aria-label="Chapters">
+          {chapters.map((chapter, index) => (
+            <article class="chapter-card" data-progress={urls(chapter.lessons)}>
+              <p class="eyebrow">Chapter {index + 1}</p>
+              <h2><a href={chapter.url}>{chapter.title}</a></h2>
+              {chapter.description && <p class="card-description">{chapter.description}</p>}
+              <ol class="card-lessons">
+                {chapter.lessons.slice(0, PREVIEW_LESSONS).map((lesson) => (
+                  <li>
+                    <a class="lesson-link" href={lesson.url} data-lesson={lesson.url}>
+                      <span class="status"><Icon name="check" /></span>
+                      <span>{lesson.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+              {chapter.lessons.length > PREVIEW_LESSONS && (
+                <a class="more-link" href={chapter.url}>+ {chapter.lessons.length - PREVIEW_LESSONS} more lessons</a>
+              )}
+              <div class="card-footer">
+                <div class="bar"><span></span></div>
+                <span data-progress-label>0/{chapter.lessons.length}</span>
+              </div>
+            </article>
+          ))}
+        </section>
+      )
+    }
+  </div>
+</Base>

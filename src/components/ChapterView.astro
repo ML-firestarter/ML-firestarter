@@ -1,0 +1,71 @@
+---
+import { render } from 'astro:content';
+import { newLessonUrl, type Chapter } from '../lib/course.ts';
+import { site } from '../site.config.ts';
+import Crumbs from './Crumbs.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  chapter: Chapter;
+}
+
+const { chapter } = Astro.props;
+const Intro = chapter.intro ? (await render(chapter.intro)).Content : undefined;
+const minutes = chapter.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
+const first = chapter.lessons[0];
+---
+
+<div class="chapter-page">
+  <header class="page-header">
+    <Crumbs parents={chapter.parents} />
+    <h1 class="page-title">{chapter.title}</h1>
+    {chapter.description && <p class="lede">{chapter.description}</p>}
+    <div class="progress-summary" data-progress={JSON.stringify(chapter.lessons.map((lesson) => lesson.url))}>
+      <div class="bar"><span></span></div>
+      <p><strong data-progress-label>0/{chapter.lessons.length}</strong> lessons done · about {minutes} min of reading</p>
+    </div>
+  </header>
+
+  {
+    Intro && (
+      <div class="prose">
+        <Intro />
+      </div>
+    )
+  }
+
+  <ol class="lesson-rows">
+    {
+      chapter.children.map((child) =>
+        child.kind === 'lesson' ? (
+          <li>
+            <a class="lesson-row" href={child.url} data-lesson={child.url}>
+              <span class="status"><Icon name="check" /></span>
+              <span class="row-text">
+                <span class="row-title">{child.title}</span>
+                {child.description && <span class="row-description">{child.description}</span>}
+              </span>
+              <span class="row-meta">{child.minutes} min</span>
+            </a>
+          </li>
+        ) : (
+          <li>
+            <a class="lesson-row" href={child.url} data-progress={JSON.stringify(child.lessons.map((lesson) => lesson.url))}>
+              <span class="status section"><Icon name="book" /></span>
+              <span class="row-text">
+                <span class="row-title">{child.title}</span>
+                {child.description && <span class="row-description">{child.description}</span>}
+              </span>
+              <span class="row-meta"><span data-progress-label>{child.lessons.length}</span> lessons</span>
+            </a>
+          </li>
+        ),
+      )
+    }
+  </ol>
+
+  <div class="actions">
+    {first && <a class="button primary" href={first.url}>Start chapter<Icon name="right" /></a>}
+    <a class="button" href={newLessonUrl(site.repo, site.branch, chapter)}><Icon name="plus" />Add a lesson on GitHub</a>
+  </div>
+</div>
