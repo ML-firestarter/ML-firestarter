@@ -5,18 +5,18 @@
  *   GET  /api/auth/login?return=/page/  sends the reader to GitHub to sign in
  *   GET  /api/auth/callback             where GitHub sends them back; signs them in
  *   POST /api/auth/logout               signs the reader out
- *   GET  /api/comments                  open comments, for signed-in readers
+ *   GET  /api/comments                  comments' changes waiting to be merged, for signed-in readers
  *   POST /api/comments                  posts a comment as an issue, as the reader
  *
  * Needs the GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET of the site's GitHub App and a
  * SESSION_SECRET; see "Comments" in the README.
  */
 import { Buffer } from 'node:buffer';
-import { CONTEXT, LIMITS, commentFrom, hasComments, issueFor, type NewComment } from '../lib/comments.ts';
+import { CONTEXT, LIMITS, changeFrom, hasComments, issueFor, type NewComment } from '../lib/comments.ts';
 import { isLang } from '../lib/i18n.ts';
 import { NOTES_DIR, noteUrl } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
-import { GitHubError, createIssue, exchangeCode, getUser, listIssues, refreshTokens, revokeToken } from './github.ts';
+import { GitHubError, createIssue, exchangeCode, getUser, listPulls, refreshTokens, revokeToken } from './github.ts';
 import {
   LOGIN_COOKIE,
   SESSION_COOKIE,
@@ -161,8 +161,9 @@ async function logout({ request, url, config, secure }: Context): Promise<Respon
 async function listComments(context: Context): Promise<Response> {
   const auth = await signedIn(context);
   if (!auth) return signedOut(context);
-  const issues = await listIssues(auth.session.token, context.config.repo);
-  const comments = issues.map((issue) => commentFrom(issue)).filter((comment) => comment !== undefined);
+  // A comment shows on the site once its change is a pull request: voted in, and not merged yet.
+  const pulls = await listPulls(auth.session.token, context.config.repo);
+  const comments = pulls.map((pull) => changeFrom(pull)).filter((comment) => comment !== undefined);
   return json({ comments }, 200, auth.cookies);
 }
 
@@ -187,7 +188,7 @@ async function postComment(context: Context): Promise<Response> {
   if (typeof comment === 'string') return json({ error: 'invalid', message: comment }, 400);
 
   const issue = await createIssue(auth.session.token, config.repo, issueFor(comment, url.origin));
-  return json({ comment: commentFrom(issue) }, 201, auth.cookies);
+  return json({ issue: { number: issue.number, url: issue.html_url } }, 201, auth.cookies);
 }
 
 /** The new comment in a request, or why it can't be posted. */

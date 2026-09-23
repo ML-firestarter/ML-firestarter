@@ -136,7 +136,7 @@ const en = {
     cancel: 'Cancel',
     post: 'Post comment',
     posting: 'Posting…',
-    posted: 'Comment posted.',
+    posted: "Comment posted. When a change from it is voted in on GitHub, you'll see it here.",
     viewOnGitHub: 'View on GitHub',
     tooLong: 'Select a shorter passage, up to # characters.',
     errors: {
@@ -145,9 +145,13 @@ const en = {
       rateLimited: 'GitHub is busy. Try again in a few minutes.',
       generic: "The comment couldn't be posted. Try again in a moment.",
     },
-    suggestedChange: 'Suggested change',
-    replies: { one: '# reply', other: '# replies' } as PluralForms,
-    review: 'Awaiting review',
+    // A comment's change, voted in on GitHub and waiting to be merged into the notes.
+    votedChange: 'Change voted in',
+    awaitingMerge: 'Awaiting merge',
+    // A comment on another language version, shown on the passage its change rewrites in this one.
+    onVersion: { en: 'Comment on the English version', pl: 'Comment on the Polish version' } satisfies Record<Lang, string>,
+    discussion: 'Discussion',
+    pullRequest: 'Pull request',
   },
 
   // Inside notes.
@@ -260,7 +264,7 @@ const pl: typeof en = {
     cancel: 'Anuluj',
     post: 'Wyślij komentarz',
     posting: 'Wysyłanie…',
-    posted: 'Komentarz wysłany.',
+    posted: 'Komentarz wysłany. Gdy zmiana z niego zostanie przegłosowana na GitHubie, zobaczysz ją tutaj.',
     viewOnGitHub: 'Zobacz na GitHubie',
     tooLong: 'Zaznacz krótszy fragment, do # znaków.',
     errors: {
@@ -269,9 +273,11 @@ const pl: typeof en = {
       rateLimited: 'GitHub jest przeciążony. Spróbuj ponownie za kilka minut.',
       generic: 'Nie udało się wysłać komentarza. Spróbuj ponownie za chwilę.',
     },
-    suggestedChange: 'Proponowana zmiana',
-    replies: { one: '# odpowiedź', few: '# odpowiedzi', many: '# odpowiedzi', other: '# odpowiedzi' },
-    review: 'Czeka na przegląd',
+    votedChange: 'Przegłosowana zmiana',
+    awaitingMerge: 'Czeka na scalenie',
+    onVersion: { en: 'Komentarz do wersji angielskiej', pl: 'Komentarz do wersji polskiej' },
+    discussion: 'Dyskusja',
+    pullRequest: 'Pull request',
   },
 
   alerts: { note: 'Uwaga', tip: 'Wskazówka', important: 'Ważne', warning: 'Ostrzeżenie', caution: 'Przestroga' },

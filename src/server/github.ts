@@ -2,7 +2,7 @@
  * The GitHub APIs the site uses. Readers' requests are made with their own token, so GitHub
  * shows the issues as theirs and counts the requests against their own rate limit.
  */
-import type { IssueData } from '../lib/comments.ts';
+import type { PullData } from '../lib/comments.ts';
 import type { User } from './session.ts';
 
 const API = 'https://api.github.com';
@@ -72,19 +72,22 @@ export async function getUser(token: string): Promise<User> {
   return { id: user.id, login: user.login, avatar: user.avatar_url, name: user.name || undefined };
 }
 
-/** Open issues and pull requests of `repo` (`owner/name`), newest first; up to 500, plenty for a notes repository. */
-export async function listIssues(token: string, repo: string): Promise<IssueData[]> {
-  const issues: IssueData[] = [];
-  for (let page = 1; page <= 5; page++) {
-    const batch = await api<IssueData[]>(token, `/repos/${repo}/issues?state=open&sort=created&direction=desc&per_page=100&page=${page}`);
-    issues.push(...batch);
+/**
+ * Open pull requests of `repo` (`owner/name`), newest first; up to 300, plenty for a notes
+ * repository. In a public repository, reading them needs no permission of the GitHub App.
+ */
+export async function listPulls(token: string, repo: string): Promise<PullData[]> {
+  const pulls: PullData[] = [];
+  for (let page = 1; page <= 3; page++) {
+    const batch = await api<PullData[]>(token, `/repos/${repo}/pulls?state=open&sort=created&direction=desc&per_page=100&page=${page}`);
+    pulls.push(...batch);
     if (batch.length < 100) break;
   }
-  return issues;
+  return pulls;
 }
 
-export function createIssue(token: string, repo: string, issue: { title: string; body: string }): Promise<IssueData> {
-  return api<IssueData>(token, `/repos/${repo}/issues`, { method: 'POST', body: JSON.stringify(issue) });
+export function createIssue(token: string, repo: string, issue: { title: string; body: string }): Promise<{ number: number; html_url: string }> {
+  return api(token, `/repos/${repo}/issues`, { method: 'POST', body: JSON.stringify(issue) });
 }
 
 /** Revokes a reader's token, so a copied session cookie is useless once they sign out. */

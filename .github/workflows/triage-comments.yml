@@ -1,40 +1,54 @@
 # Readers' comments on passages of the notes arrive as issues, which the site opens as the reader
 # (src/lib/comments.ts). Each issue is assigned to its reader, so GitHub keeps them posted on it.
 # Copilot reads each new comment next to the note it's about: it closes spam, tests and comments
-# that aren't about the notes, which takes them off the site, and the rest get the needs-review
-# label for the maintainer. When it keeps a comment that suggests new wording or points out a
-# mistake, Copilot also writes the change into every language version of the note, and the apply
-# job opens a pull request with it. Without the COPILOT_GITHUB_TOKEN secret, or when Copilot's
-# answer is unclear, a comment is kept for review and the notes are left as they are.
+# that aren't about the notes, and the rest get the needs-review label for the maintainer. When it
+# keeps a comment that suggests new wording or points out a mistake, Copilot also writes the change
+# into every language version of the note, and the workflow proposes it on the issue for a vote;
+# open-changes.yml opens a pull request with the first proposal to get the votes, and keeps it on
+# the one with the most. The reader or a maintainer can comment /propose and what to change, even
+# while the pull request is open, and Copilot writes another proposal that follows the discussion
+# and the votes. Without the COPILOT_GITHUB_TOKEN secret, or when Copilot's answer is unclear, a
+# comment is kept for review and nothing is proposed.
 name: Triage comments
 
 on:
   issues:
     types: [opened]
+  issue_comment:
+    types: [created]
 
 permissions: {}
 
 jobs:
   triage:
-    # Only issues sent from the site, which end with its marker.
-    if: contains(github.event.issue.body, '<!-- ml-workout:comment ')
+    # Only issues sent from the site, which end with its marker: when they're opened, and when
+    # someone asks for a proposal on one that's open.
+    if: >-
+      contains(github.event.issue.body, '<!-- ml-workout:comment ') && (github.event_name == 'issues' ||
+      (!github.event.issue.pull_request && github.event.issue.state == 'open' &&
+      startsWith(github.event.comment.body, '/propose') && github.event.comment.user.type != 'Bot'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # One run at a time for each issue, so its proposals are numbered in order.
+    concurrency:
+      group: triage-comment-${{ github.event.issue.number }}
     permissions:
       contents: read
       issues: write
-    outputs:
-      plan: ${{ steps.plan.outputs.plan }}
     env:
       HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
+      VOTES: ${{ vars.CHANGE_VOTES }}
     steps:
-      - name: Check out the prompts
+      - name: Check out the prompts and scripts
         uses: actions/checkout@v7
         with:
-          sparse-checkout: .github/prompts
+          sparse-checkout: |
+            .github/prompts
+            .github/scripts
           persist-credentials: false
 
-      # The issue is read from the event, never pasted into scripts, so its text can't run as code.
+      # The issue and the comments are read from the event and the API, never pasted into scripts,
+      # so their text can't run as code.
       - name: Read the comment
         id: read
         uses: actions/github-script@v9
@@ -42,14 +56,20 @@ jobs:
           script: |
             const fs = require('node:fs/promises');
             const path = require('node:path');
-            const { issue, repository } = context.payload;
+            const changes = require('./.github/scripts/changes.cjs');
+            const { issue, comment: request, repository } = context.payload;
             const { owner, repo } = context.repo;
             const issue_number = issue.number;
+            const reader = issue.user.login;
+            // Someone asked for a proposal with /propose, rather than the reader opening the issue.
+            const asked = context.eventName === 'issue_comment';
+            const reply = (body) => github.rest.issues.createComment({ owner, repo, issue_number, body });
 
             const labels = [
               { name: 'text-comment', color: 'c5def5', description: 'Comment on a passage of the notes, sent from the site' },
               { name: 'needs-review', color: 'fbca04', description: 'Comment kept by the triage for the maintainer' },
               { name: 'off-topic', color: 'd4c5f9', description: 'Comment closed by the triage: not feedback on the notes' },
+              { name: 'proposal', color: '0e8a16', description: 'A change from the comment is up for a vote' },
             ];
             for (const label of labels) {
               try {
@@ -59,49 +79,94 @@ jobs:
                 if (error.status !== 422) throw error;
               }
             }
-            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['text-comment'] });
+            if (!asked) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['text-comment'] });
+              // The comment is its reader's: as the assignee, they hear about replies, proposals and
+              // the pull request that settles it.
+              const { data: assigned } = await github.rest.issues.addAssignees({ owner, repo, issue_number, assignees: [reader] });
+              if (!assigned.assignees?.some((user) => user.login === reader)) core.warning(`GitHub didn't assign the issue to ${reader}.`);
+            }
 
-            // The comment is its reader's: as the assignee, they hear about replies and about the
-            // pull request that settles it.
-            const reader = issue.user.login;
-            const { data: assigned } = await github.rest.issues.addAssignees({ owner, repo, issue_number, assignees: [reader] });
-            if (!assigned.assignees?.some((user) => user.login === reader)) core.warning(`GitHub didn't assign the issue to ${reader}.`);
-
-            // The site's marker is the last one, as in commentFrom in src/lib/comments.ts.
-            const MARKER = '<!-- ml-workout:comment ';
-            const body = issue.body ?? '';
-            const start = body.lastIndexOf(MARKER);
-            const end = body.indexOf(' -->', start);
-            let data;
-            try {
-              data = JSON.parse(body.slice(start + MARKER.length, end));
-            } catch {}
-            const isText = (value) => typeof value === 'string';
-            const file = data?.file;
-            const valid =
-              isText(file) &&
-              /^notes\/[^\\]+\.md$/.test(file) &&
-              !file.split('/').some((part) => ['', '.', '..'].includes(part)) &&
-              ['en', 'pl'].includes(data.lang) &&
-              isText(data.quote?.exact) &&
-              data.quote.exact !== '' &&
-              isText(data.comment) &&
-              (data.suggestion === undefined || isText(data.suggestion));
-            if (!valid) {
-              core.warning("The issue's marker isn't one the site writes: keeping it for review.");
-              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-review'] });
+            const data = changes.commentFrom(issue.body);
+            if (!data) {
+              if (asked) {
+                core.warning("The issue's marker isn't one the site writes, so nothing is proposed.");
+              } else {
+                core.warning("The issue's marker isn't one the site writes: keeping it for review.");
+                await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-review'] });
+              }
               return;
             }
 
-            // Every language version of the note, as in splitLang and withLang in src/lib/paths.ts:
-            // `sft.md` is English and `sft.pl.md` its Polish translation. The version the reader
-            // read comes first.
-            const LANGS = ['en', 'pl'];
-            const read = LANGS.find((lang) => lang !== 'en' && file.endsWith(`.${lang}.md`)) ?? 'en';
-            const original = read === 'en' ? file : `${file.slice(0, -`.${read}.md`.length)}.md`;
+            // Copilot's CLI gets the prompt as an argument, which Linux caps at 128 KiB.
+            const { clip } = changes;
+            // Nothing in them can end the tags the prompts put around them.
+            const inert = (text) => text.replace(/<(\/?)(note|passage|comment|suggestion|discussion|entry|proposals|proposal|request|edit|find|replace|remarks)\b/gi, '‹$1$2');
+
+            let discussion = 'Nothing yet: this is the first proposal.';
+            let proposals = 0;
+            if (asked) {
+              // `/propose`, then what to change; the job's condition lets `/proposed` through too.
+              const asking = /^\/propose\b([\s\S]*)$/i.exec(request.body);
+              if (!asking) return;
+              const asker = request.user.login;
+              const maintainer = await changes.isMaintainer(github, context.repo, asker);
+              if (asker !== reader && !maintainer) {
+                await reply('Only the reader who wrote this comment and the maintainers can ask Copilot for a proposal. Say here what you would change, and they can ask for it.');
+                return;
+              }
+              if (process.env.HAS_COPILOT_TOKEN !== 'true') {
+                core.notice('There is no COPILOT_GITHUB_TOKEN secret, so Copilot writes no proposals.');
+                await reply("Copilot can't write proposals in this repository yet.");
+                return;
+              }
+              // A pull request for the comment doesn't stop the vote: a new proposal joins it.
+              const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+              const earlier = changes.proposalsIn(comments);
+              if (!maintainer && earlier.length >= changes.MAX_PROPOSALS) {
+                await reply(`Copilot has written ${earlier.length} proposals for this comment, as many as a reader can ask for. A maintainer can still ask for another.`);
+                return;
+              }
+              // Numbered on from the last, so no two share a number even when one was deleted.
+              proposals = Math.max(0, ...earlier.map(({ data }) => data.number));
+
+              // What people said, as much of it as fits, keeping the newest; the workflows' own
+              // comments show in the proposals.
+              const MAINTAINERS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
+              const roleOf = (login, isMaintainer) => [login === reader && 'the reader', isMaintainer && 'maintainer'].filter(Boolean).join(' and ') || 'someone else';
+              const entries = [];
+              let bytes = 0;
+              for (const said of comments.filter((comment) => comment.id !== request.id && comment.user?.type !== 'Bot').slice(-30).reverse()) {
+                const login = said.user?.login ?? 'ghost';
+                const entry = `<entry author="${login}" role="${roleOf(login, MAINTAINERS.includes(said.author_association))}">\n${clip(inert(said.body ?? ''), 1500)}\n</entry>`;
+                bytes += Buffer.byteLength(entry);
+                if (bytes > 10_000) break;
+                entries.unshift(entry);
+              }
+              // The proposals so far and their votes, as many as fit, the most voted and then the
+              // newest first; Copilot gets them by number.
+              const votesFor = ({ comment }) => comment.reactions?.['+1'] ?? 0;
+              const shown = [];
+              let room = 10_000;
+              for (const proposal of [...earlier].sort((a, b) => votesFor(b) - votesFor(a) || b.data.number - a.data.number)) {
+                if (room < 1000) break;
+                const edits = proposal.data.edits.map((edit) => `<edit lang="${edit.lang}">\n<find>\n${inert(edit.find)}\n</find>\n<replace>\n${inert(edit.replace)}\n</replace>\n</edit>`);
+                const entry = `<proposal number="${proposal.data.number}" votes="${votesFor(proposal)}">\n${clip(edits.join('\n'), room - 100)}\n</proposal>`;
+                room -= Buffer.byteLength(entry);
+                shown.push({ number: proposal.data.number, entry });
+              }
+              shown.sort((a, b) => a.number - b.number);
+              discussion = [
+                `<discussion>\n${entries.join('\n') || '(Nothing said yet.)'}\n</discussion>`,
+                shown.length > 0 && `<proposals>\n${shown.map(({ entry }) => entry).join('\n')}\n</proposals>`,
+                `<request author="${asker}" role="${roleOf(asker, maintainer)}">\n${clip(inert(asking[1].trim()), 3000) || '(Nothing more.)'}\n</request>`,
+              ].filter(Boolean).join('\n\n');
+            }
+
+            // Every language version of the note, the one the reader read first.
+            const { name, read, paths } = changes.versionsOf(data.file);
             const versions = {};
-            for (const lang of [read, ...LANGS.filter((other) => other !== read)]) {
-              const version = lang === 'en' ? original : original.replace(/\.md$/, `.${lang}.md`);
+            for (const [lang, version] of Object.entries(paths)) {
               try {
                 const { data: content } = await github.rest.repos.getContent({ owner, repo, path: version, ref: repository.default_branch });
                 if (!Array.isArray(content) && content.type === 'file') versions[lang] = { path: version, text: Buffer.from(content.content, 'base64').toString('utf8') };
@@ -110,50 +175,66 @@ jobs:
               }
             }
 
-            // Copilot's CLI gets the prompt as an argument, which Linux caps at 128 KiB.
-            const clip = (text, bytes) => {
-              const buffer = Buffer.from(text);
-              return buffer.length <= bytes ? text : `${buffer.subarray(0, bytes).toString('utf8').replace(/�+$/, '')}\n[…]`;
-            };
-            // Nothing in them can end the tags the prompts put around them.
-            const inert = (text) => text.replace(/<(\/?)(note|passage|comment|suggestion|edit|find|replace|remarks)\b/gi, '‹$1$2');
             const comment = [
-              `<passage>\n${inert(data.quote.exact)}\n</passage>`,
+              `<passage>\n${inert(data.exact)}\n</passage>`,
               `<comment>\n${inert(data.comment) || '(none)'}\n</comment>`,
               data.suggestion !== undefined && `<suggestion>\n${inert(data.suggestion)}\n</suggestion>`,
             ].filter(Boolean).join('\n\n');
-            const triage = path.join(process.env.RUNNER_TEMP, 'triage');
-            await fs.mkdir(triage, { recursive: true });
-            await fs.writeFile(path.join(triage, 'note.md'), clip(inert(versions[read]?.text ?? '(This note is no longer in the repository.)'), 48_000));
-            await fs.writeFile(path.join(triage, 'comment.md'), clip(comment, 12_000));
+            if (!asked) {
+              const triage = path.join(process.env.RUNNER_TEMP, 'triage');
+              await fs.mkdir(triage, { recursive: true });
+              await fs.writeFile(path.join(triage, 'note.md'), clip(inert(versions[read]?.text ?? '(This note is no longer in the repository.)'), 48_000));
+              await fs.writeFile(path.join(triage, 'comment.md'), clip(comment, 12_000));
+            }
 
-            // For the change, if Copilot keeps a comment that asks for one: every version of the note.
+            // For the change, if Copilot keeps a comment that asks for one or someone asked for it.
             if (versions[read]) {
               const sync = path.join(process.env.RUNNER_TEMP, 'sync');
               await fs.mkdir(sync, { recursive: true });
-              const notes = Object.entries(versions).map(([lang, version]) => `<note lang="${lang}" file="${version.path}">\n${clip(inert(version.text), 40_000)}\n</note>`);
+              const notes = Object.entries(versions).map(([lang, version]) => `<note lang="${lang}" file="${version.path}">\n${clip(inert(version.text), 36_000)}\n</note>`);
               await fs.writeFile(path.join(sync, 'versions.md'), notes.join('\n\n'));
-              await fs.writeFile(path.join(sync, 'comment.md'), clip(`The reader commented on the ${read} version, ${file}.\n\n${comment}`, 12_000));
-              const paths = Object.fromEntries(Object.entries(versions).map(([lang, version]) => [lang, version.path]));
-              await fs.writeFile(path.join(sync, 'note.json'), JSON.stringify({ name: original.slice('notes/'.length, -'.md'.length), read, versions: paths }));
+              await fs.writeFile(path.join(sync, 'comment.md'), clip(`The reader commented on the ${read} version, ${data.file}.\n\n${comment}`, 12_000));
+              await fs.writeFile(path.join(sync, 'discussion.md'), discussion);
+              // What the proposal keeps for its pull request, and for the site to show.
+              const note = {
+                name,
+                read,
+                versions: Object.fromEntries(Object.entries(versions).map(([lang, version]) => [lang, version.path])),
+                file: data.file,
+                path: data.path,
+                lang: data.lang,
+                comment: data.comment.slice(0, 3000),
+                proposals,
+              };
+              await fs.writeFile(path.join(sync, 'note.json'), JSON.stringify(note));
               core.setOutput('note-found', 'true');
+            } else if (asked) {
+              await reply("The note this comment is on is no longer in the repository, so there's nothing to propose.");
+              return;
+            }
+
+            if (asked) {
+              // Seen: a proposal is on its way.
+              await github.rest.reactions.createForIssueComment({ owner, repo, comment_id: request.id, content: 'eyes' });
+              core.setOutput('propose', 'true');
+              return;
             }
             if (data.suggestion !== undefined) core.setOutput('suggestion', 'true');
             core.setOutput('lang', data.lang);
             core.setOutput('ready', 'true');
 
       - name: Set up Node
-        if: steps.read.outputs.ready == 'true' && env.HAS_COPILOT_TOKEN == 'true'
+        if: (steps.read.outputs.ready == 'true' || steps.read.outputs.propose == 'true') && env.HAS_COPILOT_TOKEN == 'true'
         uses: actions/setup-node@v7
         with:
           node-version: 24
 
       - name: Install Copilot CLI
-        if: steps.read.outputs.ready == 'true' && env.HAS_COPILOT_TOKEN == 'true'
+        if: (steps.read.outputs.ready == 'true' || steps.read.outputs.propose == 'true') && env.HAS_COPILOT_TOKEN == 'true'
         run: |
           npm install --global @github/copilot
-          # The comment is a stranger's text, so Copilot gets no tools: whatever the comment says,
-          # Copilot can only answer, not run commands, read files or open pages. ai-inference leaves
+          # The comment and its discussion are strangers' text, so Copilot gets no tools: whatever they
+          # say, Copilot can only answer, not run commands, read files or open pages. ai-inference leaves
           # the CLI's errors out of the log, so they're kept for the step that reads the answer.
           cat > "$RUNNER_TEMP/copilot-no-tools" <<'EOF'
           #!/usr/bin/env bash
@@ -229,7 +310,7 @@ jobs:
               }
             }
 
-            // Closing takes the comment off the site, so only clear cases are closed.
+            // Only clear cases are closed: the rest are for the maintainer.
             const CLOSE = ['spam', 'off-topic', 'test', 'noise', 'abuse'];
             const { decision, category, confidence } = verdict ?? {};
             if (decision !== 'close' || !CLOSE.includes(category) || typeof confidence !== 'number' || confidence < 0.8) {
@@ -253,8 +334,8 @@ jobs:
 
       - name: Ask Copilot for the change in every language
         id: sync
-        if: steps.decide.outputs.change == 'true'
-        # Without an answer, the change is left to the maintainer.
+        if: steps.decide.outputs.change == 'true' || steps.read.outputs.propose == 'true'
+        # Without an answer, nothing is proposed.
         continue-on-error: true
         timeout-minutes: 5
         uses: actions/ai-inference@v3
@@ -263,23 +344,33 @@ jobs:
           file_input: |
             versions: ${{ runner.temp }}/sync/versions.md
             comment: ${{ runner.temp }}/sync/comment.md
+            discussion: ${{ runner.temp }}/sync/discussion.md
           # auto: a model the Copilot plan has. The COPILOT_MODEL repository variable can name one.
           model: ${{ vars.COPILOT_MODEL || 'auto' }}
           copilot-cli-path: ${{ runner.temp }}/copilot-no-tools
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
 
-      - name: Check Copilot's change
-        id: plan
-        if: steps.decide.outputs.change == 'true'
+      # Copilot's change goes on the issue as a proposal, for people to vote on (open-changes.yml).
+      - name: Propose the change
+        if: steps.decide.outputs.change == 'true' || steps.read.outputs.propose == 'true'
         uses: actions/github-script@v9
         env:
           COPILOT_OUTCOME: ${{ steps.sync.outcome }}
           RESPONSE_FILE: ${{ steps.sync.outputs.response-file }}
+          ASKED: ${{ steps.read.outputs.propose }}
         with:
           script: |
             const fs = require('node:fs/promises');
             const path = require('node:path');
+            const changes = require('./.github/scripts/changes.cjs');
+            const { owner, repo } = context.repo;
+            const { issue, repository } = context.payload;
+            const issue_number = issue.number;
+            // Someone asked for this proposal with /propose, and waits for an answer.
+            const asked = process.env.ASKED === 'true';
+            const reply = (body) => github.rest.issues.createComment({ owner, repo, issue_number, body });
+            const again = 'The reader or a maintainer can comment `/propose` and what to change to have Copilot try again.';
 
             // The CLI's error, as in "Close or keep the comment".
             const copilotError = async () => {
@@ -287,175 +378,44 @@ jobs:
               const text = log.replace(/\x1b\[[\d;]*[a-z]/gi, '').replace(/\s+/g, ' ').trim();
               return text.length <= 1000 ? text : `${text.slice(0, 999)}…`;
             };
-            if (process.env.COPILOT_OUTCOME === 'failure') {
+            if (process.env.COPILOT_OUTCOME !== 'success') {
               const error = await copilotError();
-              core.warning(`Copilot didn't answer, so the change is left to the maintainer. ${error ? `The Copilot CLI said: ${error}` : 'The "Ask Copilot for the change in every language" step shows why.'}`);
+              core.warning(`Copilot didn't answer, so nothing is proposed. ${error ? `The Copilot CLI said: ${error}` : 'The "Ask Copilot for the change in every language" step shows why.'}`);
+              if (asked) await reply("Copilot couldn't write a proposal this time. Comment `/propose` again later to have it try again.");
               return;
             }
 
-            const { name, read, versions } = JSON.parse(await fs.readFile(path.join(process.env.RUNNER_TEMP, 'sync', 'note.json'), 'utf8'));
+            const note = JSON.parse(await fs.readFile(path.join(process.env.RUNNER_TEMP, 'sync', 'note.json'), 'utf8'));
             const response = process.env.RESPONSE_FILE ? await fs.readFile(process.env.RESPONSE_FILE, 'utf8').catch(() => '') : '';
-
-            // The form asked for in .github/prompts/sync-change.prompt.yml.
-            const EDIT = /<edit\s+lang="([a-z]{2})"\s*>\s*<find>\n?([\s\S]*?)\n?<\/find>\s*<replace>\n?([\s\S]*?)\n?<\/replace>\s*<\/edit>/g;
-            const edits = [...response.matchAll(EDIT)].map(([, lang, find, replace]) => ({ lang, find, replace })).filter((edit) => edit.find !== edit.replace);
-            const said = /<remarks>([\s\S]*?)<\/remarks>/.exec(response)?.[1].replace(/\s+/g, ' ').trim() ?? '';
-            const remarks = said.length <= 600 ? said : `${said.slice(0, 599).trimEnd()}…`;
+            const { edits, remarks } = changes.parseAnswer(response);
             if (edits.length === 0) {
-              if (remarks) core.notice(`Copilot made no change: ${remarks}`);
-              else core.warning("Copilot didn't answer with a change in the form asked for, so the change is left to the maintainer.");
+              if (!remarks) {
+                core.warning("Copilot didn't answer with a change in the form asked for, so nothing is proposed.");
+                if (asked) await reply(`Copilot didn't answer with a change this time. ${again}`);
+                return;
+              }
+              // Copilot found nothing to change, and says why: that's for the reader to hear.
+              core.notice(`Copilot proposes no change: ${remarks}`);
+              await reply(`Copilot proposes no change for this comment. **Its remarks:** ${changes.plain(remarks)}\n\n${again}`);
               return;
             }
             core.info(`Copilot: ${remarks}`);
 
-            // Copilot only names a version: the files are the note's own, found when reading the
-            // comment. The maintainer reviews every change, and still a reader's text can't bring
-            // HTML, character references or script links into the notes this way, nor rewrite a
-            // whole note. And should Copilot ever come across a GitHub token, it isn't published.
-            const markup = (text) => (text.match(/<\/?[a-z][\w-]*|&#|\][(:]\s*<?\s*(?:javascript|vbscript|data):/gi) ?? []).map((token) => token.toLowerCase().replace(/\s+/g, ''));
-            const TOKEN = /\b(?:github_pat|gh[pousr])_[A-Za-z0-9_]{20,}/;
-            function problemWith(edits) {
-              if (edits.length > 6) return 'it has more edits than a comment calls for';
-              if ([remarks, ...edits.map((edit) => edit.replace)].some((text) => TOKEN.test(text))) return 'it has something like a GitHub token in it';
-              for (const { lang, find, replace } of edits) {
-                if (!Object.hasOwn(versions, lang)) return `the note has no "${lang}" version`;
-                if (!find.trim()) return 'an edit has no text to replace';
-                if (find.length > 3000 || replace.length > 3000) return 'an edit is longer than a comment calls for';
-                const known = new Set(markup(find));
-                if (markup(replace).some((token) => !known.has(token))) return 'it adds HTML or a script link, which is for the maintainer to write';
-              }
-              if (!edits.some((edit) => edit.lang === read)) return "it doesn't change the version the reader commented on";
+            async function refuse(problem) {
+              core.warning(`Copilot's change can't be proposed, because ${problem}.`);
+              await reply(`Copilot's change can't be proposed, because ${problem}. ${again}`);
             }
-            const plan = JSON.stringify({ name, read, versions, remarks, edits: edits.map((edit) => ({ ...edit, path: versions[edit.lang] })) });
-            // The apply job gets the plan in an environment variable, which Linux caps at 128 KiB.
-            const problem = problemWith(edits) ?? (Buffer.byteLength(plan) > 100_000 ? 'it is too long' : undefined);
-            if (problem) {
-              core.warning(`Copilot's change can't be used, because ${problem}. The change is left to the maintainer.`);
-              return;
-            }
-            core.setOutput('plan', plan);
+            const problem = changes.problemWith(edits, { ...note, remarks, first: !asked });
+            if (problem) return refuse(problem);
+            // On the notes as they are now, to show the change and to check that it fits.
+            const planned = edits.map((edit) => ({ ...edit, path: note.versions[edit.lang] }));
+            const applied = await changes.applyEdits(github, context.repo, repository.default_branch, planned);
+            if (applied.problem) return refuse(applied.problem);
 
-  apply:
-    # Copilot's change goes on a branch of its own, for the maintainer to check and merge.
-    needs: triage
-    if: needs.triage.outputs.plan != ''
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-    steps:
-      - name: Open a pull request with the change
-        uses: actions/github-script@v9
-        env:
-          PLAN: ${{ needs.triage.outputs.plan }}
-        with:
-          script: |
-            const { owner, repo } = context.repo;
-            const { issue, repository } = context.payload;
-            const issue_number = issue.number;
-            const base = repository.default_branch;
-            const plan = JSON.parse(process.env.PLAN);
-            const LANGUAGES = { en: 'English', pl: 'Polish' };
-
-            // Copilot's edits, on the notes as they are now: each replaces text that's in its note once.
-            const { data: head } = await github.rest.repos.getBranch({ owner, repo, branch: base });
-            const files = new Map();
-            for (const { lang, path, find, replace } of plan.edits) {
-              if (!files.has(path)) {
-                const { data } = await github.rest.repos.getContent({ owner, repo, path, ref: head.commit.sha });
-                files.set(path, { lang, text: Buffer.from(data.content, 'base64').toString('utf8'), changes: [] });
-              }
-              const file = files.get(path);
-              const at = file.text.indexOf(find);
-              if (at === -1 || file.text.includes(find, at + 1)) {
-                core.warning(`Copilot's change doesn't fit ${path}: the text it replaces is ${at === -1 ? 'not in the note' : 'in the note more than once'}. The change is left to the maintainer.`);
-                return;
-              }
-              // The whole lines the edit is on, before and after it, for showing the change on the issue.
-              const start = at === 0 ? 0 : file.text.lastIndexOf('\n', at - 1) + 1;
-              const next = file.text.indexOf('\n', at + find.length);
-              const end = next === -1 ? file.text.length : next;
-              const text = file.text.slice(0, at) + replace + file.text.slice(at + find.length);
-              file.changes.push({
-                line: file.text.slice(0, start).split('\n').length,
-                before: file.text.slice(start, end),
-                after: text.slice(start, end - find.length + replace.length),
-              });
-              file.text = text;
-            }
-
-            // One commit, crediting the reader, on a branch named after the issue.
-            const branch = `comment-${issue_number}`;
-            const title = `Apply comment #${issue_number} on ${plan.name}`;
-            const reader = issue.user;
-            const { data: tree } = await github.rest.git.createTree({
-              owner,
-              repo,
-              base_tree: head.commit.commit.tree.sha,
-              tree: [...files].map(([path, file]) => ({ path, mode: '100644', type: 'blob', content: file.text })),
-            });
-            const { data: commit } = await github.rest.git.createCommit({
-              owner,
-              repo,
-              tree: tree.sha,
-              parents: [head.commit.sha],
-              message: [
-                title,
-                `Copilot's change from the reader's comment, in every language version of the note. Closes #${issue_number}.`,
-                `Co-authored-by: ${reader.login} <${reader.id}+${reader.login}@users.noreply.github.com>`,
-              ].join('\n\n'),
-            });
-            try {
-              await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: commit.sha });
-            } catch (error) {
-              // 422: the branch is there already, from an earlier run.
-              if (error.status !== 422) throw error;
-              core.warning(`There's a ${branch} branch already, so the change isn't made again. Delete the branch and re-run the workflow to have it made again.`);
-              return;
-            }
-
-            // Copilot's remarks go on GitHub as plain text, so nobody is mentioned and nothing is linked through them.
-            const plain = (text) => text.replace(/[\\`*_[\]<>#|~$&]/g, '\\$&').replace(/@/g, '@\u200b');
-            const list = Object.keys(LANGUAGES).map((lang) => {
-              const file = plan.versions[lang];
-              const state = !file ? 'there is none yet' : plan.edits.some((edit) => edit.lang === lang) ? 'changed' : 'not changed, as Copilot found nothing to change in it';
-              return `- ${LANGUAGES[lang]}${file ? `, \`${file}\`` : ''}${lang === plan.read ? ', which the reader commented on' : ''}: ${state}`;
-            });
-            const body = [
-              `The change asked for in #${issue_number}, written by Copilot into every language version of the note:`,
-              list.join('\n'),
-              plan.remarks && `**Copilot's remarks:** ${plain(plan.remarks)}`,
-              `Copilot wrote this from a reader's comment, so check the wording and the translation before merging. Merging closes #${issue_number}, which takes the comment off the site.`,
-            ].filter(Boolean).join('\n\n');
-            try {
-              const { data: pull } = await github.rest.pulls.create({ owner, repo, title, head: branch, base, body });
-              core.notice(`Opened ${pull.html_url}`);
-              return;
-            } catch (error) {
-              // "GitHub Actions is not permitted to create or approve pull requests", until the repository allows it.
-              if (error.status !== 403) throw error;
-            }
-
-            // Until then, the issue shows the change, with a link that opens the pull request filled in.
-            const fence = (text) => '`'.repeat(Math.max(3, ...(text.match(/`+/g) ?? []).map((run) => run.length + 1)));
-            const diffs = [...files].map(([path, file]) => {
-              const lines = file.changes
-                .flatMap(({ line, before, after }) => [`@@ line ${line} @@`, ...before.split('\n').map((text) => `-${text}`), ...after.split('\n').map((text) => `+${text}`)])
-                .join('\n');
-              return `${LANGUAGES[file.lang] ?? file.lang}, \`${path}\`:\n\n${fence(lines)}diff\n${lines}\n${fence(lines)}`;
-            });
-            const compare = `${context.serverUrl}/${owner}/${repo}/compare/${base}...${branch}?${new URLSearchParams({ expand: '1', title, body })}`;
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body: [
-                `Copilot wrote the change asked for here into every language version of the note, on the \`${branch}\` branch. [Open a pull request](${compare}) to check it and merge it.`,
-                list.join('\n'),
-                ...diffs,
-                plan.remarks && `**Copilot's remarks:** ${plain(plan.remarks)}`,
-              ].filter(Boolean).join('\n\n'),
-            });
-            core.notice(`GitHub Actions can't open pull requests in this repository, so the change is on the ${branch} branch and the issue has a link for opening one. To have them opened for you, turn on "Allow GitHub Actions to create and approve pull requests" under Settings → Actions → General.`);
+            const { name, read, versions, file, path: page, lang, comment } = note;
+            const proposal = { v: 1, number: note.proposals + 1, name, read, versions, file, path: page, lang, comment, remarks, edits: planned };
+            const body = changes.proposalBody(proposal, applied.files, changes.votesNeeded(process.env.VOTES));
+            if (body.length > changes.MAX_BODY) return refuse('it is too long to show here');
+            await reply(body);
+            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['proposal'] });
+            core.notice(`Proposal ${proposal.number} is on #${issue_number}.`);

@@ -1,16 +1,30 @@
 /**
  * Comments on passages of a note, as in a code review: readers select text and comment on it
  * or suggest new wording, and the comment is posted as a GitHub issue (lib/comments.ts).
- * Signed-in readers see the open comments highlighted in the text, the whole comment on hover.
+ * Signed-in readers see the changes that comments led to highlighted in the text, once they're
+ * voted in on GitHub and until they're merged, on every language version of the note: on hover,
+ * the passage a change rewrites, what it becomes and the comment it came from.
  *
  * Passages are found again by their text (TextQuote), in the text of the note as it reads:
  * whitespace collapsed into single spaces and each formula as its TeX source, like `$x^2$`.
  */
 import { CONTEXT, LIMITS, type NewComment, type PageComment, type TextQuote } from '../lib/comments.ts';
-import { plural, type Lang, type ui } from '../lib/i18n.ts';
+import { localizeUrl, plural, type Lang, type ui } from '../lib/i18n.ts';
 import { COMMENTS_KEY, avatarUrl, paintAccount, readReader } from './account.ts';
 
 type Strings = (typeof ui)['en']['comments'] & { lang: Lang };
+
+/** A comment's change as this page shows it: one passage it rewrites in this page's version of the note. */
+interface ShownComment extends PageComment {
+  /** Tells the passages apart, as `data-comment` on their marks: the pull request's number and the change's. */
+  key: string;
+  quote: TextQuote;
+  suggestion: string;
+  /** The passage as the page shows it. */
+  text: string;
+  /** The language the reader commented in, when they read another version of the note. */
+  from?: Lang;
+}
 
 /** A comment being written, kept while the reader signs in. */
 interface Draft {
@@ -53,8 +67,8 @@ function setUpComments(root: HTMLElement, parts: HTMLElement) {
     title: root.dataset.commentsTitle!,
     lang: t.lang,
   };
-  /** This page's comments that were found in the text, oldest first. */
-  let comments: PageComment[] = [];
+  /** The passages of this page that comments' changes rewrite, oldest comment first. */
+  let comments: ShownComment[] = [];
   let shown = read(localStorage, SHOWN_KEY) !== '0';
   /** The passage selected in the text. */
   let selected: TextQuote | undefined;
@@ -76,39 +90,53 @@ function setUpComments(root: HTMLElement, parts: HTMLElement) {
 
   async function load() {
     const all = readReader() ? await fetchComments() : undefined;
-    const mine = (all ?? []).filter((comment) => comment.file === page.file).sort((a, b) => a.created.localeCompare(b.created));
-    for (const comment of mine) {
-      if (highlightComment(comment)) comments.push(comment);
+    const passages = (all ?? []).flatMap(onThisPage).sort((a, b) => a.created.localeCompare(b.created));
+    for (const passage of passages) {
+      const text = highlightComment(passage);
+      if (text !== undefined) comments.push({ ...passage, text });
     }
     paintChip();
   }
 
-  /** Highlights where `comment` is in the text; false when that text has changed since. */
-  function highlightComment(comment: PageComment): boolean {
-    const index = indexText(root);
-    const span = findQuote(index, comment.quote);
-    const marks = span ? highlight(index, span, () => makeMark(comment.number)) : [];
-    // One stop per comment when tabbing through the page.
-    if (marks[0]) marks[0].tabIndex = 0;
-    return marks.length > 0;
+  /** The passages `comment`'s change rewrites in this page's version of the note. */
+  function onThisPage(comment: PageComment): Omit<ShownComment, 'text'>[] {
+    // Kept by an older version of this script, before the comments had changes.
+    if (!Array.isArray(comment.changes)) return [];
+    const from = comment.file === page.file ? undefined : comment.lang;
+    return comment.changes.flatMap(({ file, quote, suggestion }, i) =>
+      file === page.file ? [{ ...comment, key: `${comment.number}-${i}`, quote, suggestion, from }] : [],
+    );
   }
 
-  function makeMark(number?: number): HTMLElement {
+  /** Highlights the passage of `comment` in the text and gives its text; undefined when it's not there, as when the note changed. */
+  function highlightComment(comment: Omit<ShownComment, 'text'>): string | undefined {
+    const index = indexText(root);
+    const span = findQuote(index, comment.quote);
+    if (!span) return undefined;
+    const marks = highlight(index, span, () => makeMark(comment.key));
+    // One stop per passage when tabbing through the page.
+    if (marks[0]) marks[0].tabIndex = 0;
+    return marks.length > 0 ? index.text.slice(...span) : undefined;
+  }
+
+  function makeMark(key?: string): HTMLElement {
     const mark = document.createElement('mark');
-    mark.className = number === undefined ? 'comment-mark is-pending' : 'comment-mark';
-    if (number !== undefined) mark.dataset.comment = String(number);
+    mark.className = key === undefined ? 'comment-mark is-pending' : 'comment-mark';
+    if (key !== undefined) mark.dataset.comment = key;
     return mark;
   }
 
   function paintChip() {
     const toggle = document.querySelector<HTMLButtonElement>('[data-comments-toggle]');
     const hint = document.querySelector<HTMLElement>('[data-comments-hint]');
+    // A change can rewrite more than one passage; it counts once.
+    const count = new Set(comments.map((comment) => comment.number)).size;
     if (toggle) {
-      toggle.hidden = comments.length === 0;
+      toggle.hidden = count === 0;
       toggle.setAttribute('aria-pressed', String(shown));
-      toggle.querySelector('[data-comments-count]')!.textContent = plural(t.lang, comments.length, t.count);
+      toggle.querySelector('[data-comments-count]')!.textContent = plural(t.lang, count, t.count);
     }
-    if (hint) hint.hidden = comments.length > 0;
+    if (hint) hint.hidden = count > 0;
     root.classList.toggle('comments-hidden', !shown);
     // Hidden highlights aren't stops when tabbing through the page.
     for (const mark of root.querySelectorAll<HTMLElement>(`${MARK}[tabindex]`)) mark.tabIndex = shown ? 0 : -1;
@@ -243,14 +271,10 @@ function setUpComments(root: HTMLElement, parts: HTMLElement) {
         body: JSON.stringify(body),
       });
       if (response.status === 201) {
-        const { comment } = (await response.json()) as { comment: PageComment };
+        // The comment is discussed on GitHub first; the page shows the change it leads to once it's voted in.
+        const { issue } = (await response.json()) as { issue: { number: number; url: string } };
         dialog.close();
-        addToCache(comment);
-        shown = true;
-        write(localStorage, SHOWN_KEY, '1');
-        if (highlightComment(comment)) comments.push(comment);
-        paintChip();
-        showToast(t.posted, { href: comment.url, text: t.viewOnGitHub });
+        showToast(t.posted, { href: issue.url, text: t.viewOnGitHub });
         return;
       }
       // The API signed the reader out; the form now offers to sign in again.
@@ -284,12 +308,12 @@ function setUpComments(root: HTMLElement, parts: HTMLElement) {
   }
 
   /** The comments on the text at `mark`: its own and those of marks around it. */
-  function commentsAt(mark: HTMLElement): PageComment[] {
-    const numbers = new Set<number>();
+  function commentsAt(mark: HTMLElement): ShownComment[] {
+    const keys = new Set<string>();
     for (let el: HTMLElement | null = mark; el && el !== root; el = el.parentElement) {
-      if (el.matches(MARK)) numbers.add(Number(el.dataset.comment));
+      if (el.matches(MARK)) keys.add(el.dataset.comment!);
     }
-    return comments.filter((comment) => numbers.has(comment.number));
+    return comments.filter((comment) => keys.has(comment.key));
   }
 
   function showCard(mark: HTMLElement, point?: { x: number; y: number }) {
@@ -301,7 +325,7 @@ function setUpComments(root: HTMLElement, parts: HTMLElement) {
     cardFor = mark;
     mark.setAttribute('aria-describedby', card.id);
     // The whole of each passage lights up, not only the part of it under the pointer.
-    const passages = shownComments.map((comment) => `mark.comment-mark[data-comment="${comment.number}"]`).join();
+    const passages = shownComments.map((comment) => `mark.comment-mark[data-comment="${CSS.escape(comment.key)}"]`).join();
     for (const part of root.querySelectorAll(passages)) part.classList.add('is-active');
     placeCard(mark, point);
   }
@@ -383,7 +407,7 @@ function setUpComments(root: HTMLElement, parts: HTMLElement) {
     if (markAt(event.target) && !card.contains(event.relatedTarget as Node | null)) hideCard();
   });
 
-  // Enter on a highlighted passage moves into its card, to reach the link to GitHub.
+  // Enter on a highlighted passage moves into its card, to reach the links to GitHub.
   root.addEventListener('keydown', (event) => {
     const mark = markAt(event.target);
     if (!mark || event.key !== 'Enter') return;
@@ -456,16 +480,6 @@ async function fetchComments(): Promise<PageComment[] | undefined> {
     return comments;
   } catch {
     return undefined;
-  }
-}
-
-/** Keeps a new comment in the loaded ones, so other pages show it before they're loaded again. */
-function addToCache(comment: PageComment) {
-  try {
-    const cached: { at: number; comments: PageComment[] } | null = JSON.parse(read(sessionStorage, COMMENTS_KEY) ?? 'null');
-    if (cached) write(sessionStorage, COMMENTS_KEY, JSON.stringify({ ...cached, comments: [comment, ...cached.comments] }));
-  } catch {
-    // Loaded again next time.
   }
 }
 
@@ -603,22 +617,33 @@ function quoteAt(index: TextIndex, [start, end]: [number, number]): TextQuote {
   };
 }
 
-/** Where a passage is now: where its text is, with most of the text it had around it. */
+/**
+ * Where a passage is now: where its text is, with most of the text it had around it. Quotes
+ * count as the same whether they're straight or curly, as the notes and the pages have them.
+ */
 function findQuote(index: TextIndex, quote: TextQuote): [number, number] | undefined {
-  const { text } = index;
+  const text = foldQuotes(index.text);
+  const exact = foldQuotes(quote.exact);
+  const prefix = foldQuotes(quote.prefix);
+  const suffix = foldQuotes(quote.suffix);
   let best: [number, number] | undefined;
   let bestScore = -1;
-  for (let at = text.indexOf(quote.exact); at !== -1 && quote.exact; at = text.indexOf(quote.exact, at + 1)) {
-    const end = at + quote.exact.length;
+  for (let at = text.indexOf(exact); at !== -1 && exact; at = text.indexOf(exact, at + 1)) {
+    const end = at + exact.length;
     let score = 0;
-    while (score < quote.prefix.length && text[at - score - 1] === quote.prefix[quote.prefix.length - score - 1]) score++;
-    for (let i = 0; i < quote.suffix.length && text[end + i] === quote.suffix[i]; i++) score++;
+    while (score < prefix.length && text[at - score - 1] === prefix[prefix.length - score - 1]) score++;
+    for (let i = 0; i < suffix.length && text[end + i] === suffix[i]; i++) score++;
     if (score > bestScore) {
       best = [at, end];
       bestScore = score;
     }
   }
   return best;
+}
+
+/** Each quote as a straight one: one character for one, so the text's positions stay the same. */
+function foldQuotes(text: string): string {
+  return text.replace(/[‘’‚‛]/g, "'").replace(/[“”„‟]/g, '"');
 }
 
 /** Wraps characters `[start, end)` in marks from `make`: one for each text node or formula they're in. */
@@ -684,7 +709,7 @@ function isQuote(value: unknown): value is TextQuote {
 
 // ---------- Showing a comment ----------
 
-function renderComment(comment: PageComment, t: Strings): HTMLElement {
+function renderComment(comment: ShownComment, t: Strings): HTMLElement {
   const article = element('article', 'comment-entry');
 
   const header = element('header', 'comment-entry-header');
@@ -697,20 +722,33 @@ function renderComment(comment: PageComment, t: Strings): HTMLElement {
   const time = element('time', '', ago(comment.created, t.lang));
   time.setAttribute('datetime', comment.created);
   time.title = new Date(comment.created).toLocaleString(t.lang);
-  header.append(avatar, element('strong', 'comment-author', `@${comment.author.login}`), time);
-  if (comment.status === 'review') header.append(element('span', 'comment-status', t.review));
+  header.append(avatar, element('strong', 'comment-author', `@${comment.author.login}`), time, element('span', 'comment-status', t.awaitingMerge));
   article.append(header);
 
-  if (comment.comment) article.append(element('p', 'comment-body', comment.comment));
-  if (comment.suggestion !== undefined) {
-    const change = element('div', 'comment-change');
-    change.append(element('p', 'comment-change-label', t.suggestedChange), element('del', '', comment.quote.exact), element('ins', '', comment.suggestion));
-    article.append(change);
+  // The version the reader commented on, where the comment's passage is.
+  if (comment.from) {
+    const origin = element('p', 'comment-origin');
+    const page = new URL(localizeUrl(comment.path, comment.from), location.href);
+    // Linked only when it's a page of this site, whatever the pull request says.
+    if (page.origin === location.origin) {
+      const link = element('a', '', t.onVersion[comment.from]);
+      link.href = page.href;
+      origin.append(link);
+    } else {
+      origin.append(t.onVersion[comment.from]);
+    }
+    article.append(origin);
   }
+  if (comment.comment) article.append(element('p', 'comment-body', comment.comment));
+  const change = element('div', 'comment-change');
+  change.append(element('p', 'comment-change-label', t.votedChange), element('del', '', comment.text));
+  if (comment.suggestion) change.append(element('ins', '', comment.suggestion));
+  article.append(change);
 
+  // Where the change was discussed and voted in, and where it waits to be merged.
   const footer = element('footer', 'comment-entry-footer');
-  if (comment.replies > 0) footer.append(element('span', '', plural(t.lang, comment.replies, t.replies)));
-  if (isGitHubUrl(comment.url)) footer.append(externalLink(comment.url, t.viewOnGitHub));
+  if (isGitHubUrl(comment.issue.url)) footer.append(externalLink(comment.issue.url, t.discussion));
+  if (isGitHubUrl(comment.url)) footer.append(externalLink(comment.url, t.pullRequest));
   article.append(footer);
   return article;
 }
