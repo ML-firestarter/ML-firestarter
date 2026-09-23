@@ -4,10 +4,11 @@
 # that aren't about the notes, and the rest get the needs-review label for the maintainer. When it
 # keeps a comment that suggests new wording or points out a mistake, Copilot also writes the change
 # into every language version of the note, and the workflow proposes it on the issue for a vote;
-# open-changes.yml opens a pull request with the proposal that gets the votes. The reader or a
-# maintainer can comment /propose and what to change, and Copilot writes another proposal that
-# follows the discussion. Without the COPILOT_GITHUB_TOKEN secret, or when Copilot's answer is
-# unclear, a comment is kept for review and nothing is proposed.
+# open-changes.yml opens a pull request with the first proposal to get the votes, and keeps it on
+# the one with the most. The reader or a maintainer can comment /propose and what to change, even
+# while the pull request is open, and Copilot writes another proposal that follows the discussion
+# and the votes. Without the COPILOT_GITHUB_TOKEN secret, or when Copilot's answer is unclear, a
+# comment is kept for review and nothing is proposed.
 name: Triage comments
 
 on:
@@ -34,7 +35,6 @@ jobs:
     permissions:
       contents: read
       issues: write
-      pull-requests: read
     env:
       HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
       VOTES: ${{ vars.CHANGE_VOTES }}
@@ -101,7 +101,7 @@ jobs:
             // Copilot's CLI gets the prompt as an argument, which Linux caps at 128 KiB.
             const { clip } = changes;
             // Nothing in them can end the tags the prompts put around them.
-            const inert = (text) => text.replace(/<(\/?)(note|passage|comment|suggestion|discussion|entry|proposal|request|edit|find|replace|remarks)\b/gi, '‹$1$2');
+            const inert = (text) => text.replace(/<(\/?)(note|passage|comment|suggestion|discussion|entry|proposals|proposal|request|edit|find|replace|remarks)\b/gi, '‹$1$2');
 
             let discussion = 'Nothing yet: this is the first proposal.';
             let proposals = 0;
@@ -120,21 +120,18 @@ jobs:
                 await reply("Copilot can't write proposals in this repository yet.");
                 return;
               }
-              const { data: open } = await github.rest.pulls.list({ owner, repo, head: `${owner}:comment-${issue_number}`, state: 'open', per_page: 1 });
-              if (open.length > 0) {
-                await reply(`A change for this comment is a pull request already, #${open[0].number}: discuss it there. Once it's closed, Copilot can propose another one here.`);
-                return;
-              }
+              // A pull request for the comment doesn't stop the vote: a new proposal joins it.
               const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
               const earlier = changes.proposalsIn(comments);
-              proposals = earlier.length;
-              if (!maintainer && proposals >= changes.MAX_PROPOSALS) {
-                await reply(`Copilot has written ${proposals} proposals for this comment, as many as a reader can ask for. A maintainer can still ask for another.`);
+              if (!maintainer && earlier.length >= changes.MAX_PROPOSALS) {
+                await reply(`Copilot has written ${earlier.length} proposals for this comment, as many as a reader can ask for. A maintainer can still ask for another.`);
                 return;
               }
+              // Numbered on from the last, so no two share a number even when one was deleted.
+              proposals = Math.max(0, ...earlier.map(({ data }) => data.number));
 
               // What people said, as much of it as fits, keeping the newest; the workflows' own
-              // comments show in the last proposal.
+              // comments show in the proposals.
               const MAINTAINERS = ['OWNER', 'MEMBER', 'COLLABORATOR'];
               const roleOf = (login, isMaintainer) => [login === reader && 'the reader', isMaintainer && 'maintainer'].filter(Boolean).join(' and ') || 'someone else';
               const entries = [];
@@ -146,11 +143,22 @@ jobs:
                 if (bytes > 10_000) break;
                 entries.unshift(entry);
               }
-              const last = earlier.at(-1)?.data;
-              const edits = last?.edits.map((edit) => `<edit lang="${edit.lang}">\n<find>\n${inert(edit.find)}\n</find>\n<replace>\n${inert(edit.replace)}\n</replace>\n</edit>`);
+              // The proposals so far and their votes, as many as fit, the most voted and then the
+              // newest first; Copilot gets them by number.
+              const votesFor = ({ comment }) => comment.reactions?.['+1'] ?? 0;
+              const shown = [];
+              let room = 10_000;
+              for (const proposal of [...earlier].sort((a, b) => votesFor(b) - votesFor(a) || b.data.number - a.data.number)) {
+                if (room < 1000) break;
+                const edits = proposal.data.edits.map((edit) => `<edit lang="${edit.lang}">\n<find>\n${inert(edit.find)}\n</find>\n<replace>\n${inert(edit.replace)}\n</replace>\n</edit>`);
+                const entry = `<proposal number="${proposal.data.number}" votes="${votesFor(proposal)}">\n${clip(edits.join('\n'), room - 100)}\n</proposal>`;
+                room -= Buffer.byteLength(entry);
+                shown.push({ number: proposal.data.number, entry });
+              }
+              shown.sort((a, b) => a.number - b.number);
               discussion = [
                 `<discussion>\n${entries.join('\n') || '(Nothing said yet.)'}\n</discussion>`,
-                last && `<proposal>\n${clip(edits.join('\n'), 10_000)}\n</proposal>`,
+                shown.length > 0 && `<proposals>\n${shown.map(({ entry }) => entry).join('\n')}\n</proposals>`,
                 `<request author="${asker}" role="${roleOf(asker, maintainer)}">\n${clip(inert(asking[1].trim()), 3000) || '(Nothing more.)'}\n</request>`,
               ].filter(Boolean).join('\n\n');
             }

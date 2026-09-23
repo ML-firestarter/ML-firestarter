@@ -1,11 +1,15 @@
-# Opens a pull request for each change that people voted in. The triage (triage-comments.yml)
-# proposes changes on the issues of readers' comments, and people vote for them by reacting with 👍.
-# The first proposal of an issue to get the votes, 3 unless the CHANGE_VOTES repository variable
-# says otherwise, or one vote from a maintainer, becomes a pull request from the
-# comment-<issue number> branch, credited to the reader. Its hidden marker holds what the site needs
-# to show the change on the note's pages until it's merged (changeFrom in src/lib/comments.ts).
-# GitHub has no event for reactions, so the votes are counted every 15 minutes; run the workflow by
-# hand to count them right away.
+# Opens a pull request for the change people voted for, and keeps it on the one with the most
+# votes. The triage (triage-comments.yml) proposes changes on the issues of readers' comments, and
+# people vote for them by reacting with 👍. A proposal gets the votes with 3 of them, unless the
+# CHANGE_VOTES repository variable says otherwise, or with one from a maintainer, and the first to
+# get them becomes a pull request from the comment-<issue number> branch, credited to the reader.
+# The votes go on while it's open: when another proposal with the votes has more of them, its
+# change replaces the one on the branch and in the description. A commit someone else puts on the
+# branch stops that, and once the pull request is closed, only the proposals written after it
+# count. The description's hidden marker holds what the site needs to show the change on the
+# note's pages until it's merged (changeFrom in src/lib/comments.ts). GitHub has no event for
+# reactions, so the votes are counted every 15 minutes; run the workflow by hand to count them
+# right away.
 name: Open voted changes
 
 on:
@@ -33,7 +37,7 @@ jobs:
           sparse-checkout: .github/scripts
           persist-credentials: false
 
-      - name: Open pull requests for the proposals with the votes
+      - name: Put the proposals with the most votes on pull requests
         uses: actions/github-script@v9
         env:
           VOTES: ${{ vars.CHANGE_VOTES }}
@@ -45,9 +49,6 @@ jobs:
             // A scheduled run's event doesn't say which branch is the default one.
             const { data: repository } = await github.rest.repos.get({ owner, repo });
             const base = repository.default_branch;
-            // The comments' branches with an open pull request: their proposals aren't voted on.
-            const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, state: 'open', per_page: 100 });
-            const opened = new Set(pulls.filter((pull) => pull.head.repo?.full_name === `${owner}/${repo}`).map((pull) => pull.head.ref));
 
             const maintainers = new Map();
             async function isMaintainer(login) {
@@ -63,43 +64,84 @@ jobs:
               }
             }
 
-            // The proposals of an issue that got their votes, the first to get them first.
-            async function openChange(issue) {
-              const issue_number = issue.number;
-              if (opened.has(`comment-${issue_number}`)) return removeLabel(issue_number);
-              const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
-              const proposals = changes.proposalsIn(comments).filter(({ data }) => data.status === undefined);
-              if (proposals.length === 0) return removeLabel(issue_number);
-
-              // A proposal gets its votes with its `needed`th from people, or its first from a maintainer.
-              const winners = [];
-              for (const proposal of proposals) {
-                // A comment counts its reactions, so one without a 👍 needs no looking into.
-                if (proposal.comment.reactions?.['+1'] === 0) continue;
-                const reactions = await github.paginate(github.rest.reactions.listForIssueComment, { owner, repo, comment_id: proposal.comment.id, content: '+1', per_page: 100 });
-                const votes = reactions.filter((reaction) => reaction.user && reaction.user.type !== 'Bot').sort((a, b) => a.created_at.localeCompare(b.created_at));
-                for (const [i, vote] of votes.entries()) {
-                  if (i + 1 >= needed || (await isMaintainer(vote.user.login))) {
-                    winners.push({ ...proposal, at: vote.created_at, voters: votes.map((each) => each.user.login) });
-                    break;
-                  }
-                }
-              }
-              winners.sort((a, b) => a.at.localeCompare(b.at));
-              // One that no longer fits the note makes way for the next.
-              for (const winner of winners) {
-                if (await openPull(issue, winner)) return;
+            // The change on a comment's branch: whether this workflow made it, and which proposal it
+            // is, from its commit's trailer. Undefined when there's no branch.
+            async function changeOn(branch) {
+              try {
+                const { data } = await github.rest.repos.getBranch({ owner, repo, branch });
+                if (data.commit.author?.login !== changes.WORKFLOWS) return { ours: false };
+                const number = /^Proposal: (\d+)$/m.exec(data.commit.commit.message)?.[1];
+                return { ours: true, proposal: number === undefined ? undefined : Number(number) };
+              } catch (error) {
+                if (error.status === 404) return undefined;
+                throw error;
               }
             }
 
-            async function openPull(issue, { comment, data: proposal, voters }) {
+            // Counts the votes on an issue's proposals, and has its pull request follow them.
+            async function followVotes(issue) {
+              const issue_number = issue.number;
+              const branch = `comment-${issue_number}`;
+              // The comment's pull requests: an open one has the change the votes decide, and a
+              // closed one ends the vote on the proposals written before it was closed.
+              const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, head: `${owner}:${branch}`, state: 'all', per_page: 100 });
+              const open = pulls.find((pull) => pull.state === 'open');
+              const closed = pulls.map((pull) => pull.closed_at).filter(Boolean).sort().at(-1);
+              const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+              const proposals = changes.proposalsIn(comments).filter(({ comment, data }) => data.status !== 'stale' && !(closed && comment.created_at <= closed));
+              if (proposals.length === 0) return removeLabel(issue_number);
+
+              // Everyone's vote counts, and a proposal gets the votes with its `needed`th, or with its
+              // first from a maintainer.
+              const counted = [];
+              for (const proposal of proposals) {
+                let votes = [];
+                // A comment counts its reactions, so one without a 👍 needs no looking into.
+                if (proposal.comment.reactions?.['+1'] !== 0) {
+                  const reactions = await github.paginate(github.rest.reactions.listForIssueComment, { owner, repo, comment_id: proposal.comment.id, content: '+1', per_page: 100 });
+                  votes = reactions.filter((reaction) => reaction.user && reaction.user.type !== 'Bot').sort((a, b) => a.created_at.localeCompare(b.created_at));
+                }
+                let at;
+                for (const [i, vote] of votes.entries()) {
+                  if (i + 1 >= needed || (await isMaintainer(vote.user.login))) {
+                    at = vote.created_at;
+                    break;
+                  }
+                }
+                counted.push({ ...proposal, at, voters: votes.map((vote) => vote.user.login) });
+              }
+              if (!counted.some((proposal) => proposal.at)) return;
+
+              const now = await changeOn(branch);
+              // Commits someone else put on the branch are theirs to keep, unless the pull request
+              // they were for was closed since.
+              if ((open && !now?.ours) || (now?.ours === false && pulls.length === 0)) {
+                core.info(`The ${branch} branch has commits that aren't this workflow's, so the votes on #${issue_number} don't change it.`);
+                return;
+              }
+              // Of the proposals with the votes, and the one on the branch, the most votes win. On a
+              // tie, the branch keeps its change, or else the first to get the votes wins; one that
+              // no longer fits the note makes way for the next.
+              const current = now?.proposal;
+              const ranked = counted
+                .filter((proposal) => proposal.at || proposal.data.number === current)
+                .sort((a, b) => b.voters.length - a.voters.length || (b.data.number === current) - (a.data.number === current) || (a.at ?? '').localeCompare(b.at ?? ''));
+              for (const proposal of ranked) {
+                if (proposal.data.number === current || (await putOnBranch(issue, proposal, { open, current }))) return;
+              }
+            }
+
+            // Puts a proposal's change on the comment's branch, as one commit on the default branch
+            // that credits the reader, and opens its pull request, or has the open one show it
+            // instead of the change it had. False when the proposal no longer fits the note.
+            async function putOnBranch(issue, { comment, data: proposal, voters }, { open, current }) {
               const issue_number = issue.number;
               const branch = `comment-${issue_number}`;
               const { data: head } = await github.rest.repos.getBranch({ owner, repo, branch: base });
               const applied = await changes.applyEdits(github, context.repo, head.commit.sha, proposal.edits);
-              const settle = (status, note) => github.rest.issues.updateComment({ owner, repo, comment_id: comment.id, body: changes.settledBody(comment.body, proposal, status, note) });
               if (applied.problem) {
-                await settle('stale', "This proposal no longer fits the note, which changed since Copilot wrote it, so it can't become a pull request.");
+                const note = "This proposal no longer fits the note, which changed since Copilot wrote it, so it can't become a pull request.";
+                await github.rest.issues.updateComment({ owner, repo, comment_id: comment.id, body: changes.settledBody(comment.body, proposal, 'stale', note) });
                 await github.rest.issues.createComment({
                   owner,
                   repo,
@@ -110,8 +152,6 @@ jobs:
                 return false;
               }
 
-              // One commit, crediting the reader, on the comment's branch: a new one, or the one of a
-              // pull request that was closed without merging.
               const reader = issue.user;
               const title = `Apply comment #${issue_number} on ${proposal.name}`;
               const { data: tree } = await github.rest.git.createTree({
@@ -128,21 +168,16 @@ jobs:
                 message: [
                   title,
                   `Copilot's proposal ${proposal.number} for the reader's comment, voted in on #${issue_number}, in every language version of the note. Closes #${issue_number}.`,
-                  reader && `Co-authored-by: ${reader.login} <${reader.id}+${reader.login}@users.noreply.github.com>`,
-                ].filter(Boolean).join('\n\n'),
+                  // The proposal's number tells the next count which change the branch has.
+                  [`Proposal: ${proposal.number}`, reader && `Co-authored-by: ${reader.login} <${reader.id}+${reader.login}@users.noreply.github.com>`].filter(Boolean).join('\n'),
+                ].join('\n\n'),
               });
-              try {
-                await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: commit.sha });
-              } catch (error) {
-                // 422: the branch is there already, and nothing's open from it.
-                if (error.status !== 422) throw error;
-                await github.rest.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha: commit.sha, force: true });
-              }
 
               const text = [
                 `The change asked for in #${issue_number}: Copilot's proposal ${proposal.number}, voted in by ${voters.map((login) => changes.plain(login)).join(', ')}.`,
                 changes.versionList(proposal, applied.files),
                 proposal.remarks && `**Copilot's remarks:** ${changes.plain(proposal.remarks)}`,
+                `While this pull request is open, the votes on #${issue_number} go on: when another proposal with the votes has more of them, its change replaces this one. A commit of your own on the \`${branch}\` branch stops that.`,
                 `Until this pull request is merged or closed, signed-in readers see its change on the note's pages, with the reader's comment. Copilot wrote the change from a reader's comment, so check the wording and the translation before merging. Merging closes #${issue_number}.`,
               ].filter(Boolean).join('\n\n');
               // What the site shows.
@@ -159,15 +194,37 @@ jobs:
               };
               const marked = `${text}\n\n${changes.marker(changes.CHANGE, data)}`;
               const body = marked.length <= changes.MAX_BODY ? marked : text;
-              try {
-                const { data: pull } = await github.rest.pulls.create({ owner, repo, title, head: branch, base, body });
-                await settle('opened', `This proposal got the votes and is pull request #${pull.number} now.`);
-                await removeLabel(issue_number);
+
+              if (open) {
+                // The description first: should the branch not follow, the next count tries again.
+                await github.rest.pulls.update({ owner, repo, pull_number: open.number, body });
+                await github.rest.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha: commit.sha, force: true });
+                const votes = voters.length === 1 ? 'a vote' : `${voters.length} votes`;
                 await github.rest.issues.createComment({
                   owner,
                   repo,
                   issue_number,
-                  body: `Proposal ${proposal.number} got the votes, so it's a pull request now: #${pull.number}, for the maintainer to check and merge. Until then, signed-in readers see the change on the note's pages.`,
+                  body: `Proposal ${proposal.number} leads the vote now, with ${votes}, so pull request #${open.number} has its change instead of ${current === undefined ? 'the one it had' : `proposal ${current}'s`}.`,
+                });
+                core.notice(`Pull request #${open.number} has proposal ${proposal.number} of #${issue_number} now.`);
+                return true;
+              }
+
+              try {
+                await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${branch}`, sha: commit.sha });
+              } catch (error) {
+                // 422: the branch is there already, from a pull request that was closed or from a
+                // link for opening one.
+                if (error.status !== 422) throw error;
+                await github.rest.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha: commit.sha, force: true });
+              }
+              try {
+                const { data: pull } = await github.rest.pulls.create({ owner, repo, title, head: branch, base, body });
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number,
+                  body: `Proposal ${proposal.number} got the votes, so it's a pull request now: #${pull.number}, for the maintainer to check and merge. Until then, signed-in readers see the change on the note's pages. The votes go on meanwhile: if another proposal gets more of them, the pull request gets its change instead.`,
                 });
                 core.notice(`Opened ${pull.html_url} for #${issue_number}.`);
                 return true;
@@ -186,8 +243,6 @@ jobs:
                 issue_number,
                 body: `Proposal ${proposal.number} got the votes, and its change is on the \`${branch}\` branch. [Open a pull request](${link}) to check it and merge it.`,
               });
-              await settle('opened', `This proposal got the votes, and its change is on the \`${branch}\` branch.`);
-              await removeLabel(issue_number);
               core.warning(`GitHub Actions can't open pull requests in this repository, so the change for #${issue_number} is on the ${branch} branch and the issue has a link for opening one. To have them opened for you, turn on "Allow GitHub Actions to create and approve pull requests" under Settings → Actions → General.`);
               return true;
             }
@@ -197,9 +252,9 @@ jobs:
               // Pull requests are issues too, for GitHub.
               if (issue.pull_request) continue;
               try {
-                await openChange(issue);
+                await followVotes(issue);
               } catch (error) {
                 // The other issues' votes still count.
-                core.warning(`Couldn't count the votes on #${issue.number} or open its pull request: ${error.message}`);
+                core.warning(`Couldn't follow the votes on #${issue.number}: ${error.message}`);
               }
             }
