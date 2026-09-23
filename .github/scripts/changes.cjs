@@ -2,8 +2,8 @@
 // Copilot propose a change for a reader's comment, written into every language version of the
 // note, and posts it on the comment's issue for a vote. The first proposal to get the votes becomes
 // a pull request (.github/workflows/open-changes.yml), which then has whichever proposal with the
-// votes has the most of them. Its hidden marker holds what the site needs to show the change
-// (changeFrom in src/lib/comments.ts).
+// votes has the most of them, or the one a maintainer accepts. Its hidden marker holds what the
+// site needs to show the change (changeFrom in src/lib/comments.ts).
 'use strict';
 
 /** The languages of the notes, as LANGS in src/lib/i18n.ts, English first. */
@@ -273,7 +273,7 @@ function proposalBody(proposal, files, votes) {
     versionList(proposal, files),
     ...diffs(files),
     proposal.remarks && `**Copilot's remarks:** ${plain(proposal.remarks)}`,
-    `Vote for this change by reacting to this comment with 👍. ${needed} it becomes a pull request, for the maintainer to check and merge. When more than one proposal gets that far, the pull request has the one with the most votes, until it's merged or closed. The votes are counted every 15 minutes. The reader and the maintainers can ask Copilot for another proposal by commenting \`/propose\` and what to change.`,
+    `Vote for this change by reacting to this comment with 👍. ${needed} it becomes a pull request, for the maintainer to check and merge. When more than one proposal gets that far, the pull request has the one with the most votes, until it's merged or closed. The votes are counted every 15 minutes. A maintainer can put this proposal on the pull request right away by commenting \`/accept ${proposal.number}\`, and then the votes no longer change it. The reader and the maintainers can ask Copilot for another proposal by commenting \`/propose\` and what to change.`,
     marker(PROPOSAL, proposal),
   ]
     .filter(Boolean)
