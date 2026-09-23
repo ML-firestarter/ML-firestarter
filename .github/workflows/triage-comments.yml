@@ -1,0 +1,193 @@
+# Readers' comments on passages of the notes arrive as issues, which the site opens as the reader
+# (src/lib/comments.ts). Copilot reads each new one next to the note it's about: it closes spam,
+# tests and comments that aren't about the notes, which takes them off the site, and the rest get
+# the needs-review label for the maintainer. Without the COPILOT_GITHUB_TOKEN secret, or when
+# Copilot's answer is unclear, a comment is kept for review.
+name: Triage comments
+
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  triage:
+    # Only issues sent from the site, which end with its marker.
+    if: contains(github.event.issue.body, '<!-- ml-workout:comment ')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    env:
+      HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
+    steps:
+      - name: Check out the prompt
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/prompts
+          persist-credentials: false
+
+      # The issue is read from the event, never pasted into scripts, so its text can't run as code.
+      - name: Read the comment
+        id: read
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('node:fs/promises');
+            const path = require('node:path');
+            const { issue, repository } = context.payload;
+            const { owner, repo } = context.repo;
+            const issue_number = issue.number;
+
+            const labels = [
+              { name: 'text-comment', color: 'c5def5', description: 'Comment on a passage of the notes, sent from the site' },
+              { name: 'needs-review', color: 'fbca04', description: 'Comment kept by the triage for the maintainer' },
+              { name: 'off-topic', color: 'd4c5f9', description: 'Comment closed by the triage: not feedback on the notes' },
+            ];
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({ owner, repo, ...label });
+              } catch (error) {
+                // 422: the label is there already.
+                if (error.status !== 422) throw error;
+              }
+            }
+            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['text-comment'] });
+
+            // The site's marker is the last one, as in commentFrom in src/lib/comments.ts.
+            const MARKER = '<!-- ml-workout:comment ';
+            const body = issue.body ?? '';
+            const start = body.lastIndexOf(MARKER);
+            const end = body.indexOf(' -->', start);
+            let data;
+            try {
+              data = JSON.parse(body.slice(start + MARKER.length, end));
+            } catch {}
+            const isText = (value) => typeof value === 'string';
+            const file = data?.file;
+            const valid =
+              isText(file) &&
+              /^notes\/[^\\]+\.md$/.test(file) &&
+              !file.split('/').some((part) => ['', '.', '..'].includes(part)) &&
+              ['en', 'pl'].includes(data.lang) &&
+              isText(data.quote?.exact) &&
+              data.quote.exact !== '' &&
+              isText(data.comment) &&
+              (data.suggestion === undefined || isText(data.suggestion));
+            if (!valid) {
+              core.warning("The issue's marker isn't one the site writes: keeping it for review.");
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-review'] });
+              return;
+            }
+
+            let note = '(This note is no longer in the repository.)';
+            try {
+              const { data: content } = await github.rest.repos.getContent({ owner, repo, path: file, ref: repository.default_branch });
+              if (!Array.isArray(content) && content.type === 'file') note = Buffer.from(content.content, 'base64').toString('utf8');
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+
+            // Copilot's CLI gets the prompt as an argument, which Linux caps at 128 KiB.
+            const clip = (text, bytes) => {
+              const buffer = Buffer.from(text);
+              return buffer.length <= bytes ? text : `${buffer.subarray(0, bytes).toString('utf8').replace(/�+$/, '')}\n[…]`;
+            };
+            // Nothing in them can end the tags the prompt puts around them.
+            const inert = (text) => text.replace(/<(\/?)(note|passage|comment|suggestion)\b/gi, '‹$1$2');
+            const comment = [
+              `<passage>\n${inert(data.quote.exact)}\n</passage>`,
+              `<comment>\n${inert(data.comment) || '(none)'}\n</comment>`,
+              data.suggestion !== undefined && `<suggestion>\n${inert(data.suggestion)}\n</suggestion>`,
+            ];
+            const dir = path.join(process.env.RUNNER_TEMP, 'triage');
+            await fs.mkdir(dir, { recursive: true });
+            await fs.writeFile(path.join(dir, 'note.md'), clip(inert(note), 48_000));
+            await fs.writeFile(path.join(dir, 'comment.md'), clip(comment.filter(Boolean).join('\n\n'), 12_000));
+            core.setOutput('lang', data.lang);
+            core.setOutput('ready', 'true');
+
+      - name: Set up Node
+        if: steps.read.outputs.ready == 'true' && env.HAS_COPILOT_TOKEN == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Copilot CLI
+        if: steps.read.outputs.ready == 'true' && env.HAS_COPILOT_TOKEN == 'true'
+        run: |
+          npm install --global @github/copilot
+          # The comment is a stranger's text, so Copilot gets no tools: whatever the comment says,
+          # Copilot can only answer, not run commands, read files or open pages.
+          cat > "$RUNNER_TEMP/copilot-no-tools" <<'EOF'
+          #!/usr/bin/env bash
+          exec copilot \
+            --excluded-tools=bash,list_bash,read_bash,stop_bash,write_bash,apply_patch,create,edit,view,glob,grep,rg,web_fetch,task,list_agents,read_agent,write_agent,skill \
+            --deny-tool=shell,read,write,url,memory \
+            --disable-builtin-mcps --no-custom-instructions --no-auto-update --disallow-temp-dir "$@"
+          EOF
+          chmod +x "$RUNNER_TEMP/copilot-no-tools"
+
+      - name: Ask Copilot
+        id: copilot
+        if: steps.read.outputs.ready == 'true' && env.HAS_COPILOT_TOKEN == 'true'
+        # Without an answer, the comment is kept for review.
+        continue-on-error: true
+        timeout-minutes: 5
+        uses: actions/ai-inference@v3
+        with:
+          prompt-file: .github/prompts/triage-comment.prompt.yml
+          file_input: |
+            note: ${{ runner.temp }}/triage/note.md
+            comment: ${{ runner.temp }}/triage/comment.md
+          model: ${{ vars.COPILOT_MODEL || 'claude-haiku-4.5' }}
+          copilot-cli-path: ${{ runner.temp }}/copilot-no-tools
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+
+      - name: Close or keep the comment
+        if: steps.read.outputs.ready == 'true'
+        uses: actions/github-script@v9
+        env:
+          RESPONSE_FILE: ${{ steps.copilot.outputs.response-file }}
+          COMMENT_LANG: ${{ steps.read.outputs.lang }}
+        with:
+          script: |
+            const fs = require('node:fs/promises');
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.issue.number;
+
+            let verdict;
+            if (process.env.HAS_COPILOT_TOKEN !== 'true') {
+              core.notice('There is no COPILOT_GITHUB_TOKEN secret, so comments are kept for review.');
+            } else {
+              const response = process.env.RESPONSE_FILE ? await fs.readFile(process.env.RESPONSE_FILE, 'utf8').catch(() => '') : '';
+              try {
+                verdict = JSON.parse(response.slice(response.indexOf('{'), response.lastIndexOf('}') + 1));
+                const { decision, category, confidence, reason } = verdict;
+                core.info(`Copilot: ${decision}, ${category}, confidence ${confidence}: ${String(reason).slice(0, 300)}`);
+              } catch {
+                core.warning("Copilot didn't give the answer asked for, so the comment is kept for review.");
+              }
+            }
+
+            // Closing takes the comment off the site, so only clear cases are closed.
+            const CLOSE = ['spam', 'off-topic', 'test', 'noise', 'abuse'];
+            const { decision, category, confidence } = verdict ?? {};
+            if (decision !== 'close' || !CLOSE.includes(category) || typeof confidence !== 'number' || confidence < 0.8) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['needs-review'] });
+              return;
+            }
+
+            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['off-topic'] });
+            // Spam and abuse are closed without a word.
+            if (category !== 'spam' && category !== 'abuse') {
+              const body =
+                process.env.COMMENT_LANG === 'pl'
+                  ? 'Zamknięte automatycznie: to nie wygląda na uwagę do notatek. Jeśli to pomyłka, odpowiedz tutaj, a opiekun notatek się temu przyjrzy.'
+                  : "Closed automatically: this doesn't look like feedback on the notes. If that's a mistake, reply here and the maintainer will take a look.";
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+            await github.rest.issues.update({ owner, repo, issue_number, state: 'closed', state_reason: 'not_planned' });

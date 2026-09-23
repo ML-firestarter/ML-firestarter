@@ -1,0 +1,66 @@
+---
+/**
+ * What pages that take comments need for them (scripts/comments.ts): the button that appears
+ * over selected text, the form for writing a comment, the card that shows a comment and the
+ * message after posting one.
+ */
+import { LIMITS } from '../lib/comments.ts';
+import { ui, type Lang } from '../lib/i18n.ts';
+import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang].comments;
+// For the script; `<` is escaped so the JSON can't end the script element.
+const strings = JSON.stringify({ lang, ...t }).replace(/</g, '\\u003c');
+---
+
+<div class="comment-ui" data-comment-ui>
+  <button class="comment-float" type="button" data-comment-float hidden>
+    <Icon name="comment" />
+    <span>{t.comment}</span>
+  </button>
+
+  <dialog class="comment-dialog" aria-labelledby="comment-heading" data-comment-dialog>
+    <form method="dialog" data-comment-form>
+      <header class="comment-dialog-header">
+        <h2 id="comment-heading">{t.heading}</h2>
+        <button class="icon-button" type="button" data-comment-cancel>
+          <Icon name="close" />
+          <span class="visually-hidden">{t.close}</span>
+        </button>
+      </header>
+      <blockquote class="comment-quote" data-comment-quote></blockquote>
+      <label class="comment-label" for="comment-text">{t.commentLabel}</label>
+      <textarea class="comment-field" id="comment-text" name="comment" rows="4" maxlength={LIMITS.comment} placeholder={t.placeholder}></textarea>
+      <details class="comment-suggest" data-comment-suggest>
+        <summary>{t.suggest}</summary>
+        <label class="comment-label" for="comment-suggestion">{t.suggestionLabel}</label>
+        <textarea class="comment-field" id="comment-suggestion" name="suggestion" rows="3" maxlength={LIMITS.suggestion}></textarea>
+      </details>
+      <p class="comment-error" role="alert" data-comment-error></p>
+      <p class="comment-note when-signed-in">
+        <Phrase text={t.publicNote}><strong data-account-login></strong></Phrase>
+      </p>
+      <p class="comment-note when-signed-out">{t.signInNote}</p>
+      <footer class="comment-actions">
+        <button class="button" type="button" data-comment-cancel>{t.cancel}</button>
+        <button class="button primary when-signed-in" type="submit" data-comment-post>{t.post}</button>
+        <a class="button primary when-signed-out" href="/api/auth/login" data-sign-in data-comment-sign-in>
+          <Icon name="login" />
+          {t.signIn}
+        </a>
+      </footer>
+    </form>
+  </dialog>
+
+  <div class="comment-card" id="comment-card" data-comment-card hidden></div>
+  <div class="comment-toast" role="status" data-comment-toast></div>
+  <script is:inline type="application/json" data-comment-strings set:html={strings}></script>
+</div>
+
+<script src="../scripts/comments.ts"></script>

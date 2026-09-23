@@ -53,6 +53,29 @@ The [Tests](notes/01-start-here/01-how-this-works.md#tests) section of *How this
 
 English pages are at the root of the site and Polish ones under `/pl/`. A translation sits next to its original: `sft.pl.md` is the Polish version of `sft.md` and is published at `/pl/vocabulary/sft/`. Tests are translated the same way. Until a note or test is translated, the Polish site shows the original with a notice and a link for adding the translation on GitHub. Progress and test scores are shared between the languages.
 
+## Comments
+
+Readers can comment on the vocabulary and foundations pages the way code gets reviewed: they select a passage, write what they think of it and can suggest new wording for it. They sign in with GitHub to do it, and each comment becomes an issue in this repository, opened in their name, with the passage, the comment, the suggested change as a diff and a link back to the page. Signed-in readers see the open comments highlighted in the text, and the whole comment when they point at a highlight. The sections that take comments are listed under `comments` in `src/site.config.ts`.
+
+Copilot checks each new comment ([`triage-comments.yml`](.github/workflows/triage-comments.yml)): it closes spam, tests and comments that aren't about the notes, and gives the rest the `needs-review` label. Closing an issue takes its comment off the site, so close a comment's issue once you've dealt with it. A comment stays on its passage while the rest of the note changes, but it's no longer shown once the passage itself is reworded. The workflow run of an issue says why Copilot closed or kept it, and Copilot's instructions are in [`triage-comment.prompt.yml`](.github/prompts/triage-comment.prompt.yml).
+
+### Setting up comments
+
+1. Create a GitHub App under **Settings → Developer settings → GitHub Apps → New GitHub App**:
+   - **Callback URL**: `https://<your site>/api/auth/callback`, and `http://localhost:4321/api/auth/callback` for running the site locally. Leave **Expire user authorization tokens** on.
+   - **Webhook**: turn off **Active**.
+   - **Repository permissions**: **Issues**, read and write. Nothing else.
+   - **Where can this GitHub App be installed?**: **Any account**, so that everyone can sign in with it.
+2. On the app's page, copy the **Client ID** and generate a **client secret**. Then, under **Install App**, install it on your account for the ML-workout repository only.
+3. In Netlify, under **Site configuration → Environment variables**, add these for Functions:
+   - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from step 2;
+   - `SESSION_SECRET`: 32 or more random characters, like the output of `openssl rand -base64 32`. It encrypts the sign-in cookies, and changing it signs everyone out.
+
+   Deploy previews have addresses of their own, so signing in works on one only once its callback URL is added to the app.
+4. For Copilot to check the comments, create a fine-grained personal access token (**Settings → Developer settings → Personal access tokens → Fine-grained tokens**) with the **Copilot Requests** permission, and add it to this repository as the `COPILOT_GITHUB_TOKEN` secret (**Settings → Secrets and variables → Actions**). The checks use your Copilot plan's requests, with Claude Haiku 4.5 unless the `COPILOT_MODEL` repository variable names another model. Without the token, or once it expires, every comment is kept for review.
+
+To try comments locally, copy `.env.example` to `.env` and fill it in.
+
 ## Running it locally
 
 Needs Node.js 22.12 or newer.
@@ -63,6 +86,8 @@ npm run dev     # http://localhost:4321, reloads as you edit notes
 npm run build   # production build into dist/
 npm run check   # type-check the site code
 ```
+
+`npm run dev` also serves the API behind signing in and comments, with the settings from `.env` (see [Comments](#comments)).
 
 ## Deployment
 
@@ -76,8 +101,10 @@ Built with [Astro](https://astro.build). The code is in `src/`:
 - `lib/course.ts` turns the notes into chapters and lessons, one course per language, picks each note's translation and gives each lesson its test.
 - `lib/paths.ts` turns file paths into titles and addresses.
 - `lib/markdown.ts` handles math, callouts, footnotes, the leading heading and links between notes, and turns tests into question forms.
+- `lib/comments.ts` describes readers' comments and the issues that hold them.
 - `pages/` holds the home, chapter, lesson, test and 404 pages and the tests overview, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
-- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them.
-- `site.config.ts` holds the site title, the tagline in each language, the GitHub repository and the tests' pass mark.
+- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them. `scripts/account.ts` shows who's signed in, and `scripts/comments.ts` handles selecting passages, the comment form and the highlighted comments.
+- `server/api.ts` is the API for signing in with GitHub and for comments, with `server/session.ts` keeping readers signed in with encrypted cookies and `server/github.ts` talking to GitHub. Netlify runs it as a function ([`netlify/functions/api.ts`](netlify/functions/api.ts)), and `server/dev.ts` serves it in `npm run dev`.
+- `site.config.ts` holds the site title, the tagline in each language, the GitHub repository, the tests' pass mark and the sections that take comments.
 
 To add a language, add its code to `LANGS` in `lib/i18n.ts` and run `npm run check`, which lists the text still missing for it. Then add a "page not found" rule for it to `netlify.toml`, like the one for `/pl/`.
