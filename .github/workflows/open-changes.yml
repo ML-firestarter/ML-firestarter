@@ -4,28 +4,39 @@
 # CHANGE_VOTES repository variable says otherwise, or with one from a maintainer, and the first to
 # get them becomes a pull request from the comment-<issue number> branch, credited to the reader.
 # The votes go on while it's open: when another proposal with the votes has more of them, its
-# change replaces the one on the branch and in the description. A commit someone else puts on the
-# branch stops that, and once the pull request is closed, only the proposals written after it
-# count. The description's hidden marker holds what the site needs to show the change on the
-# note's pages until it's merged (changeFrom in src/lib/comments.ts). GitHub has no event for
-# reactions, so the votes are counted every 15 minutes; run the workflow by hand to count them
-# right away.
+# change replaces the one on the branch and in the description. A maintainer can instead comment
+# /accept and a proposal's number, or just /accept for the newest one, to put it on the pull
+# request right away; from then on the votes no longer change it, and another /accept does. A
+# commit someone else puts on the branch stops both, and once the pull request is closed, only the
+# proposals and the /accepts written after it count. The description's hidden marker holds what
+# the site needs to show the change on the note's pages until it's merged (changeFrom in
+# src/lib/comments.ts). GitHub has no event for reactions, so the votes are counted every 15
+# minutes; run the workflow by hand to count them right away.
 name: Open voted changes
 
 on:
+  # Off the quarter hours, when GitHub is busiest and delays or drops scheduled runs.
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
+  issue_comment:
+    types: [created]
 
 permissions: {}
 
-concurrency:
-  group: open-changes
-
 jobs:
   open:
+    # The vote count, or a maintainer's /accept on an issue sent from the site.
+    if: >-
+      github.event_name != 'issue_comment' || (contains(github.event.issue.body, '<!-- ml-workout:comment ') &&
+      !github.event.issue.pull_request && github.event.issue.state == 'open' &&
+      startsWith(github.event.comment.body, '/accept') && github.event.comment.user.type != 'Bot')
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # One run at a time. It's on the job rather than the workflow, so that the runs other comments
+    # start, whose job is skipped, don't take the place of one that's waiting.
+    concurrency:
+      group: open-changes
     permissions:
       contents: write
       pull-requests: write
@@ -37,7 +48,7 @@ jobs:
           sparse-checkout: .github/scripts
           persist-credentials: false
 
-      - name: Put the proposals with the most votes on pull requests
+      - name: Put the accepted or most voted proposals on pull requests
         uses: actions/github-script@v9
         env:
           VOTES: ${{ vars.CHANGE_VOTES }}
@@ -46,6 +57,12 @@ jobs:
             const changes = require('./.github/scripts/changes.cjs');
             const { owner, repo } = context.repo;
             const needed = changes.votesNeeded(process.env.VOTES);
+            // A maintainer's /accept, when a comment started the run rather than the schedule:
+            // `/accept`, then a proposal's number or nothing. The job's condition lets `/accepted`
+            // through too.
+            const request = context.eventName === 'issue_comment' ? context.payload.comment : undefined;
+            const ACCEPT = /^\/accept\b(.*)/i;
+            if (request && !ACCEPT.test(request.body)) return;
             // A scheduled run's event doesn't say which branch is the default one.
             const { data: repository } = await github.rest.repos.get({ owner, repo });
             const base = repository.default_branch;
@@ -78,17 +95,77 @@ jobs:
               }
             }
 
-            // Counts the votes on an issue's proposals, and has its pull request follow them.
-            async function followVotes(issue) {
+            // What a comment accepts: nothing when it isn't an /accept, or is a bot's or a deleted
+            // account's, else the proposal it names or what's wrong with it. That's one of the
+            // proposals written before it, and after the comment's pull request was last closed, if
+            // it was.
+            async function acceptIn(comment, proposals, closedPull) {
+              const accept = ACCEPT.exec(comment.body ?? '');
+              if (!accept || !comment.user || comment.user.type === 'Bot') return undefined;
+              if (!(await isMaintainer(comment.user.login))) return { problem: 'Only maintainers can accept a proposal. Vote for it with 👍 instead.' };
+              const number = /^\s*#?(\d+)\b/.exec(accept[1])?.[1];
+              if (number === undefined && accept[1].trim() !== '') return { problem: 'Which proposal? Comment `/accept` and its number, like `/accept 2`.' };
+              const before = proposals.filter((proposal) => proposal.comment.created_at <= comment.created_at);
+              const proposal = number === undefined ? before.at(-1) : before.find(({ data }) => data.number === Number(number));
+              if (!proposal) return { problem: number === undefined ? "There's no proposal on this issue to accept yet." : `There's no proposal ${Number(number)} on this issue.` };
+              const { number: n, status } = proposal.data;
+              if (status === 'stale') return { problem: `Proposal ${n} no longer fits the note, which changed since Copilot wrote it. Comment \`/propose\` to have Copilot write it again.` };
+              if (closedPull && proposal.comment.created_at <= closedPull.closed_at) {
+                return { problem: `Proposal ${n} is from before pull request #${closedPull.number} was closed, so it can't be accepted anymore. Comment \`/propose\` for a new one.` };
+              }
+              return { proposal };
+            }
+
+            // Has the pull request of an issue's comment follow a maintainer's /accept, or else the
+            // votes on the issue's proposals.
+            async function follow(issue) {
               const issue_number = issue.number;
               const branch = `comment-${issue_number}`;
-              // The comment's pull requests: an open one has the change the votes decide, and a
-              // closed one ends the vote on the proposals written before it was closed.
+              const reply = (body) => github.rest.issues.createComment({ owner, repo, issue_number, body });
+              // The comment's pull requests: an open one has the change that's accepted or voted
+              // for, and a closed one ends the vote on the proposals written before it was closed.
               const pulls = await github.paginate(github.rest.pulls.list, { owner, repo, head: `${owner}:${branch}`, state: 'all', per_page: 100 });
               const open = pulls.find((pull) => pull.state === 'open');
-              const closed = pulls.map((pull) => pull.closed_at).filter(Boolean).sort().at(-1);
+              const closedPull = pulls.filter((pull) => pull.closed_at).sort((a, b) => a.closed_at.localeCompare(b.closed_at)).at(-1);
+              const since = (comment) => !(closedPull && comment.created_at <= closedPull.closed_at);
+              // Commits someone else put on the branch are theirs to keep, unless the pull request
+              // they were for was closed since.
+              const theirs = (now) => (open && !now?.ours) || (now?.ours === false && pulls.length === 0);
               const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
-              const proposals = changes.proposalsIn(comments).filter(({ comment, data }) => data.status !== 'stale' && !(closed && comment.created_at <= closed));
+              // The /accept this run is for, should the list not have it yet.
+              if (request && !comments.some((comment) => comment.id === request.id)) comments.push(request);
+              const all = changes.proposalsIn(comments);
+
+              // The last /accept of a maintainer decides. What's wrong with one is told only when
+              // it's new; the counts after pass over it.
+              let accepted;
+              for (const comment of comments) {
+                const accept = await acceptIn(comment, all, closedPull);
+                if (accept?.problem && comment.id === request?.id) return reply(accept.problem);
+                if (accept?.proposal) accepted = { ...accept.proposal, by: comment.user.login };
+              }
+              if (accepted) {
+                const now = await changeOn(branch);
+                if (theirs(now)) {
+                  core.info(`The ${branch} branch has commits that aren't this workflow's, so the /accept on #${issue_number} doesn't change it.`);
+                  if (request) await reply(`The \`${branch}\` branch has commits that aren't this workflow's, so accepting a proposal doesn't change it.`);
+                  return;
+                }
+                const current = now?.proposal;
+                // A new /accept tries again to open the pull request of a change on the branch
+                // that has none; the counts don't, so as not to post the link for opening it again.
+                if (current === accepted.data.number && (open || !request)) {
+                  if (request) await reply(`Pull request #${open.number} has proposal ${current} already, and the votes no longer change it.`);
+                  return;
+                }
+                await putOnBranch(issue, accepted, { open, current });
+                return;
+              }
+              // Only the counts follow the votes; a comment's run gets here when the comment was
+              // edited since into something other than an /accept.
+              if (request) return;
+
+              const proposals = all.filter(({ comment, data }) => data.status !== 'stale' && since(comment));
               if (proposals.length === 0) return removeLabel(issue_number);
 
               // Everyone's vote counts, and a proposal gets the votes with its `needed`th, or with its
@@ -113,9 +190,7 @@ jobs:
               if (!counted.some((proposal) => proposal.at)) return;
 
               const now = await changeOn(branch);
-              // Commits someone else put on the branch are theirs to keep, unless the pull request
-              // they were for was closed since.
-              if ((open && !now?.ours) || (now?.ours === false && pulls.length === 0)) {
+              if (theirs(now)) {
                 core.info(`The ${branch} branch has commits that aren't this workflow's, so the votes on #${issue_number} don't change it.`);
                 return;
               }
@@ -133,22 +208,24 @@ jobs:
 
             // Puts a proposal's change on the comment's branch, as one commit on the default branch
             // that credits the reader, and opens its pull request, or has the open one show it
-            // instead of the change it had. False when the proposal no longer fits the note.
-            async function putOnBranch(issue, { comment, data: proposal, voters }, { open, current }) {
+            // instead of the change it had. `by` is the maintainer who accepted it, when the votes
+            // didn't decide. False when the proposal no longer fits the note.
+            async function putOnBranch(issue, { comment, data: proposal, voters, by }, { open, current }) {
               const issue_number = issue.number;
               const branch = `comment-${issue_number}`;
               const { data: head } = await github.rest.repos.getBranch({ owner, repo, branch: base });
               const applied = await changes.applyEdits(github, context.repo, head.commit.sha, proposal.edits);
               if (applied.problem) {
+                const got = by ? 'was accepted' : 'got the votes';
                 const note = "This proposal no longer fits the note, which changed since Copilot wrote it, so it can't become a pull request.";
                 await github.rest.issues.updateComment({ owner, repo, comment_id: comment.id, body: changes.settledBody(comment.body, proposal, 'stale', note) });
                 await github.rest.issues.createComment({
                   owner,
                   repo,
                   issue_number,
-                  body: `Proposal ${proposal.number} got the votes, but it no longer fits the note, which changed since Copilot wrote it: ${applied.problem}. The reader or a maintainer can comment \`/propose\` to have Copilot write it again.`,
+                  body: `Proposal ${proposal.number} ${got}, but it no longer fits the note, which changed since Copilot wrote it: ${applied.problem}. The reader or a maintainer can comment \`/propose\` to have Copilot write it again.`,
                 });
-                core.notice(`Proposal ${proposal.number} on #${issue_number} got the votes but no longer fits the note: ${applied.problem}.`);
+                core.notice(`Proposal ${proposal.number} on #${issue_number} ${got} but no longer fits the note: ${applied.problem}.`);
                 return false;
               }
 
@@ -167,17 +244,19 @@ jobs:
                 parents: [head.commit.sha],
                 message: [
                   title,
-                  `Copilot's proposal ${proposal.number} for the reader's comment, voted in on #${issue_number}, in every language version of the note. Closes #${issue_number}.`,
+                  `Copilot's proposal ${proposal.number} for the reader's comment, ${by ? `accepted by ${by}` : 'voted in'} on #${issue_number}, in every language version of the note. Closes #${issue_number}.`,
                   // The proposal's number tells the next count which change the branch has.
                   [`Proposal: ${proposal.number}`, reader && `Co-authored-by: ${reader.login} <${reader.id}+${reader.login}@users.noreply.github.com>`].filter(Boolean).join('\n'),
                 ].join('\n\n'),
               });
 
               const text = [
-                `The change asked for in #${issue_number}: Copilot's proposal ${proposal.number}, voted in by ${voters.map((login) => changes.plain(login)).join(', ')}.`,
+                `The change asked for in #${issue_number}: Copilot's proposal ${proposal.number}, ${by ? `accepted by ${changes.plain(by)}` : `voted in by ${voters.map((login) => changes.plain(login)).join(', ')}`}.`,
                 changes.versionList(proposal, applied.files),
                 proposal.remarks && `**Copilot's remarks:** ${changes.plain(proposal.remarks)}`,
-                `While this pull request is open, the votes on #${issue_number} go on: when another proposal with the votes has more of them, its change replaces this one. A commit of your own on the \`${branch}\` branch stops that.`,
+                by
+                  ? `A maintainer accepted this proposal on #${issue_number}, so the votes there no longer change this pull request; another \`/accept\` there does, and a commit of your own on the \`${branch}\` branch stops that.`
+                  : `While this pull request is open, the votes on #${issue_number} go on: when another proposal with the votes has more of them, its change replaces this one. Commenting \`/accept\` and a proposal's number there settles it, and a commit of your own on the \`${branch}\` branch stops it.`,
                 `Until this pull request is merged or closed, signed-in readers see its change on the note's pages, with the reader's comment. Copilot wrote the change from a reader's comment, so check the wording and the translation before merging. Merging closes #${issue_number}.`,
               ].filter(Boolean).join('\n\n');
               // What the site shows.
@@ -199,12 +278,15 @@ jobs:
                 // The description first: should the branch not follow, the next count tries again.
                 await github.rest.pulls.update({ owner, repo, pull_number: open.number, body });
                 await github.rest.git.updateRef({ owner, repo, ref: `heads/${branch}`, sha: commit.sha, force: true });
-                const votes = voters.length === 1 ? 'a vote' : `${voters.length} votes`;
+                const instead = `pull request #${open.number} has its change instead of ${current === undefined ? 'the one it had' : `proposal ${current}'s`}`;
+                const votes = voters && (voters.length === 1 ? 'a vote' : `${voters.length} votes`);
                 await github.rest.issues.createComment({
                   owner,
                   repo,
                   issue_number,
-                  body: `Proposal ${proposal.number} leads the vote now, with ${votes}, so pull request #${open.number} has its change instead of ${current === undefined ? 'the one it had' : `proposal ${current}'s`}.`,
+                  body: by
+                    ? `Proposal ${proposal.number} is accepted, so ${instead}. The votes no longer change it; another \`/accept\` does.`
+                    : `Proposal ${proposal.number} leads the vote now, with ${votes}, so ${instead}.`,
                 });
                 core.notice(`Pull request #${open.number} has proposal ${proposal.number} of #${issue_number} now.`);
                 return true;
@@ -224,7 +306,9 @@ jobs:
                   owner,
                   repo,
                   issue_number,
-                  body: `Proposal ${proposal.number} got the votes, so it's a pull request now: #${pull.number}, for the maintainer to check and merge. Until then, signed-in readers see the change on the note's pages. The votes go on meanwhile: if another proposal gets more of them, the pull request gets its change instead.`,
+                  body: by
+                    ? `Proposal ${proposal.number} is accepted, so it's a pull request now: #${pull.number}, for the maintainer to check and merge. Until then, signed-in readers see the change on the note's pages. The votes no longer change it; another \`/accept\` does.`
+                    : `Proposal ${proposal.number} got the votes, so it's a pull request now: #${pull.number}, for the maintainer to check and merge. Until then, signed-in readers see the change on the note's pages. The votes go on meanwhile: if another proposal gets more of them, the pull request gets its change instead.`,
                 });
                 core.notice(`Opened ${pull.html_url} for #${issue_number}.`);
                 return true;
@@ -241,18 +325,20 @@ jobs:
                 owner,
                 repo,
                 issue_number,
-                body: `Proposal ${proposal.number} got the votes, and its change is on the \`${branch}\` branch. [Open a pull request](${link}) to check it and merge it.`,
+                body: `Proposal ${proposal.number} ${by ? 'is accepted' : 'got the votes'}, and its change is on the \`${branch}\` branch. [Open a pull request](${link}) to check it and merge it.`,
               });
               core.warning(`GitHub Actions can't open pull requests in this repository, so the change for #${issue_number} is on the ${branch} branch and the issue has a link for opening one. To have them opened for you, turn on "Allow GitHub Actions to create and approve pull requests" under Settings → Actions → General.`);
               return true;
             }
 
+            // A maintainer's /accept counts right away, for its issue only.
+            if (request) return follow(context.payload.issue);
             const issues = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', labels: 'proposal', per_page: 100 });
             for (const issue of issues) {
               // Pull requests are issues too, for GitHub.
               if (issue.pull_request) continue;
               try {
-                await followVotes(issue);
+                await follow(issue);
               } catch (error) {
                 // The other issues' votes still count.
                 core.warning(`Couldn't follow the votes on #${issue.number}: ${error.message}`);
