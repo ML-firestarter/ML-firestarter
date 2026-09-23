@@ -1,8 +1,11 @@
 ---
 import { render } from 'astro:content';
+import { hasComments } from '../lib/comments.ts';
 import { editUrl, type Course, type Lesson } from '../lib/course.ts';
 import { langAttr, ui } from '../lib/i18n.ts';
 import { site } from '../site.config.ts';
+import Comments from './Comments.astro';
+import CommentsChip from './CommentsChip.astro';
 import Crumbs from './Crumbs.astro';
 import Icon from './Icon.astro';
 import Untranslated from './Untranslated.astro';
@@ -26,6 +29,7 @@ const index = course.lessons.indexOf(lesson);
 const previous = course.lessons[index - 1];
 const next = course.lessons[index + 1];
 const chapter = lesson.parents.at(-1);
+const comments = hasComments(lesson.path);
 ---
 
 <div class:list={['lesson', { 'has-toc': toc.length > 1 }]}>
@@ -39,12 +43,19 @@ const chapter = lesson.parents.at(-1);
         <span class="meta-item"><Icon name="clock" />{t.minRead(lesson.minutes)}</span>
         <span class="meta-item done-chip"><Icon name="check" />{t.done}</span>
         <a class="meta-item" href={editUrl(site.repo, site.branch, lesson.note)}><Icon name="edit" />{t.edit}</a>
+        {comments && <CommentsChip lang={lang} path={lesson.path} />}
       </div>
     </header>
 
     {contentLang && <Untranslated lang={lang} note={lesson.note} noteLang={lesson.lang} />}
 
-    <div class="prose" lang={contentLang}>
+    <div
+      class="prose"
+      lang={contentLang}
+      data-comments={comments ? lesson.note.filePath : undefined}
+      data-comments-path={comments ? lesson.path : undefined}
+      data-comments-title={comments ? lesson.title : undefined}
+    >
       <Content />
     </div>
 
@@ -101,3 +112,5 @@ const chapter = lesson.parents.at(-1);
     )
   }
 </div>
+
+{comments && <Comments lang={lang} />}

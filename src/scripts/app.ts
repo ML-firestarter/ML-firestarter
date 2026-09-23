@@ -1,7 +1,8 @@
 /**
  * Browser-side behaviour: lesson progress and test scores (kept in this browser's
- * localStorage), the light/dark switch and the mobile lessons menu.
+ * localStorage), the light/dark switch, the mobile lessons menu and the account button.
  */
+import { setUpAccount } from './account.ts';
 import { SCORES_KEY, paintCounter, paintScores } from './scores.ts';
 
 /** Lessons marked as done, by language-neutral path, so progress carries over between languages. */
@@ -109,6 +110,7 @@ function setNavOpen(open: boolean) {
 
 paintProgress();
 paintScores();
+setUpAccount();
 
 // Long course? Scroll the sidebar so the current lesson is visible.
 const sidebar = document.querySelector<HTMLElement>('.sidebar');

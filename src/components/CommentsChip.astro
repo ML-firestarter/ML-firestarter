@@ -1,0 +1,22 @@
+---
+/** Readers' comments in a page's header: how many there are, or how to see them (scripts/comments.ts). */
+import { localizeUrl, ui, type Lang } from '../lib/i18n.ts';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+  /** Language-neutral URL of the page, to come back to after signing in. */
+  path: string;
+}
+
+const { lang, path } = Astro.props;
+const t = ui[lang].comments;
+---
+
+<a class="meta-item comments-chip when-signed-out" href={`/api/auth/login?return=${encodeURIComponent(localizeUrl(path, lang))}`} data-sign-in>
+  <Icon name="comment" />{t.signInToSee}
+</a>
+<button class="meta-item comments-chip comments-toggle when-signed-in" type="button" aria-pressed="true" title={t.toggle} data-comments-toggle hidden>
+  <Icon name="comment" /><span data-comments-count></span>
+</button>
+<span class="meta-item comments-chip when-signed-in" data-comments-hint><Icon name="comment" />{t.hint}</span>

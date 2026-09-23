@@ -12,4 +12,10 @@ export const site = {
   branch: 'main',
   /** Share of right answers, from 0 to 1, needed to pass a test. */
   passScore: 0.8,
+  /**
+   * Readers can select text on these pages (language-neutral URLs and everything under them)
+   * and comment on it. Comments become issues in `repo`; see "Comments" in the README.
+   * An empty list turns comments and signing in off.
+   */
+  comments: ['/vocabulary/', '/foundations/'] as string[],
 };

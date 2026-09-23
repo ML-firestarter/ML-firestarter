@@ -2,6 +2,7 @@
 import 'katex/dist/katex.min.css';
 import '../styles/global.css';
 import Icon from '../components/Icon.astro';
+import Phrase from '../components/Phrase.astro';
 import Sidebar from '../components/Sidebar.astro';
 import { DEFAULT_LANG, LANGS, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
 import { NOTES_DIR, TESTS_PATH } from '../lib/paths.ts';
@@ -28,6 +29,8 @@ const tabs = [
   { section: 'tests', path: TESTS_PATH, icon: 'quiz', label: t.tests.title },
 ] as const;
 const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path, code), Astro.site).href;
+/** Signing in is for commenting on the notes, so it's there only when comments are on. */
+const accounts = site.comments.length > 0;
 ---
 
 <!doctype html>
@@ -56,6 +59,8 @@ const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path,
           theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
         document.documentElement.dataset.theme = theme;
+        // Set by the API when a reader signs in with GitHub; see src/scripts/account.ts.
+        if (/(?:^|;\s*)mlw_user=/.test(document.cookie)) document.documentElement.dataset.signedIn = '';
       })();
     </script>
   </head>
@@ -107,6 +112,36 @@ const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path,
           <Icon name="sun" class="when-dark" />
           <span class="visually-hidden">{t.theme}</span>
         </button>
+        {
+          accounts && (
+            <div class="account">
+              <a
+                class="text-button when-signed-out"
+                href={`/api/auth/login?return=${encodeURIComponent(localizeUrl(path ?? '/', lang))}`}
+                title={t.account.signInHint}
+                data-sign-in
+              >
+                <Icon name="login" />
+                <span>{t.account.signIn}</span>
+              </a>
+              <button class="icon-button account-button when-signed-in" type="button" popovertarget="account-menu" title={t.account.menu}>
+                <img class="avatar" alt="" width="26" height="26" data-account-avatar />
+                <span class="visually-hidden">{t.account.menu}</span>
+              </button>
+              <div class="account-menu" id="account-menu" popover>
+                <p>
+                  <Phrase text={t.account.signedInAs}>
+                    <strong data-account-login></strong>
+                  </Phrase>
+                </p>
+                <button class="button" type="button" data-sign-out>
+                  <Icon name="logout" />
+                  {t.account.signOut}
+                </button>
+              </div>
+            </div>
+          )
+        }
       </div>
     </header>
     <div class="shell">

@@ -1,8 +1,11 @@
 ---
 import { render } from 'astro:content';
+import { hasComments } from '../lib/comments.ts';
 import { newLessonUrl, type Chapter, type Lesson } from '../lib/course.ts';
 import { langAttr, ui, type Lang } from '../lib/i18n.ts';
 import { site } from '../site.config.ts';
+import Comments from './Comments.astro';
+import CommentsChip from './CommentsChip.astro';
 import Crumbs from './Crumbs.astro';
 import Icon from './Icon.astro';
 import Phrase from './Phrase.astro';
@@ -21,6 +24,8 @@ const Intro = chapter.intro ? (await render(chapter.intro)).Content : undefined;
 const minutes = chapter.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
 const first = chapter.lessons[0];
 const paths = (lessons: Lesson[]) => JSON.stringify(lessons.map((lesson) => lesson.path));
+/** Readers can comment on the chapter's intro. */
+const comments = Boolean(chapter.intro) && hasComments(chapter.path);
 ---
 
 <div class="chapter-page">
@@ -34,13 +39,26 @@ const paths = (lessons: Lesson[]) => JSON.stringify(lessons.map((lesson) => less
         <Phrase text={t.lessonsDone}><strong data-progress-label>0/{chapter.lessons.length}</strong></Phrase> · {t.readingTotal(minutes)}
       </p>
     </div>
+    {
+      comments && (
+        <div class="meta comments-meta">
+          <CommentsChip lang={lang} path={chapter.path} />
+        </div>
+      )
+    }
   </header>
 
   {chapter.intro && contentLang && <Untranslated lang={lang} note={chapter.intro} noteLang={chapter.lang} />}
 
   {
     Intro && (
-      <div class="prose" lang={contentLang}>
+      <div
+        class="prose"
+        lang={contentLang}
+        data-comments={comments ? chapter.intro?.filePath : undefined}
+        data-comments-path={comments ? chapter.path : undefined}
+        data-comments-title={comments ? chapter.title : undefined}
+      >
         <Intro />
       </div>
     )
@@ -83,3 +101,5 @@ const paths = (lessons: Lesson[]) => JSON.stringify(lessons.map((lesson) => less
     <a class="button" href={newLessonUrl(site.repo, site.branch, chapter)}><Icon name="plus" />{t.addLesson}</a>
   </div>
 </div>
+
+{comments && <Comments lang={lang} />}
