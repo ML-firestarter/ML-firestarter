@@ -10,8 +10,8 @@ export interface Reader {
   name?: string;
 }
 
-/** Comments loaded from the API, kept for a minute (scripts/comments.ts). */
-export const COMMENTS_KEY = 'ml-workout:comments';
+/** Comments' changes loaded from the API, kept for a minute (scripts/comments.ts). */
+export const COMMENTS_KEY = 'ml-workout:comment-changes';
 
 export function readReader(): Reader | undefined {
   const match = /(?:^|;\s*)mlw_user=([^;]+)/.exec(document.cookie);
