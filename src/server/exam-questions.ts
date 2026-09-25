@@ -7,7 +7,9 @@
  *
  * Other builds use exams/ as it is: a clone of that repository, or nothing, for a site without
  * exams. Every command reads .env, so that local builds and `astro dev` mix up the answers and
- * seal the answer keys with its EXAM_SECRET, as production does with Netlify's.
+ * seal the answer keys with its EXAM_SECRET, as production does with Netlify's. When exams/ has
+ * questions, Astro's content cache goes first there too: it keeps the questions as an earlier run
+ * rendered them, with their answers in the order that run's EXAM_SECRET, or none, gave them.
  */
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -36,9 +38,13 @@ export function examQuestions(): AstroIntegration {
         const root = fileURLToPath(config.root);
         // Variables already set, as on Netlify, win over the file.
         if (existsSync(path.join(root, '.env'))) process.loadEnvFile(path.join(root, '.env'));
-        if (command !== 'build' || process.env.NETLIFY !== 'true') return;
-
         const dir = path.join(root, EXAMS_DIR);
+        if (command !== 'build' || process.env.NETLIFY !== 'true') {
+          // So that the questions are rendered with this run's secret, and their translations agree.
+          if (existsSync(dir)) for (const file of contentCache(config.cacheDir)) rmSync(file, { recursive: true, force: true });
+          return;
+        }
+
         // Only ever left over from a build that was stopped: never built from, so it can't be out of date.
         rmSync(dir, { recursive: true, force: true });
         if (!SETTINGS.some((name) => process.env[name])) {
@@ -52,7 +58,7 @@ export function examQuestions(): AstroIntegration {
 
         // Also when the build fails, as it does when the questions have mistakes. The content cache
         // goes before the build too, so the questions are read afresh with this deploy's secret.
-        downloaded = [dir, ...['data-store.json', 'data-store/'].map((name) => fileURLToPath(new URL(name, config.cacheDir)))];
+        downloaded = [dir, ...contentCache(config.cacheDir)];
         process.once('exit', cleanUp);
         for (const file of downloaded) rmSync(file, { recursive: true, force: true });
         const repo = repoName(site.exams.repo);
@@ -62,6 +68,11 @@ export function examQuestions(): AstroIntegration {
       'astro:build:done': cleanUp,
     },
   };
+}
+
+/** Astro's content cache in `cacheDir`, which holds the text of the notes, tests and exam questions as they were rendered. */
+function contentCache(cacheDir: URL): string[] {
+  return ['data-store.json', 'data-store/'].map((name) => fileURLToPath(new URL(name, cacheDir)));
 }
 
 /** Downloads the Markdown files of `repo` into `dir`, and says how many there were. */

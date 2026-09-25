@@ -133,7 +133,7 @@ Exams need signing in, so set up [comments](#setting-up-comments) first (steps 1
 
    Deploy previews run the code of pull requests, which anyone can open, so they mustn't get these settings: with them, that code could read the questions the build downloads, answers and all, or open the answer keys. Without them, deploy previews are built without exams. Mark `EXAM_SECRET` and `BOT_APP_PRIVATE_KEY` as secret values, too, so that Netlify hides them.
 
-The next production build downloads the questions, and its log says how many files it found. `exams/` is left as it is in other builds, including local ones: to try the exams locally, clone the questions repository into it with `git clone https://github.com/ML-firestarter/ML-firestarter-exams exams` and add the three settings to `.env`. Builds with `exams/` need `EXAM_SECRET`, and `npm run dev` keeps results in the same results repository as the site.
+The next production build downloads the questions, and its log says how many files it found. `exams/` is left as it is in other builds, including local ones: to try the exams locally, clone the questions repository into it with `git clone https://github.com/ML-firestarter/ML-firestarter-exams exams` and add the three settings to `.env`. Builds with `exams/` need `EXAM_SECRET`, and render its questions afresh every time, so a new `EXAM_SECRET` applies at once. `npm run dev` keeps results in the same results repository as the site.
 
 ## Running it locally
 
