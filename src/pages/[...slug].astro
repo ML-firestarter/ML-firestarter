@@ -1,5 +1,6 @@
 ---
 import ChapterView from '../components/ChapterView.astro';
+import ExamView from '../components/ExamView.astro';
 import LessonView from '../components/LessonView.astro';
 import TestsView from '../components/TestsView.astro';
 import TestView from '../components/TestView.astro';
@@ -8,7 +9,7 @@ import { getCourse } from '../lib/course.ts';
 import { LANGS, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
 import { TESTS_PATH } from '../lib/paths.ts';
 
-/** Every lesson, chapter and test, and the tests overview, once per language. */
+/** Every lesson, chapter, test and exam, and the tests overview, once per language. */
 export async function getStaticPaths() {
   const courses = await Promise.all(LANGS.map((lang) => getCourse(lang)));
   return courses.flatMap((course) =>
@@ -16,6 +17,7 @@ export async function getStaticPaths() {
       ...course.lessons,
       ...course.chapters,
       ...course.tests,
+      ...course.exams,
       { path: TESTS_PATH, url: localizeUrl(TESTS_PATH, course.lang) },
     ].map((node) => ({
       params: { slug: node.url.slice(1, -1) },
@@ -50,6 +52,10 @@ const node = path === TESTS_PATH ? undefined : course.byPath.get(path)!;
       section="tests"
     >
       <TestView course={course} test={node} />
+    </Base>
+  ) : node.kind === 'exam' ? (
+    <Base lang={lang} path={path} title={ui[lang].exams.pageTitle(node.title)} description={ui[lang].exams.lede} section="tests" noindex>
+      <ExamView course={course} exam={node} />
     </Base>
   ) : (
     <Base lang={lang} path={path} title={node.title} description={node.description}>

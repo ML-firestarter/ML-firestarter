@@ -1,8 +1,10 @@
 /**
  * Browser-side behaviour: lesson progress and test scores (kept in this browser's
- * localStorage), the light/dark switch, the mobile lessons menu and the account button.
+ * localStorage), the reader's exam results, the light/dark switch, the mobile lessons menu
+ * and the account button.
  */
-import { setUpAccount } from './account.ts';
+import { readReader, setUpAccount } from './account.ts';
+import { loadExams, paintExams } from './exams.ts';
 import { SCORES_KEY, paintCounter, paintScores } from './scores.ts';
 
 /** Lessons marked as done, by language-neutral path, so progress carries over between languages. */
@@ -101,7 +103,15 @@ window.addEventListener('pageshow', (event) => {
   done = readDone();
   paintProgress();
   paintScores();
+  paintExamLinks();
 });
+
+/** Shows the signed-in reader's exam results wherever an exam is linked; the exam page shows its own (exam.ts). */
+async function paintExamLinks() {
+  if (!readReader() || !document.querySelector('[data-exam]') || document.querySelector('[data-exam-page]')) return;
+  const loaded = await loadExams();
+  if ('exams' in loaded) paintExams(loaded.exams);
+}
 
 function setNavOpen(open: boolean) {
   document.documentElement.classList.toggle('nav-open', open);
@@ -111,6 +121,7 @@ function setNavOpen(open: boolean) {
 paintProgress();
 paintScores();
 setUpAccount();
+paintExamLinks();
 
 // Long course? Scroll the sidebar so the current lesson is visible.
 const sidebar = document.querySelector<HTMLElement>('.sidebar');

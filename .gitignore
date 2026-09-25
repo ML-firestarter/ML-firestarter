@@ -10,6 +10,9 @@ dist/
 .vscode/*
 !.vscode/extensions.json
 
+# exam questions, a clone of their private repository (see "Exams" in README.md)
+exams/
+
 # environment
 .env
 .env.*

@@ -13,6 +13,12 @@ export interface Reader {
 /** Comments' changes loaded from the API, kept for a minute (scripts/comments.ts). */
 export const COMMENTS_KEY = 'ml-workout:comment-changes';
 
+/** The reader's attempts at the exams, loaded from the API and kept for a few minutes (scripts/exams.ts). */
+export const EXAMS_KEY = 'ml-workout:exams';
+
+/** Exam attempts in progress and their answers, kept in localStorage until they're handed in (scripts/exam.ts). */
+export const EXAM_ATTEMPTS_KEY = 'ml-workout:exam-attempts';
+
 export function readReader(): Reader | undefined {
   const match = /(?:^|;\s*)mlw_user=([^;]+)/.exec(document.cookie);
   if (!match) return undefined;
@@ -60,8 +66,11 @@ async function signOut() {
     // Offline: the page forgets the reader anyway.
   }
   document.cookie = 'mlw_user=; Path=/; Max-Age=0';
+  // Whoever uses this browser next doesn't see the reader's attempts or answers.
   try {
     sessionStorage.removeItem(COMMENTS_KEY);
+    sessionStorage.removeItem(EXAMS_KEY);
+    localStorage.removeItem(EXAM_ATTEMPTS_KEY);
   } catch {
     // Nothing kept.
   }

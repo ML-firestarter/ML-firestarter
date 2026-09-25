@@ -19,13 +19,13 @@ const { tests, testsIntro: intro } = course;
 /** Set when the introduction isn't translated yet and shows the original. */
 const contentLang = intro && langAttr(intro.lang, lang);
 const Intro = intro ? (await render(intro.note)).Content : undefined;
-/** Tests of lessons outside any chapter first, then one group per top-level chapter. */
+/** Tests of lessons outside any chapter first, then one group per top-level chapter, with its exam last. */
 const groups: { chapter?: Chapter; tests: Test[] }[] = [
   { tests: tests.filter((test) => test.lesson.parents.length === 0) },
   ...course.root.children.flatMap((node) =>
     node.kind === 'chapter' ? [{ chapter: node, tests: node.lessons.flatMap((lesson) => lesson.test ?? []) }] : [],
   ),
-].filter((group) => group.tests.length > 0);
+].filter((group) => group.tests.length > 0 || group.chapter?.exam);
 const first = tests[0];
 const paths = (list: Test[]) => JSON.stringify(list.map((test) => test.lesson.path));
 ---
@@ -73,15 +73,21 @@ const paths = (list: Test[]) => JSON.stringify(list.map((test) => test.lesson.pa
 
   {
     groups.map(({ chapter, tests }) => (
-      <section class="test-group" aria-labelledby={chapter && testGroupId(chapter)} data-test-progress={paths(tests)}>
+      <section
+        class="test-group"
+        aria-labelledby={chapter && testGroupId(chapter)}
+        data-test-progress={tests.length > 0 ? paths(tests) : undefined}
+      >
         {chapter && (
           <div class="group-header">
             <h2 id={testGroupId(chapter)} lang={langAttr(chapter.lang, lang)}>
               {chapter.title}
             </h2>
-            <span class="count" data-progress-label>
-              0/{tests.length}
-            </span>
+            {tests.length > 0 && (
+              <span class="count" data-progress-label>
+                0/{tests.length}
+              </span>
+            )}
           </div>
         )}
         <ol class="lesson-rows">
@@ -99,6 +105,20 @@ const paths = (list: Test[]) => JSON.stringify(list.map((test) => test.lesson.pa
               </a>
             </li>
           ))}
+          {chapter?.exam && (
+            <li>
+              <a class="lesson-row exam-row" href={chapter.exam.url} data-exam={chapter.path}>
+                <span class="status exam">
+                  <Icon name="award" />
+                </span>
+                <span class="row-text">
+                  <span class="row-title">{t.exams.exam}</span>
+                </span>
+                <span class="row-meta">{t.tests.questionCount(chapter.exam.drawn)}</span>
+                <span class="score-pill" data-exam-score></span>
+              </a>
+            </li>
+          )}
         </ol>
       </section>
     ))

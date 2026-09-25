@@ -14,8 +14,9 @@ interface Props {
 }
 
 const { node, lang, current, section } = Astro.props;
-/** Lessons with a test, inside a chapter; the tests sidebar leaves out chapters without any. */
+/** Lessons with a test, inside a chapter; the tests sidebar leaves out chapters without any, unless they have an exam. */
 const tested = node.kind === 'chapter' ? node.lessons.filter((lesson) => lesson.test) : [];
+const exam = node.kind === 'chapter' ? node.exam : undefined;
 ---
 
 {
@@ -38,19 +39,37 @@ const tested = node.kind === 'chapter' ? node.lessons.filter((lesson) => lesson.
         </li>
       )
     ) : (
-      tested.length > 0 && (
+      (tested.length > 0 || exam) && (
         <li>
-          <details open={current.startsWith(testUrl(node.path))}>
-            <summary data-test-progress={JSON.stringify(tested.map((lesson) => lesson.path))}>
+          <details open={current.startsWith(testUrl(node.path)) || current === exam?.path}>
+            <summary data-test-progress={tested.length > 0 ? JSON.stringify(tested.map((lesson) => lesson.path)) : undefined}>
               <span lang={langAttr(node.lang, lang)}>{node.title}</span>
-              <span class="count" data-progress-label>
-                {tested.length}
-              </span>
+              {tested.length > 0 && (
+                <span class="count" data-progress-label>
+                  {tested.length}
+                </span>
+              )}
             </summary>
             <ol>
               {node.children.map((child) => (
                 <Astro.self node={child} lang={lang} current={current} section={section} />
               ))}
+              {exam && (
+                <li>
+                  <a
+                    class="lesson-link exam-link"
+                    href={exam.url}
+                    data-exam={node.path}
+                    aria-current={exam.path === current ? 'page' : undefined}
+                  >
+                    <span class="status exam">
+                      <Icon name="award" />
+                    </span>
+                    <span>{ui[lang].exams.exam}</span>
+                    <span class="score-pill" data-exam-score></span>
+                  </a>
+                </li>
+              )}
             </ol>
           </details>
         </li>

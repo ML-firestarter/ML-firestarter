@@ -4,6 +4,7 @@ import '../styles/global.css';
 import Icon from '../components/Icon.astro';
 import Phrase from '../components/Phrase.astro';
 import Sidebar from '../components/Sidebar.astro';
+import { getCourse } from '../lib/course.ts';
 import { DEFAULT_LANG, LANGS, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
 import { NOTES_DIR, TESTS_PATH } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
@@ -20,17 +21,22 @@ interface Props {
   description?: string;
   /** Part of the site the page belongs to: picks the tab and what the sidebar lists. */
   section?: 'lessons' | 'tests';
+  /** Keeps the page out of search engines, as the exams are. */
+  noindex?: boolean;
 }
 
-const { lang, path, title, description = site.tagline[lang], section = 'lessons' } = Astro.props;
+const { lang, path, title, description = site.tagline[lang], section = 'lessons', noindex = false } = Astro.props;
 const t = ui[lang];
 const tabs = [
   { section: 'lessons', path: '/', icon: 'book', label: t.lessonsTab },
   { section: 'tests', path: TESTS_PATH, icon: 'quiz', label: t.tests.title },
 ] as const;
 const absolute = (code: Lang) => Astro.site && path && new URL(localizeUrl(path, code), Astro.site).href;
-/** Signing in is for commenting on the notes, so it's there only when comments are on. */
-const accounts = site.comments.length > 0;
+/** Signing in is for commenting on the notes and taking the exams, so it's there only when the site has either. */
+const comments = site.comments.length > 0;
+const exams = (await getCourse(lang)).exams.length > 0;
+const accounts = comments || exams;
+const signInHint = t.account.signInHint[comments && exams ? 'both' : comments ? 'comments' : 'exams'];
 ---
 
 <!doctype html>
@@ -40,6 +46,7 @@ const accounts = site.comments.length > 0;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title ? `${title} · ${site.title}` : site.title}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     {
       absolute(lang) && (
@@ -118,7 +125,7 @@ const accounts = site.comments.length > 0;
               <a
                 class="text-button when-signed-out"
                 href={`/api/auth/login?return=${encodeURIComponent(localizeUrl(path ?? '/', lang))}`}
-                title={t.account.signInHint}
+                title={signInHint}
                 data-sign-in
               >
                 <Icon name="login" />

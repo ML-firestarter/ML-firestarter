@@ -21,6 +21,25 @@ export function testUrl(lessonPath: string): string {
   return TESTS_PATH + lessonPath.slice(1);
 }
 
+/**
+ * Folder, relative to the project root, that holds the exam questions: a copy of a private
+ * repository, laid out like tests/. `exams/vocabulary/sft.md` holds exam questions on `notes/vocabulary/sft.md`.
+ */
+export const EXAMS_DIR = 'exams';
+
+/** Language-neutral URL under which each chapter's exam is published. */
+export const EXAMS_PATH = '/exams/';
+
+/** URL of a chapter's exam: `/foundations/` → `/exams/foundations/` */
+export function examUrl(chapterPath: string): string {
+  return EXAMS_PATH + chapterPath.slice(1);
+}
+
+/** Id of an exam question, the same in every language: `/vocabulary/sft/` and 2 → `vocabulary-sft-2` */
+export function examQuestionId(lessonPath: string, number: number): string {
+  return `${lessonPath.slice(1, -1).replaceAll('/', '-')}-${number}`;
+}
+
 /** A folder's `README.md` / `index.md` is its chapter intro, not a lesson. */
 const INDEX_NAMES = new Set(['readme', 'index']);
 

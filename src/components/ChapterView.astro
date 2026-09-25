@@ -98,6 +98,15 @@ const comments = Boolean(chapter.intro) && hasComments(chapter.path);
 
   <div class="actions">
     {first && <a class="button primary" href={first.url}>{t.startChapter}<Icon name="right" /></a>}
+    {
+      chapter.exam && (
+        <a class="button test-button" href={chapter.exam.url} data-exam={chapter.path}>
+          <Icon name="award" />
+          <span>{t.exams.take}</span>
+          <span class="score-pill" data-exam-score></span>
+        </a>
+      )
+    }
     <a class="button" href={newLessonUrl(site.repo, site.branch, chapter)}><Icon name="plus" />{t.addLesson}</a>
   </div>
 </div>

@@ -1,21 +1,40 @@
 /**
- * The site's API: signing in with GitHub, and readers' comments on the notes (lib/comments.ts).
- * Runs as a Netlify function (netlify/functions/api.ts) and inside `astro dev` (server/dev.ts).
+ * The site's API: signing in with GitHub, readers' comments on the notes (lib/comments.ts) and
+ * the chapter exams (lib/exams.ts). Runs as a Netlify function (netlify/functions/api.ts) and
+ * inside `astro dev` (server/dev.ts).
  *
  *   GET  /api/auth/login?return=/page/  sends the reader to GitHub to sign in
  *   GET  /api/auth/callback             where GitHub sends them back; signs them in
  *   POST /api/auth/logout               signs the reader out
  *   GET  /api/comments                  comments' changes waiting to be merged, for signed-in readers
  *   POST /api/comments                  posts a comment as an issue, as the reader
+ *   GET  /api/exams                     the reader's attempts at the exams
+ *   POST /api/exams/start               starts an attempt at an exam: draws its questions
+ *   POST /api/exams/submit              hands an attempt in: checks it and keeps the result
  *
  * Needs the GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET of the site's GitHub App and a
- * SESSION_SECRET; see "Comments" in the README.
+ * SESSION_SECRET; see "Comments" in the README. The exams also need an EXAM_SECRET and the
+ * BOT_APP_ID and BOT_APP_PRIVATE_KEY of the site's bot; see "Exams".
  */
 import { Buffer } from 'node:buffer';
 import { CONTEXT, LIMITS, changeFrom, hasComments, issueFor, type NewComment } from '../lib/comments.ts';
+import type { Attempt, ExamError, ExamStatus, StartResponse, SubmitResponse } from '../lib/exams.ts';
 import { isLang } from '../lib/i18n.ts';
 import { NOTES_DIR, noteUrl } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
+import {
+  ATTEMPT_TIME,
+  checkAnswers,
+  drawQuestions,
+  examRecord,
+  openAttempt,
+  openKey,
+  readExamConfig,
+  readResults,
+  recordAttempt,
+  sealAttempt,
+  type ExamConfig,
+} from './exams.ts';
 import { GitHubError, createIssue, exchangeCode, getUser, listPulls, refreshTokens, revokeToken } from './github.ts';
 import {
   LOGIN_COOKIE,
@@ -27,6 +46,7 @@ import {
   signOutCookies,
   unseal,
   type Session,
+  type User,
 } from './session.ts';
 
 interface Config {
@@ -63,6 +83,9 @@ const LOGIN_TIME = 10 * 60 * 1000;
 /** Largest request body, in characters: a comment with all its fields full fits easily. */
 const MAX_BODY = 20_000;
 
+/** Largest request body for the exams: the answer key of a chapter with a thousand questions fits. */
+const MAX_EXAM_BODY = 200_000;
+
 type Handler = (context: Context) => Promise<Response>;
 
 const routes = new Map<string, Record<string, Handler>>([
@@ -70,11 +93,16 @@ const routes = new Map<string, Record<string, Handler>>([
   ['/api/auth/callback', { GET: callback }],
   ['/api/auth/logout', { POST: logout }],
   ['/api/comments', { GET: listComments, POST: postComment }],
+  ['/api/exams', { GET: examStatus }],
+  ['/api/exams/start', { POST: startExam }],
+  ['/api/exams/submit', { POST: submitExam }],
 ]);
+// Comments can be turned off in site.config.ts; signing in stays, for the exams.
+if (site.comments.length === 0) routes.delete('/api/comments');
 
 export async function handle(request: Request): Promise<Response> {
   const url = new URL(request.url);
-  const route = site.comments.length > 0 ? routes.get(url.pathname) : undefined;
+  const route = routes.get(url.pathname);
   if (!route) return json({ error: 'not-found', message: 'No such API.' }, 404);
   if (!Object.hasOwn(route, request.method)) {
     return json({ error: 'method-not-allowed', message: 'Method not allowed.' }, 405, [], { Allow: Object.keys(route).join(', ') });
@@ -168,26 +196,15 @@ async function listComments(context: Context): Promise<Response> {
 }
 
 async function postComment(context: Context): Promise<Response> {
-  const { request, url, config } = context;
-  if (request.headers.get('origin') !== url.origin) return json({ error: 'forbidden', message: 'Cross-site request.' }, 403);
-  if (!request.headers.get('content-type')?.startsWith('application/json')) {
-    return json({ error: 'invalid', message: 'Send the comment as JSON.' }, 415);
-  }
+  const body = await readJson(context, MAX_BODY);
+  if (body instanceof Response) return body;
   const auth = await signedIn(context);
   if (!auth) return signedOut(context);
 
-  const body = await request.text();
-  if (body.length > MAX_BODY) return json({ error: 'invalid', message: 'The comment is too long.' }, 413);
-  let data: unknown;
-  try {
-    data = JSON.parse(body);
-  } catch {
-    return json({ error: 'invalid', message: 'Send the comment as JSON.' }, 400);
-  }
-  const comment = readComment(data);
+  const comment = readComment(body.data);
   if (typeof comment === 'string') return json({ error: 'invalid', message: comment }, 400);
 
-  const issue = await createIssue(auth.session.token, config.repo, issueFor(comment, url.origin));
+  const issue = await createIssue(auth.session.token, context.config.repo, issueFor(comment, context.url.origin));
   return json({ issue: { number: issue.number, url: issue.html_url } }, 201, auth.cookies);
 }
 
@@ -228,6 +245,101 @@ function readComment(data: unknown): NewComment | string {
   return { file, path, lang, title: title.trim() || path, quote: { exact, prefix, suffix }, comment: comment.trim(), suggestion: change };
 }
 
+async function examStatus(context: Context): Promise<Response> {
+  const exams = examSettings();
+  if (exams instanceof Response) return exams;
+  const reader = await verifiedReader(context);
+  if (!reader) return signedOut(context);
+
+  const { results } = await readResults(exams, reader.user);
+  const records = Object.entries(results.exams).map(([chapter, attempts]) => [chapter, examRecord(attempts)] as const);
+  return json({ exams: Object.fromEntries(records) } satisfies ExamStatus, 200, reader.cookies);
+}
+
+async function startExam(context: Context): Promise<Response> {
+  const exams = examSettings();
+  if (exams instanceof Response) return exams;
+  const body = await readJson(context, MAX_EXAM_BODY);
+  if (body instanceof Response) return body;
+  const sealed = isRecord(body.data) ? text(body.data.key, MAX_EXAM_BODY) : undefined;
+  if (!sealed) return refuse(400, 'invalid', "Send the exam's key from its page.");
+  const reader = await verifiedReader(context);
+  if (!reader) return signedOut(context);
+
+  const key = await openKey(sealed, exams.secret);
+  if (!key) return refuse(409, 'outdated', 'This page is out of date. Reload it to start the exam.', reader.cookies);
+  const { results } = await readResults(exams, reader.user);
+  const record = examRecord(results.exams[key.chapter] ?? []);
+  if (record.attempts.some((attempt) => attempt.passed)) return refuse(409, 'passed', "You've passed this exam already.", reader.cookies);
+  if (record.next) return refuse(409, 'waiting', `You can start another attempt at ${record.next}.`, reader.cookies, record.next);
+
+  // Numbered by the attempts handed in so far: starting again before handing in gets the same questions.
+  const number = record.attempts.length;
+  const questions = drawQuestions(key, reader.user.id, number, site.exams.questions, exams.secret);
+  const at = Date.now();
+  const attempt = await sealAttempt({ reader: reader.user.id, chapter: key.chapter, version: key.version, number, questions, at }, exams.secret);
+  const started: StartResponse = { attempt, questions: questions.map((question) => question.id), expires: new Date(at + ATTEMPT_TIME).toISOString() };
+  return json(started, 200, reader.cookies);
+}
+
+async function submitExam(context: Context): Promise<Response> {
+  const exams = examSettings();
+  if (exams instanceof Response) return exams;
+  const body = await readJson(context, MAX_EXAM_BODY);
+  if (body instanceof Response) return body;
+  const data = isRecord(body.data) ? body.data : {};
+  const sealed = text(data.attempt, MAX_EXAM_BODY);
+  if (!sealed || !isRecord(data.answers)) return refuse(400, 'invalid', 'Send the attempt and your answers.');
+  const reader = await verifiedReader(context);
+  if (!reader) return signedOut(context);
+
+  const attempt = await openAttempt(sealed, exams.secret);
+  if (!attempt || attempt.reader !== reader.user.id) {
+    return refuse(409, 'expired', "This attempt isn't yours, or the site has changed since it started. Start the exam again.", reader.cookies);
+  }
+  if (Date.now() - attempt.at > ATTEMPT_TIME) return refuse(409, 'expired', 'This attempt ran out of time. Start the exam again.', reader.cookies);
+
+  const { right } = checkAnswers(attempt.questions, data.answers);
+  const score = right.length / attempt.questions.length;
+  const result: Attempt = {
+    at: new Date().toISOString(),
+    score,
+    right: right.length,
+    questions: attempt.questions.length,
+    passed: score >= site.passScore,
+    version: attempt.version,
+  };
+  // The score is only given once it's kept, so an attempt can't be handed in twice to learn from the first.
+  if (!(await recordAttempt(exams, reader.user, attempt.chapter, attempt.number, result))) {
+    return refuse(409, 'handed-in', 'This attempt was handed in already.', reader.cookies);
+  }
+  const wrong = attempt.questions.filter((question) => !right.includes(question));
+  const handedIn: SubmitResponse = { result, review: [...new Set(wrong.map((question) => question.lesson))], next: examRecord([result]).next };
+  return json(handedIn, 200, reader.cookies);
+}
+
+/** The exams' settings, or the response saying which are missing. */
+function examSettings(): ExamConfig | Response {
+  const exams = readExamConfig();
+  if (!Array.isArray(exams)) return exams;
+  return refuse(503, 'not-configured', `Exams aren't set up on this site yet: the server needs ${exams.join(', ')}. See "Exams" in the README.`);
+}
+
+/**
+ * The signed-in reader, as GitHub knows them right now. The exams keep results in readers' names,
+ * so they check that the reader's token still works and is theirs, rather than trust the session.
+ */
+async function verifiedReader(context: Context): Promise<{ user: User; cookies: string[] } | undefined> {
+  const auth = await signedIn(context);
+  if (!auth) return undefined;
+  const user = await getUser(auth.session.token);
+  return user.id === auth.session.user.id ? { user, cookies: auth.cookies } : undefined;
+}
+
+function refuse(status: number, error: ExamError['error'], message: string, cookies: string[] = [], next?: string): Response {
+  return json({ error, message, next } satisfies ExamError, status, cookies);
+}
+
 /** The reader's session, with new tokens when the old ones ran out; undefined when they're signed out. */
 async function signedIn({ request, config, secure }: Context): Promise<{ session: Session; cookies: string[] } | undefined> {
   const session = await unseal<Session>(readCookie(request, SESSION_COOKIE), SESSION_COOKIE, config.secret);
@@ -253,8 +365,13 @@ function fromError(error: unknown, context: Context): Response {
     console.error(error);
     return problem(context, 500, 'server', 'Something went wrong on the site.');
   }
-  if (error.status === 401 && !isPage(context)) return signedOut(context);
+  // GitHub refusing the site's bot says nothing about the reader.
+  if (error.status === 401 && !error.bot && !isPage(context)) return signedOut(context);
   if (error.rateLimited) return problem(context, 429, 'rate-limited', 'GitHub is limiting requests right now. Please try again in a few minutes.');
+  if (error.bot) {
+    console.error(error);
+    return problem(context, 502, 'github', `GitHub refused the site's bot: ${error.message}`);
+  }
   return problem(context, 502, 'github', `GitHub answered: ${error.message}`);
 }
 
@@ -267,6 +384,19 @@ function isPage({ request, url }: Asked): boolean {
 function problem(asked: Asked, status: number, error: string, message: string): Response {
   if (!isPage(asked)) return json({ error, message }, status);
   return page(status, message, returnUrl(asked.url.searchParams.get('return'), asked.url.origin));
+}
+
+/** The JSON a page's script sent, or the response refusing it: sent from another site, not as JSON, or longer than `max` characters. */
+async function readJson({ request, url }: Context, max: number): Promise<{ data: unknown } | Response> {
+  if (request.headers.get('origin') !== url.origin) return json({ error: 'forbidden', message: 'Cross-site request.' }, 403);
+  if (!request.headers.get('content-type')?.startsWith('application/json')) return json({ error: 'invalid', message: 'Send JSON.' }, 415);
+  const body = await request.text();
+  if (body.length > max) return json({ error: 'invalid', message: 'The request is too long.' }, 413);
+  try {
+    return { data: JSON.parse(body) };
+  } catch {
+    return json({ error: 'invalid', message: 'Send JSON.' }, 400);
+  }
 }
 
 function json(data: unknown, status = 200, cookies: string[] = [], extra: Record<string, string> = {}): Response {

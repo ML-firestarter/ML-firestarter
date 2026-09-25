@@ -1,7 +1,12 @@
 /**
  * The GitHub APIs the site uses. Readers' requests are made with their own token, so GitHub
  * shows the issues as theirs and counts the requests against their own rate limit.
+ *
+ * The site's bot, a GitHub App of its own installed on the private repositories, reads the
+ * exam questions and keeps readers' exam results, which readers' tokens can't reach.
  */
+import { Buffer } from 'node:buffer';
+import { createPrivateKey, sign } from 'node:crypto';
 import type { PullData } from '../lib/comments.ts';
 import type { User } from './session.ts';
 
@@ -13,12 +18,15 @@ export class GitHubError extends Error {
   readonly status: number;
   /** Whether GitHub refused because of its rate limits. */
   readonly rateLimited: boolean;
+  /** Whether GitHub refused the bot rather than the reader, so a 401 doesn't mean the reader is signed out. */
+  readonly bot: boolean;
 
-  constructor(status: number, message: string, rateLimited = false) {
+  constructor(status: number, message: string, rateLimited = false, bot = false) {
     super(message);
     this.name = 'GitHubError';
     this.status = status;
     this.rateLimited = rateLimited;
+    this.bot = bot;
   }
 }
 
@@ -100,25 +108,123 @@ export async function revokeToken(app: App, token: string): Promise<void> {
   if (!response.ok && response.status !== 404) throw await failure(response);
 }
 
-async function api<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
-  const response = await send(API + path, { ...init, headers: { ...HEADERS, Authorization: `Bearer ${token}` } });
-  if (!response.ok) throw await failure(response);
-  return (await response.json()) as T;
+/** The site's bot: its GitHub App's ID and private key. */
+export interface Bot {
+  appId: string;
+  /** In PEM, as GitHub gives it; `\n` for line breaks works too, for settings that take one line. */
+  privateKey: string;
 }
 
-async function send(url: string, init: RequestInit): Promise<Response> {
+/** The bot's tokens, by app, repository and access, kept until they're about to run out. */
+const botTokens = new Map<string, { token: string; expires: number }>();
+
+/**
+ * A token for the contents of one repository (`owner/name`) the bot is installed on. It lasts
+ * an hour, and is used again until five minutes before it runs out.
+ */
+export async function botToken(bot: Bot, repo: string, access: 'read' | 'write'): Promise<string> {
+  const id = `${bot.appId}:${repo}:${access}`;
+  const kept = botTokens.get(id);
+  if (kept && kept.expires - Date.now() > 5 * 60_000) return kept.token;
+
+  const jwt = appToken(bot);
+  const installation = await api<{ id: number }>(jwt, `/repos/${repo}/installation`, {}, true).catch((error: unknown) => {
+    if (error instanceof GitHubError && error.status === 404) throw new GitHubError(404, `The site's bot isn't installed on ${repo}`, false, true);
+    throw error;
+  });
+  const created = await api<{ token: string; expires_at: string }>(
+    jwt,
+    `/app/installations/${installation.id}/access_tokens`,
+    { method: 'POST', body: JSON.stringify({ repositories: [repo.slice(repo.indexOf('/') + 1)], permissions: { contents: access } }) },
+    true,
+  );
+  botTokens.set(id, { token: created.token, expires: Date.parse(created.expires_at) });
+  return created.token;
+}
+
+/** A JSON Web Token that signs in as the GitHub App itself, for ten minutes at most. */
+function appToken(bot: Bot): string {
+  const now = Math.floor(Date.now() / 1000);
+  const part = (value: unknown) => Buffer.from(JSON.stringify(value)).toString('base64url');
+  // A minute early, in case GitHub's clock is behind.
+  const data = `${part({ alg: 'RS256', typ: 'JWT' })}.${part({ iat: now - 60, exp: now + 9 * 60, iss: bot.appId })}`;
+  let key;
   try {
-    return await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
+    key = createPrivateKey(bot.privateKey.replace(/\\n/g, '\n'));
   } catch {
-    throw new GitHubError(502, "GitHub didn't answer");
+    throw new GitHubError(401, "The bot's private key (BOT_APP_PRIVATE_KEY) isn't a key in PEM", false, true);
+  }
+  return `${data}.${sign('sha256', Buffer.from(data), key).toString('base64url')}`;
+}
+
+/** A text file of a repository, and its blob's SHA for replacing it; undefined when there's none. */
+export async function readFile(token: string, repo: string, path: string): Promise<{ text: string; sha: string } | undefined> {
+  try {
+    const file = await api<{ content?: string; encoding?: string; sha: string }>(token, `/repos/${repo}/contents/${encodePath(path)}`, {}, true);
+    if (file.encoding !== 'base64' || file.content === undefined) throw new GitHubError(502, `${path} is too large to read`, false, true);
+    return { text: Buffer.from(file.content, 'base64').toString('utf8'), sha: file.sha };
+  } catch (error) {
+    if (error instanceof GitHubError && error.status === 404) return undefined;
+    throw error;
   }
 }
 
-async function failure(response: Response): Promise<GitHubError> {
+/**
+ * Commits a text file to a repository's default branch. `sha` is the blob it replaces, or
+ * undefined for a new file; GitHub refuses with 409 or 422 when the file is no longer that.
+ */
+export async function writeFile(token: string, repo: string, path: string, text: string, message: string, sha?: string): Promise<void> {
+  const body = { message, content: Buffer.from(text).toString('base64'), sha };
+  await api(token, `/repos/${repo}/contents/${encodePath(path)}`, { method: 'PUT', body: JSON.stringify(body) }, true);
+}
+
+/** Whether a write failed because the file changed in the meantime, so it's worth reading it again. */
+export function isConflict(error: unknown): boolean {
+  return error instanceof GitHubError && (error.status === 409 || error.status === 422);
+}
+
+/** Every file on a repository's default branch: its path and blob SHA. */
+export async function listFiles(token: string, repo: string): Promise<{ path: string; sha: string }[]> {
+  const { default_branch: branch } = await api<{ default_branch: string }>(token, `/repos/${repo}`, {}, true);
+  const tree = await api<{ tree: { path: string; type: string; sha: string }[]; truncated: boolean }>(
+    token,
+    `/repos/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+    {},
+    true,
+  );
+  if (tree.truncated) throw new GitHubError(502, `${repo} has too many files to list at once`, false, true);
+  return tree.tree.filter((entry) => entry.type === 'blob').map(({ path, sha }) => ({ path, sha }));
+}
+
+/** A file's contents, by its blob SHA. */
+export async function readBlob(token: string, repo: string, sha: string): Promise<Buffer> {
+  const blob = await api<{ content: string; encoding: string }>(token, `/repos/${repo}/git/blobs/${sha}`, {}, true);
+  return Buffer.from(blob.content, blob.encoding === 'base64' ? 'base64' : 'utf8');
+}
+
+function encodePath(path: string): string {
+  return path.split('/').map(encodeURIComponent).join('/');
+}
+
+async function api<T>(token: string, path: string, init: RequestInit = {}, bot = false): Promise<T> {
+  const response = await send(API + path, { ...init, headers: { ...HEADERS, Authorization: `Bearer ${token}` } }, bot);
+  if (!response.ok) throw await failure(response, bot);
+  return (await response.json()) as T;
+}
+
+async function send(url: string, init: RequestInit, bot = false): Promise<Response> {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(10_000) });
+  } catch {
+    throw new GitHubError(502, "GitHub didn't answer", false, bot);
+  }
+}
+
+async function failure(response: Response, bot = false): Promise<GitHubError> {
   const data: { message?: string } = await response.json().catch(() => ({}));
   const message = data.message ?? `status ${response.status}`;
   const rateLimited =
     response.status === 429 ||
     (response.status === 403 && (response.headers.get('x-ratelimit-remaining') === '0' || /rate limit/i.test(message)));
-  return new GitHubError(response.status, message, rateLimited);
+  return new GitHubError(response.status, message, rateLimited, bot);
 }

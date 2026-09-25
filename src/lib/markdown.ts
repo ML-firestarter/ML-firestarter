@@ -2,13 +2,14 @@
  * Markdown plugins for Astro's Markdown engine (Sätteri), wired up in astro.config.mjs.
  * They keep notes looking the same on github.com and on the site.
  */
+import { createHmac } from 'node:crypto';
 import { statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import katex from 'katex';
 import type { HastNode, HastPluginDefinition, HastVisitorContext, MdastPluginDefinition } from 'satteri';
 import { DEFAULT_LANG, ui, type Lang } from './i18n.ts';
-import { isIndexFile, noteUrl, relativeUrl, splitLang, testUrl } from './paths.ts';
+import { examQuestionId, isIndexFile, noteUrl, relativeUrl, splitLang, testUrl } from './paths.ts';
 
 type Element = Extract<HastNode, { type: 'element' }>;
 type Content = Element['children'][number];
@@ -141,11 +142,16 @@ function inside(root: string, file: string): string | undefined {
   return relative.startsWith('..') || path.isAbsolute(relative) ? undefined : relative;
 }
 
-/** What `quizzes` found in a test, left in its frontmatter as `quiz` for course.ts to check. */
+/** What `quizzes` found in a test or exam file, left in its frontmatter as `quiz` for course.ts to check. */
 export interface Quiz {
   /** Plain-text question headings, in order. */
   questions: string[];
-  /** Mistakes in the test file, as sentences for the build error. */
+  /**
+   * Exams only, whose pages don't say which answers are right: each question's right answers,
+   * as positions in its list of answers, and how many answers it has.
+   */
+  key?: { right: number[]; answers: number }[];
+  /** Mistakes in the file, as sentences for the build error. */
   problems: string[];
 }
 
@@ -161,15 +167,25 @@ const ANSWER_MARKS =
  * makes radio buttons, several make checkboxes. Anything between the heading and
  * the list belongs to the question; anything after the list explains the answer
  * and stays hidden until the answers are checked.
+ *
+ * Files in exams/ are written the same way, but their questions go on a chapter's exam page
+ * (ExamView.astro), which the API grades: they leave out which answers are right, the
+ * explanations and anything before the first question, and wait hidden until an attempt
+ * draws them. Their answers are mixed up (answerOrder). The right answers go to course.ts
+ * instead, for the exam's sealed answer key.
  */
-export function quizzes(testsRoot: string): HastPluginDefinition {
+export function quizzes(roots: { tests: string; exams: string }): HastPluginDefinition {
   return {
     name: 'ml-workout:quizzes',
     before(root, ctx) {
-      const file = ctx.fileURL && inside(testsRoot, fileURLToPath(ctx.fileURL));
-      if (!file || isIndexFile(path.basename(file))) return; // tests/README.md is the overview's introduction
+      const filePath = ctx.fileURL && fileURLToPath(ctx.fileURL);
+      const test = filePath && inside(roots.tests, filePath);
+      const exam = filePath && test === undefined ? inside(roots.exams, filePath) : undefined;
+      const file = test ?? exam;
+      // tests/README.md is the overview's introduction, and README files in exams/ describe that repository.
+      if (!file || isIndexFile(path.basename(file))) return;
 
-      const quiz: Quiz = { questions: [], problems: [] };
+      const quiz: Quiz = { questions: [], key: exam ? [] : undefined, problems: [] };
       const intro: Content[] = [];
       const questions: Content[][] = [];
       const footnotes: Content[] = [];
@@ -178,19 +194,27 @@ export function quizzes(testsRoot: string): HastPluginDefinition {
         else if (node.type === 'element' && node.properties?.dataFootnotes !== undefined) footnotes.push(node);
         else (questions.at(-1) ?? intro).push(node);
       }
+      if (exam && footnotes.length) {
+        quiz.problems.push('It has footnotes, which exams leave out. Put their text in the questions instead.');
+      }
 
       const t = ui[noteLang(ctx)].tests;
-      const sections = questions.map((nodes, index) => toQuestion(nodes, index + 1, t, quiz));
-      ctx.replaceNode(root, { type: 'root', children: [...intro, ...sections, ...footnotes] });
+      const lessonPath = noteUrl(file);
+      const sections = questions.map((nodes, index) =>
+        toQuestion(nodes, index + 1, t, quiz, exam ? examQuestionId(lessonPath, index + 1) : undefined),
+      );
+      const children = exam ? sections : [...intro, ...sections, ...footnotes];
+      ctx.replaceNode(root, { type: 'root', children });
       const astro = ctx.data.astro as { frontmatter?: Record<string, unknown> } | undefined;
       if (astro?.frontmatter) astro.frontmatter.quiz = quiz;
     },
   };
 }
 
-function toQuestion(nodes: Content[], number: number, t: (typeof ui)[Lang]['tests'], quiz: Quiz): Element {
+/** One question's section; `examId` is set for exam questions, which don't give their answers away. */
+function toQuestion(nodes: Content[], number: number, t: (typeof ui)[Lang]['tests'], quiz: Quiz, examId?: string): Element {
   const [heading, ...rest] = nodes as [Element, ...Content[]];
-  const id = `question-${number}`;
+  const id = `question-${examId ?? number}`;
   const title = textOf(heading).replace(/\s+/g, ' ').trim();
   const name = `Question ${number} ("${title}")`;
   quiz.questions.push(title);
@@ -199,9 +223,10 @@ function toQuestion(nodes: Content[], number: number, t: (typeof ui)[Lang]['test
     (node) => node.type === 'element' && node.tagName === 'ul' && classes(node).includes('contains-task-list'),
   );
   const list = rest[listAt] as Element | undefined;
-  const answers = (list?.children ?? [])
+  const written = (list?.children ?? [])
     .filter((node): node is Element => node.type === 'element' && node.tagName === 'li')
     .map(toAnswer);
+  const answers = examId ? answerOrder(written.length, examId).map((index) => written[index]) : written;
   const right = answers.filter((answer) => answer.right).length;
   const multiple = right > 1;
 
@@ -214,9 +239,10 @@ function toQuestion(nodes: Content[], number: number, t: (typeof ui)[Lang]['test
     if (answers.length < 2) quiz.problems.push(`${name} has only one answer. Give it at least two.`);
     if (right === 0) quiz.problems.push(`${name} has no right answer. Mark the right answers with "- [x]".`);
   }
+  quiz.key?.push({ right: answers.flatMap((answer, index) => (answer.right ? [index] : [])), answers: answers.length });
 
   const hintId = `${id}-hint`;
-  return element('section', { className: ['question'], dataQuestion: true }, [
+  return element('section', { className: ['question'], dataQuestion: examId ?? true, hidden: examId !== undefined || undefined }, [
     { ...heading, properties: { ...heading.properties, id } },
     ...(listAt === -1 ? rest : rest.slice(0, listAt)),
     ...(multiple ? [element('p', { className: ['select-all'], id: hintId }, [text(t.selectAll)])] : []),
@@ -229,22 +255,41 @@ function toQuestion(nodes: Content[], number: number, t: (typeof ui)[Lang]['test
             type: multiple ? 'checkbox' : 'radio',
             name: id,
             value: String(index),
-            dataRight: answer.right || undefined,
+            dataRight: (!examId && answer.right) || undefined,
           }),
           element(answer.block ? 'div' : 'span', { className: ['answer-text'] }, answer.content),
-          element('span', { className: ['answer-mark'] }, [{ type: 'raw', value: ANSWER_MARKS }]),
+          ...(examId ? [] : [element('span', { className: ['answer-mark'] }, [{ type: 'raw', value: ANSWER_MARKS }])]),
         ]),
       ),
     ),
-    element('div', { className: ['feedback'], hidden: true }, [
-      element('p', { className: ['verdict'] }, [
-        element('span', { className: ['when-right'] }, [text(t.right)]),
-        element('span', { className: ['when-wrong'] }, [text(t.wrong)]),
-        element('span', { className: ['when-skipped'] }, [text(t.skipped)]),
-      ]),
-      ...(listAt === -1 ? [] : rest.slice(listAt + 1)),
-    ]),
+    ...(examId
+      ? []
+      : [
+          element('div', { className: ['feedback'], hidden: true }, [
+            element('p', { className: ['verdict'] }, [
+              element('span', { className: ['when-right'] }, [text(t.right)]),
+              element('span', { className: ['when-wrong'] }, [text(t.wrong)]),
+              element('span', { className: ['when-skipped'] }, [text(t.skipped)]),
+            ]),
+            ...(listAt === -1 ? [] : rest.slice(listAt + 1)),
+          ]),
+        ]),
   ]);
+}
+
+/**
+ * The order an exam question's answers are shown in. The page's markup gives each answer's
+ * place, and writers tend to put the right answer first, so exams mix the answers up: the
+ * same way in every language, so one answer key grades them all, and in an order that only
+ * EXAM_SECRET gives, so the markup can't be put back in the order they were written in.
+ */
+function answerOrder(count: number, examId: string): number[] {
+  const order = [...Array(count).keys()];
+  const secret = process.env.EXAM_SECRET;
+  // Exam pages can't be built without it (server/exams.ts), so the order doesn't matter then.
+  if (!secret) return order;
+  const ranks = order.map((index) => createHmac('sha256', secret).update(`answers\n${examId}\n${index}`).digest('hex'));
+  return order.sort((a, b) => (ranks[a] < ranks[b] ? -1 : 1));
 }
 
 const BLOCK_TAGS = new Set(['p', 'div', 'pre', 'ul', 'ol', 'table', 'blockquote', 'figure', 'details', 'hr']);

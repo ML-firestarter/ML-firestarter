@@ -15,7 +15,18 @@ export const site = {
   /**
    * Readers can select text on these pages (language-neutral URLs and everything under them)
    * and comment on it. Comments become issues in `repo`; see "Comments" in the README.
-   * An empty list turns comments and signing in off.
+   * An empty list turns comments off, and signing in too unless the site has exams.
    */
   comments: ['/vocabulary/', '/foundations/'] as string[],
+  /** Chapter exams, which the site's API grades; see "Exams" in the README. */
+  exams: {
+    /** Private repository with the exam questions, laid out like tests/; production builds download it into exams/. */
+    repo: 'https://github.com/fijisoo/ML-workout-exams',
+    /** Private repository where the site's bot keeps readers' results, a file for each reader. */
+    results: 'https://github.com/fijisoo/ML-workout-results',
+    /** Questions in an attempt, drawn from every lesson of the chapter. */
+    questions: 10,
+    /** Hours to wait after an attempt that didn't pass before starting another. */
+    wait: 24,
+  },
 };

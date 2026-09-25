@@ -1,0 +1,145 @@
+---
+/**
+ * A chapter's exam (scripts/exam.ts). The page holds every exam question on the chapter's
+ * lessons, hidden until an attempt draws some of them, without their answers: those are in
+ * the exam's answer key, sealed with EXAM_SECRET so that only the API can open it.
+ */
+import { render } from 'astro:content';
+import { testGroupId, type Course, type Exam } from '../lib/course.ts';
+import { langAttr, localizeUrl, ui } from '../lib/i18n.ts';
+import { TESTS_PATH } from '../lib/paths.ts';
+import { ATTEMPT_TIME, examSecret, pageKey } from '../server/exams.ts';
+import { site } from '../site.config.ts';
+import Crumbs from './Crumbs.astro';
+import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+
+interface Props {
+  course: Course;
+  exam: Exam;
+}
+
+const { course, exam } = Astro.props;
+const { lang } = course;
+const { chapter } = exam;
+const t = ui[lang];
+const s = t.exams.script;
+const { key, version } = await pageKey(exam, examSecret());
+const parts = await Promise.all(exam.parts.map(async (part) => ({ lang: part.lang, Content: (await render(part.note)).Content })));
+/** The language of questions that aren't translated yet, if there are any. */
+const untranslated = exam.parts.find((part) => part.lang !== lang)?.lang;
+const overview = localizeUrl(TESTS_PATH, lang);
+const crumbs = [
+  { title: t.tests.title, url: overview, lang },
+  { title: chapter.title, url: `${overview}#${testGroupId(chapter)}`, lang: chapter.lang },
+];
+const passPercent = `${Math.round(site.passScore * 100)}%`;
+const rules = t.exams.rules(exam.drawn, Math.round(site.passScore * 100), site.exams.wait, ATTEMPT_TIME / (60 * 60 * 1000));
+const lessons = Object.fromEntries(
+  exam.parts.map(({ lesson }) => [lesson.path, { url: lesson.url, title: lesson.title, lang: langAttr(lesson.lang, lang) }]),
+);
+// For the script; `<` is escaped so the JSON can't end the script element.
+const strings = JSON.stringify({ lang, ...s, lessons }).replace(/</g, '\\u003c');
+---
+
+<div class="exam-page" data-exam-page={chapter.path} data-exam-key={key} data-exam-version={version}>
+  <header class="page-header">
+    <Crumbs lang={lang} parents={crumbs} />
+    <p class="eyebrow">{t.exams.exam}</p>
+    <h1 class="page-title" lang={langAttr(chapter.lang, lang)}>{exam.title}</h1>
+    <p class="lede">{t.exams.lede}</p>
+    <div class="meta" data-exam={chapter.path}>
+      <span class="meta-item"><Icon name="quiz" />{t.tests.questionCount(exam.drawn)}</span>
+      <span class="meta-item best-chip">
+        <Icon name="award" />
+        <span><Phrase text={t.tests.best}><strong data-exam-score></strong></Phrase></span>
+      </span>
+      <a class="meta-item" href={chapter.url}><Icon name="book" />{t.exams.readChapter}</a>
+    </div>
+  </header>
+
+  {
+    untranslated && (
+      <p class="untranslated">
+        <Icon name="globe" />
+        <span>{t.exams.untranslated(t.inLanguage[untranslated])}</span>
+      </p>
+    )
+  }
+
+  <section class="exam-panel" aria-labelledby="exam-rules" data-exam-panel>
+    <h2 id="exam-rules">{t.exams.howItWorks}</h2>
+    <ul class="exam-rules">
+      {rules.map((rule) => <li>{rule}</li>)}
+    </ul>
+    <div class="exam-status" data-exam-status>
+      <div data-state="loading">
+        <p>{s.loading}</p>
+      </div>
+      <div data-state="signed-out" hidden>
+        <p>{s.signedOut}</p>
+        <a class="button primary" href={`/api/auth/login?return=${encodeURIComponent(exam.url)}`} data-sign-in>
+          <Icon name="login" />{t.exams.signIn}
+        </a>
+      </div>
+      <div data-state="ready" hidden>
+        <p data-exam-last hidden></p>
+        <button class="button primary" type="button" data-exam-start>
+          <Icon name="quiz" /><span data-label>{s.start}</span>
+        </button>
+      </div>
+      <div data-state="waiting" hidden>
+        <p data-exam-waiting></p>
+      </div>
+      <div data-state="passed" hidden>
+        <p class="exam-passed" data-exam-passed></p>
+      </div>
+      <div data-state="error" hidden>
+        <button class="button" type="button" data-exam-reload><Icon name="refresh" />{s.retry}</button>
+      </div>
+      <p class="exam-error" role="alert" data-exam-error hidden></p>
+    </div>
+  </section>
+
+  <form class="quiz exam-form" autocomplete="off" data-exam-form hidden>
+    <p class="exam-due" data-exam-due></p>
+    <div class="prose exam-questions">
+      {
+        parts.map(({ lang: partLang, Content }) => (
+          <div class="exam-part" lang={langAttr(partLang, lang)}>
+            <Content />
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="quiz-submit">
+      <button class="button primary" type="submit" data-exam-hand-in>
+        <Icon name="check" /><span data-label>{s.handIn}</span>
+      </button>
+      <p><Phrase text={t.tests.answered}><strong data-answered>0/{exam.drawn}</strong></Phrase></p>
+    </div>
+    <p class="exam-error" role="alert" data-exam-form-error hidden></p>
+  </form>
+
+  <section class="quiz-result exam-result" tabindex="-1" data-result hidden>
+    <p class="result-percent" data-result-percent>0%</p>
+    <div class="result-text">
+      <p class="result-verdict">
+        <span class="when-passed">{s.pass}</span>
+        <span class="when-failed">{s.fail.replace('{score}', passPercent)}</span>
+      </p>
+      <p><Phrase text={t.tests.result}><strong data-result-count>0/{exam.drawn}</strong></Phrase></p>
+      <p data-result-next hidden></p>
+    </div>
+    <button class="button" type="button" data-exam-again hidden><Icon name="refresh" />{s.retry}</button>
+    <div class="exam-review" data-result-review hidden>
+      <h2>{s.review}</h2>
+      <ul></ul>
+    </div>
+  </section>
+
+  <script is:inline type="application/json" data-exam-strings set:html={strings}></script>
+</div>
+
+<script src="../scripts/exam.ts"></script>
