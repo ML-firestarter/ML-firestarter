@@ -21,7 +21,7 @@ const contentLang = intro && langAttr(intro.lang, lang);
 const Intro = intro ? (await render(intro.note)).Content : undefined;
 /** Tests of lessons outside any chapter first, then one group per top-level chapter, with its exam last. */
 const groups: { chapter?: Chapter; tests: Test[] }[] = [
-  { tests: tests.filter((test) => test.lesson.parents.length === 0) },
+  { chapter: undefined, tests: tests.filter((test) => test.lesson.parents.length === 0) },
   ...course.root.children.flatMap((node) =>
     node.kind === 'chapter' ? [{ chapter: node, tests: node.lessons.flatMap((lesson) => lesson.test ?? []) }] : [],
   ),

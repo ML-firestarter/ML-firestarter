@@ -3,6 +3,12 @@ node_modules/
 dist/
 .astro/
 
+# other package managers' lockfiles: the site uses npm, and Netlify would switch to the manager of any of these
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
 # local tooling
 .netlify/
 .claude/
