@@ -3,6 +3,7 @@
  * links to the exams that show them. Pages keep what the API says for a few minutes, in this
  * tab's sessionStorage, rather than ask again on every page.
  */
+import type { CertificateState } from '../lib/certificates.ts';
 import type { Attempt, ExamError, ExamRecord, ExamStatus } from '../lib/exams.ts';
 import { EXAMS_KEY, paintAccount, readReader } from './account.ts';
 import { percent } from './scores.ts';
@@ -43,6 +44,13 @@ export function keepAttempt(chapter: string, attempt: Attempt, next?: string) {
   if (!kept || kept.login !== readReader()?.login) return;
   const attempts = [...(kept.exams[chapter]?.attempts ?? []), attempt];
   writeKept({ ...kept, exams: { ...kept.exams, [chapter]: { attempts, next } } });
+}
+
+/** Keeps the certificate the reader just published or unpublished, so other pages know of it without asking the API again. */
+export function keepCertificate(chapter: string, certificate: CertificateState) {
+  const kept = readKept();
+  if (!kept || kept.login !== readReader()?.login) return;
+  writeKept({ ...kept, exams: { ...kept.exams, [chapter]: { ...(kept.exams[chapter] ?? { attempts: [] }), certificate } } });
 }
 
 /** Shows the best score and whether it passed wherever an exam is linked. */

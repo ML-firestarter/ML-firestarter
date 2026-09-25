@@ -1,27 +1,33 @@
 /**
- * The site's API: signing in with GitHub, readers' comments on the notes (lib/comments.ts) and
- * the chapter exams (lib/exams.ts). Runs as a Netlify function (netlify/functions/api.ts) and
- * inside `astro dev` (server/dev.ts).
+ * The site's API: signing in with GitHub, readers' comments on the notes (lib/comments.ts), the
+ * chapter exams (lib/exams.ts) and their certificates (lib/certificates.ts). Runs as a Netlify
+ * function (netlify/functions/api.ts) and inside `astro dev` (server/dev.ts).
  *
  *   GET  /api/auth/login?return=/page/  sends the reader to GitHub to sign in
  *   GET  /api/auth/callback             where GitHub sends them back; signs them in
  *   POST /api/auth/logout               signs the reader out
  *   GET  /api/comments                  comments' changes waiting to be merged, for signed-in readers
  *   POST /api/comments                  posts a comment as an issue, as the reader
- *   GET  /api/exams                     the reader's attempts at the exams
- *   POST /api/exams/start               starts an attempt at an exam: draws its questions
- *   POST /api/exams/submit              hands an attempt in: checks it and keeps the result
+ *   GET    /api/exams                   the reader's attempts at the exams, and their certificates
+ *   POST   /api/exams/start             starts an attempt at an exam: draws its questions
+ *   POST   /api/exams/submit            hands an attempt in: checks it and keeps the result, and
+ *                                       the certificate it earns when it passes
+ *   POST   /api/certificates            publishes the reader's certificate for an exam they passed
+ *   DELETE /api/certificates            unpublishes it
  *
  * Needs the GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET of the site's GitHub App and a
  * SESSION_SECRET; see "Comments" in the README. The exams also need an EXAM_SECRET and the
- * BOT_APP_ID and BOT_APP_PRIVATE_KEY of the site's bot; see "Exams".
+ * BOT_APP_ID and BOT_APP_PRIVATE_KEY of the site's bot, and their certificates a
+ * CERTIFICATE_KEY; see "Exams".
  */
 import { Buffer } from 'node:buffer';
+import type { CertificateResponse, CertificateState } from '../lib/certificates.ts';
 import { CONTEXT, LIMITS, changeFrom, hasComments, issueFor, type NewComment } from '../lib/comments.ts';
 import type { Attempt, ExamError, ExamStatus, StartResponse, SubmitResponse } from '../lib/exams.ts';
 import { isLang } from '../lib/i18n.ts';
 import { NOTES_DIR, noteUrl } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
+import { issueCertificate, publishCertificate, unpublishCertificate, type SigningConfig } from './certificates.ts';
 import {
   ATTEMPT_TIME,
   checkAnswers,
@@ -33,7 +39,9 @@ import {
   readResults,
   recordAttempt,
   sealAttempt,
+  setCertificate,
   type ExamConfig,
+  type KeptCertificate,
 } from './exams.ts';
 import { GitHubError, createIssue, exchangeCode, getUser, listPulls, refreshTokens, revokeToken } from './github.ts';
 import {
@@ -96,6 +104,7 @@ const routes = new Map<string, Record<string, Handler>>([
   ['/api/exams', { GET: examStatus }],
   ['/api/exams/start', { POST: startExam }],
   ['/api/exams/submit', { POST: submitExam }],
+  ['/api/certificates', { POST: publish, DELETE: unpublish }],
 ]);
 // Comments can be turned off in site.config.ts; signing in stays, for the exams.
 if (site.comments.length === 0) routes.delete('/api/comments');
@@ -252,7 +261,10 @@ async function examStatus(context: Context): Promise<Response> {
   if (!reader) return signedOut(context);
 
   const { results } = await readResults(exams, reader.user);
-  const records = Object.entries(results.exams).map(([chapter, attempts]) => [chapter, examRecord(attempts)] as const);
+  const records = Object.entries(results.exams).map(([chapter, attempts]) => {
+    const certificate = results.certificates?.[chapter];
+    return [chapter, { ...examRecord(attempts), ...(certificate && { certificate: stateOf(certificate) }) }] as const;
+  });
   return json({ exams: Object.fromEntries(records) } satisfies ExamStatus, 200, reader.cookies);
 }
 
@@ -277,7 +289,10 @@ async function startExam(context: Context): Promise<Response> {
   const number = record.attempts.length;
   const questions = drawQuestions(key, reader.user.id, number, site.exams.questions, exams.secret);
   const at = Date.now();
-  const attempt = await sealAttempt({ reader: reader.user.id, chapter: key.chapter, version: key.version, number, questions, at }, exams.secret);
+  const attempt = await sealAttempt(
+    { reader: reader.user.id, chapter: key.chapter, version: key.version, number, questions, at, ...(key.covers && { covers: key.covers }) },
+    exams.secret,
+  );
   const started: StartResponse = { attempt, questions: questions.map((question) => question.id), expires: new Date(at + ATTEMPT_TIME).toISOString() };
   return json(started, 200, reader.cookies);
 }
@@ -309,13 +324,84 @@ async function submitExam(context: Context): Promise<Response> {
     passed: score >= site.passScore,
     version: attempt.version,
   };
+  // A pass earns a certificate, signed now and kept with the result: the reader can publish it.
+  const { certificateKey } = exams;
+  const certificate =
+    result.passed && attempt.covers && certificateKey
+      ? issueCertificate({ ...exams, certificateKey }, reader.user, attempt.chapter, attempt.covers, result, context.url.origin)
+      : undefined;
   // The score is only given once it's kept, so an attempt can't be handed in twice to learn from the first.
-  if (!(await recordAttempt(exams, reader.user, attempt.chapter, attempt.number, result))) {
+  if (!(await recordAttempt(exams, reader.user, attempt.chapter, attempt.number, result, certificate))) {
     return refuse(409, 'handed-in', 'This attempt was handed in already.', reader.cookies);
   }
   const wrong = attempt.questions.filter((question) => !right.includes(question));
-  const handedIn: SubmitResponse = { result, review: [...new Set(wrong.map((question) => question.lesson))], next: examRecord([result]).next };
+  const handedIn: SubmitResponse = {
+    result,
+    review: [...new Set(wrong.map((question) => question.lesson))],
+    next: examRecord([result]).next,
+    ...(certificate && { certificate: stateOf(certificate) }),
+  };
   return json(handedIn, 200, reader.cookies);
+}
+
+/**
+ * Publishes the reader's certificate for the exam whose key the page sent, once they've passed
+ * it: the site's bot writes it to the public certificates repository. A reader who passed before
+ * the site signed certificates gets theirs signed now, saying what the exam covers as the key
+ * has it, which is what the site built rather than what a page says.
+ */
+async function publish(context: Context): Promise<Response> {
+  const exams = examSettings();
+  if (exams instanceof Response) return exams;
+  const signing = signingSettings(exams);
+  if (signing instanceof Response) return signing;
+  const body = await readJson(context, MAX_EXAM_BODY);
+  if (body instanceof Response) return body;
+  const sealed = isRecord(body.data) ? text(body.data.key, MAX_EXAM_BODY) : undefined;
+  if (!sealed) return refuse(400, 'invalid', "Send the exam's key from its page.");
+  const reader = await verifiedReader(context);
+  if (!reader) return signedOut(context);
+
+  const key = await openKey(sealed, exams.secret);
+  if (!key?.covers) return refuse(409, 'outdated', 'This page is out of date. Reload it to publish your certificate.', reader.cookies);
+  const { chapter, covers } = key;
+  const { results } = await readResults(exams, reader.user);
+  const passed = results.exams[chapter]?.find((attempt) => attempt.passed);
+  if (!passed) return refuse(409, 'not-passed', "You haven't passed this exam yet.", reader.cookies);
+
+  let kept = results.certificates?.[chapter];
+  if (!kept) {
+    const issued = issueCertificate(signing, reader.user, chapter, covers, passed, context.url.origin);
+    kept = await setCertificate(exams, reader.user, chapter, 'issued', (had) => had ?? issued);
+  }
+  // The file first: should noting it in the results fail, publishing again finds it written.
+  await publishCertificate(exams, kept, reader.user);
+  if (!kept.published) kept = await setCertificate(exams, reader.user, chapter, 'published', (had) => ({ ...(had ?? kept!), published: true }));
+  return json({ certificate: stateOf(kept) } satisfies CertificateResponse, 200, reader.cookies);
+}
+
+/** Unpublishes the reader's certificate for a chapter: the site's bot deletes it from the certificates repository, not from its history. */
+async function unpublish(context: Context): Promise<Response> {
+  const exams = examSettings();
+  if (exams instanceof Response) return exams;
+  const body = await readJson(context, MAX_BODY);
+  if (body instanceof Response) return body;
+  const chapter = isRecord(body.data) ? text(body.data.chapter, 300) : undefined;
+  if (!chapter) return refuse(400, 'invalid', 'Send the chapter of the certificate.');
+  const reader = await verifiedReader(context);
+  if (!reader) return signedOut(context);
+
+  const { results } = await readResults(exams, reader.user);
+  let kept = results.certificates?.[chapter];
+  if (!kept) return refuse(409, 'not-passed', "You don't have a certificate for this exam.", reader.cookies);
+  await unpublishCertificate(exams, kept, reader.user);
+  if (kept.published) kept = await setCertificate(exams, reader.user, chapter, 'unpublished', (had) => ({ ...(had ?? kept!), published: false }));
+  return json({ certificate: stateOf(kept) } satisfies CertificateResponse, 200, reader.cookies);
+}
+
+/** A kept certificate, as pages get to know it: without its signature, which they only need once it's published. */
+function stateOf({ id, published }: KeptCertificate): CertificateState {
+  return { id, published };
 }
 
 /** The exams' settings, or the response saying which are missing. */
@@ -323,6 +409,12 @@ function examSettings(): ExamConfig | Response {
   const exams = readExamConfig();
   if (!Array.isArray(exams)) return exams;
   return refuse(503, 'not-configured', `Exams aren't set up on this site yet: the server needs ${exams.join(', ')}. See "Exams" in the README.`);
+}
+
+/** The exams' settings with the key that signs certificates, or the response saying it's missing. */
+function signingSettings(exams: ExamConfig): SigningConfig | Response {
+  if (exams.certificateKey) return { ...exams, certificateKey: exams.certificateKey };
+  return refuse(503, 'not-configured', `Certificates aren't set up on this site yet: the server needs CERTIFICATE_KEY. See "Certificates" in the README.`);
 }
 
 /**

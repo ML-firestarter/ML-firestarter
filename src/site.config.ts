@@ -24,6 +24,8 @@ export const site = {
     repo: 'https://github.com/ML-firestarter/ML-firestarter-exams',
     /** Private repository where the site's bot keeps readers' results, a file for each reader. */
     results: 'https://github.com/ML-firestarter/ML-firestarter-results',
+    /** Public repository where the site's bot keeps the certificates readers ask for once they pass; see "Certificates" in the README. */
+    certificates: 'https://github.com/ML-firestarter/ML-firestarter-certificates',
     /** Questions in an attempt, drawn from every lesson of the chapter. */
     questions: 10,
     /** Hours to wait after an attempt that didn't pass before starting another. */

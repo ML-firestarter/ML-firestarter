@@ -1,0 +1,107 @@
+---
+/**
+ * The certificate page (scripts/certificate.ts). Netlify serves it at every certificate's
+ * address, like `/certificates/3f9a1c0e7b2d4a55/` (netlify.toml): the script reads the
+ * certificate from the public certificates repository, checks its signature with the site's
+ * public keys, which the page holds, and shows it. At `/certificates/` itself, the page says
+ * what certificates are.
+ */
+import { getCourse } from '../lib/course.ts';
+import { localizeUrl, ui, type Lang } from '../lib/i18n.ts';
+import { CERTIFICATE_KEYS_URL, TESTS_PATH } from '../lib/paths.ts';
+import { publicKeys } from '../server/certificates.ts';
+import { repoName } from '../server/exams.ts';
+import { site } from '../site.config.ts';
+import Icon from './Icon.astro';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = ui[lang].certificates;
+const s = t.script;
+const course = await getCourse(lang);
+// For the script; `<` is escaped so the JSON can't end the script element.
+const strings = JSON.stringify({
+  lang,
+  ...s,
+  site: site.title,
+  repo: repoName(site.exams.certificates),
+  pages: [...course.byPath.keys()],
+  keys: publicKeys(),
+  keysUrl: CERTIFICATE_KEYS_URL,
+}).replace(/</g, '\\u003c');
+---
+
+<div class="certificate-page" data-certificate-page>
+  <p class="certificate-loading" data-state="loading">{s.loading}</p>
+
+  <div data-state="none" hidden>
+    <p class="eyebrow">{s.eyebrow}</p>
+    <h1 class="page-title">{t.heading}</h1>
+    <p class="lede">{t.lede}</p>
+    <a class="button primary" href={localizeUrl(TESTS_PATH, lang)}><Icon name="award" />{t.exams}</a>
+  </div>
+
+  <div data-state="missing" hidden>
+    <p class="eyebrow">{s.eyebrow}</p>
+    <h1 class="page-title">{s.missing}</h1>
+    <p class="lede">{s.missingLede}</p>
+  </div>
+
+  <div data-state="invalid" hidden>
+    <p class="eyebrow">{s.eyebrow}</p>
+    <h1 class="page-title">{s.invalid}</h1>
+    <p class="lede">{s.invalidLede}</p>
+  </div>
+
+  <div data-state="failed" hidden>
+    <p class="eyebrow">{s.eyebrow}</p>
+    <p class="lede" role="alert">{s.failed}</p>
+    <button class="button" type="button" data-certificate-retry><Icon name="refresh" />{s.retry}</button>
+  </div>
+
+  <article class="certificate" data-state="shown" hidden>
+    <span class="certificate-seal"><Icon name="award" /></span>
+    <p class="eyebrow">{s.eyebrow}</p>
+    <img class="certificate-avatar" alt="" width="88" height="88" data-certificate-avatar />
+    <h1 class="certificate-name" data-certificate-name></h1>
+    <p class="certificate-login"><a data-certificate-login></a></p>
+    <p class="certificate-statement">{s.statement}</p>
+    <h2 class="certificate-chapter"><a data-certificate-chapter></a></h2>
+    <p class="certificate-passed" data-certificate-passed></p>
+    <div class="certificate-lessons">
+      <p>{s.covered}</p>
+      <ul data-certificate-lessons></ul>
+    </div>
+    <footer class="certificate-footer">
+      <p data-certificate-issued></p>
+      <p class="certificate-signature" data-certificate-signature></p>
+      <p class="certificate-links">
+        <span data-certificate-id></span>
+        <a data-certificate-file>{s.file}</a>
+        <a data-certificate-history>{s.history}</a>
+      </p>
+    </footer>
+  </article>
+
+  <section class="certificate-share" aria-labelledby="certificate-share" data-certificate-share hidden>
+    <h2 id="certificate-share">{s.share.title}</h2>
+    <p data-certificate-share-text></p>
+    <img class="certificate-badge" alt="" data-certificate-badge />
+    <div class="certificate-snippet">
+      <pre><code data-certificate-snippet></code></pre>
+      <button class="button" type="button" data-certificate-copy><span data-label>{s.share.copy}</span></button>
+    </div>
+    <p class="certificate-help">
+      <a href="https://docs.github.com/en/account-and-profile/how-tos/profile-customization/managing-your-profile-readme">{s.share.help}</a>
+    </p>
+    <a class="button" target="_blank" rel="noopener" data-certificate-linkedin><Icon name="plus" />{s.share.linkedin}</a>
+    <p class="certificate-help" data-certificate-manage hidden></p>
+  </section>
+
+  <script is:inline type="application/json" data-certificate-strings set:html={strings}></script>
+</div>
+
+<script src="../scripts/certificate.ts"></script>

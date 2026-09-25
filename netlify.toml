@@ -12,6 +12,25 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# The public keys certificates are signed with, for anyone to check them with, from any site.
+[[headers]]
+  for = "/certificates/keys.json"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
+# Each certificate's address, like /certificates/3f9a1c0e7b2d4a55/, shows the certificate page,
+# which reads the certificate's id from the address. Files under /certificates/, like the
+# badges and the public keys, are served as they are.
+[[redirects]]
+  from = "/certificates/*"
+  to = "/certificates/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/pl/certificates/*"
+  to = "/pl/certificates/index.html"
+  status = 200
+
 # Missing pages under /pl/ get the Polish "page not found" page; the rest get 404.html.
 # Existing pages are never affected, because Netlify serves files before applying this rule.
 [[redirects]]

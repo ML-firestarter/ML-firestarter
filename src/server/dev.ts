@@ -1,12 +1,22 @@
 /**
  * Runs the site's API (api.ts) inside `astro dev`, so signing in and comments work locally.
  * Its settings come from `.env`, as they come from Netlify's environment variables in production.
+ * It also shows the certificate page at each certificate's address, as netlify.toml has Netlify do.
  */
 import { Buffer } from 'node:buffer';
 import { existsSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
+import { DEFAULT_LANG, LANGS } from '../lib/i18n.ts';
+import { CERTIFICATES_PATH } from '../lib/paths.ts';
+
+/**
+ * A certificate's address in any language, like `/certificates/3f9a1c0e7b2d4a55/` or
+ * `/pl/certificates/3f9a1c0e7b2d4a55/`. Names with a dot are files, like the public keys, which
+ * are served as they are, as on Netlify.
+ */
+const CERTIFICATE = new RegExp(`^(/(?:${LANGS.filter((lang) => lang !== DEFAULT_LANG).join('|')}))?${CERTIFICATES_PATH}[^/?#.]+/?(?:\\?.*)?$`);
 
 export function devApi(): AstroIntegration {
   let env = '.env';
@@ -19,6 +29,11 @@ export function devApi(): AstroIntegration {
       'astro:server:setup': ({ server }) => {
         // Variables already set in the shell win over the file.
         if (existsSync(env)) process.loadEnvFile(env);
+        server.middlewares.use((req, _res, next) => {
+          const certificate = CERTIFICATE.exec(req.url ?? '');
+          if (certificate) req.url = `${certificate[1] ?? ''}${CERTIFICATES_PATH}`;
+          next();
+        });
         server.middlewares.use((req, res, next) => {
           if (!req.url?.startsWith('/api/')) return next();
           // Loaded on every request, so changes to the API apply without restarting.

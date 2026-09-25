@@ -40,6 +40,22 @@ export function examQuestionId(lessonPath: string, number: number): string {
   return `${lessonPath.slice(1, -1).replaceAll('/', '-')}-${number}`;
 }
 
+/** Language-neutral URL of the certificate page; every certificate has its page under it. */
+export const CERTIFICATES_PATH = '/certificates/';
+
+/** URL of a certificate's page: `3f9a1c0e7b2d4a55` → `/certificates/3f9a1c0e7b2d4a55/` */
+export function certificateUrl(id: string): string {
+  return `${CERTIFICATES_PATH}${id}/`;
+}
+
+/** URL of the public keys certificates are signed with, the same in every language (pages/certificates/keys.json.ts). */
+export const CERTIFICATE_KEYS_URL = `${CERTIFICATES_PATH}keys.json`;
+
+/** URL of the badge for certificates on a top-level chapter: `/foundations/` → `/certificates/badges/foundations.svg` */
+export function badgeUrl(chapterPath: string): string {
+  return `${CERTIFICATES_PATH}badges/${chapterPath.slice(1, -1)}.svg`;
+}
+
 /** A folder's `README.md` / `index.md` is its chapter intro, not a lesson. */
 const INDEX_NAMES = new Set(['readme', 'index']);
 
