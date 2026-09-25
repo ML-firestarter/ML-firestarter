@@ -11,13 +11,13 @@ export interface Reader {
 }
 
 /** Comments' changes loaded from the API, kept for a minute (scripts/comments.ts). */
-export const COMMENTS_KEY = 'ml-workout:comment-changes';
+export const COMMENTS_KEY = 'ml-firestarter:comment-changes';
 
 /** The reader's attempts at the exams, loaded from the API and kept for a few minutes (scripts/exams.ts). */
-export const EXAMS_KEY = 'ml-workout:exams';
+export const EXAMS_KEY = 'ml-firestarter:exams';
 
 /** Exam attempts in progress and their answers, kept in localStorage until they're handed in (scripts/exam.ts). */
-export const EXAM_ATTEMPTS_KEY = 'ml-workout:exam-attempts';
+export const EXAM_ATTEMPTS_KEY = 'ml-firestarter:exam-attempts';
 
 export function readReader(): Reader | undefined {
   const match = /(?:^|;\s*)mlw_user=([^;]+)/.exec(document.cookie);

@@ -8,7 +8,7 @@
 messages:
   - role: system
     content: |
-      You look after ML-workout, notes that teach machine learning. Each note is a Markdown file in English,
+      You look after ML-firestarter, notes that teach machine learning. Each note is a Markdown file in English,
       like `sft.md`, and most have a Polish translation next to them, like `sft.pl.md`. The versions of a note
       say the same thing, each in its own language.
 

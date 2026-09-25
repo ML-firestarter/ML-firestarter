@@ -16,7 +16,7 @@ type Content = Element['children'][number];
 
 /** `$inline$` and `$$display$$` math, rendered with KaTeX at build time (no browser JavaScript). */
 export const katexMath: MdastPluginDefinition = {
-  name: 'ml-workout:katex',
+  name: 'ml-firestarter:katex',
   inlineMath: (node) => ({ type: 'html', value: renderMath(node.value, false) }),
   math: (node) => ({ type: 'html', value: renderMath(node.value, true) }),
 };
@@ -32,7 +32,7 @@ function noteLang(ctx: HastVisitorContext): Lang {
 
 /** A `# Heading` that opens a note becomes the page title, so it is removed from the body. */
 export const dropLeadingH1: HastPluginDefinition = {
-  name: 'ml-workout:drop-leading-h1',
+  name: 'ml-firestarter:drop-leading-h1',
   before(root, ctx) {
     const first = root.children.find((child) => !(child.type === 'text' && !child.value.trim()));
     if (first?.type === 'element' && first.tagName === 'h1') ctx.removeNode(first);
@@ -43,7 +43,7 @@ const ALERT_MARKER = /^\[!(note|tip|important|warning|caution)\][ \t]*(?:\r?\n|$
 
 /** GitHub alerts: a blockquote starting with `[!TIP]` (or NOTE, IMPORTANT, WARNING, CAUTION) becomes a callout. */
 export const githubAlerts: HastPluginDefinition = {
-  name: 'ml-workout:github-alerts',
+  name: 'ml-firestarter:github-alerts',
   element: {
     filter: ['blockquote'],
     visit(node, ctx) {
@@ -73,7 +73,7 @@ export const githubAlerts: HastPluginDefinition = {
 
 /** The hidden "Footnotes" heading and the links back from each footnote, in the note's language. */
 export const localizedFootnotes: HastPluginDefinition = {
-  name: 'ml-workout:localized-footnotes',
+  name: 'ml-firestarter:localized-footnotes',
   element: [
     {
       filter: ['h2'],
@@ -112,7 +112,7 @@ export function noteLinks(roots: { notes: string; tests: string }): HastPluginDe
   }
 
   return {
-    name: 'ml-workout:note-links',
+    name: 'ml-firestarter:note-links',
     element: {
       filter: ['a'],
       visit(node, ctx) {
@@ -176,7 +176,7 @@ const ANSWER_MARKS =
  */
 export function quizzes(roots: { tests: string; exams: string }): HastPluginDefinition {
   return {
-    name: 'ml-workout:quizzes',
+    name: 'ml-firestarter:quizzes',
     before(root, ctx) {
       const filePath = ctx.fileURL && fileURLToPath(ctx.fileURL);
       const test = filePath && inside(roots.tests, filePath);

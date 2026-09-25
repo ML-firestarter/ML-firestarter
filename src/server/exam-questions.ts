@@ -30,7 +30,7 @@ export function examQuestions(): AstroIntegration {
   };
 
   return {
-    name: 'ml-workout:exam-questions',
+    name: 'ml-firestarter:exam-questions',
     hooks: {
       'astro:config:setup': async ({ config, command, logger }) => {
         const root = fileURLToPath(config.root);

@@ -11,7 +11,7 @@ import type { PullData } from '../lib/comments.ts';
 import type { User } from './session.ts';
 
 const API = 'https://api.github.com';
-const HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'ml-workout' };
+const HEADERS = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'ml-firestarter' };
 
 export class GitHubError extends Error {
   /** HTTP status GitHub answered with; 401 means the token is no good. */

@@ -28,7 +28,7 @@ jobs:
   open:
     # The vote count, or a maintainer's /accept on an issue sent from the site.
     if: >-
-      github.event_name != 'issue_comment' || (contains(github.event.issue.body, '<!-- ml-workout:comment ') &&
+      github.event_name != 'issue_comment' || (contains(github.event.issue.body, '<!-- ml-firestarter:comment ') &&
       !github.event.issue.pull_request && github.event.issue.state == 'open' &&
       startsWith(github.event.comment.body, '/accept') && github.event.comment.user.type != 'Bot')
     runs-on: ubuntu-latest

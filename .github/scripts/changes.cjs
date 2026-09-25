@@ -10,9 +10,9 @@
 const LANGUAGES = { en: 'English', pl: 'Polish' };
 
 /** Open the hidden markers: of a comment's issue (MARKER in src/lib/comments.ts), of a proposal, and of a pull request with a change (CHANGE_MARKER). */
-const COMMENT = 'ml-workout:comment';
-const PROPOSAL = 'ml-workout:proposal';
-const CHANGE = 'ml-workout:change';
+const COMMENT = 'ml-firestarter:comment';
+const PROPOSAL = 'ml-firestarter:proposal';
+const CHANGE = 'ml-firestarter:change';
 
 /** Who writes the proposals and opens the pull requests. */
 const WORKFLOWS = 'github-actions[bot]';

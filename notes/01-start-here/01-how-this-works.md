@@ -4,7 +4,7 @@ description: How your Markdown files become lessons, and how a push to GitHub up
 
 # How this works
 
-This site is built from the `notes` folder of the ML-workout repository on GitHub. Every time you push a change, Netlify rebuilds the site and publishes the new version, usually within a minute.
+This site is built from the `notes` folder of the ML-firestarter repository on GitHub. Every time you push a change, Netlify rebuilds the site and publishes the new version, usually within a minute.
 
 ## Lessons and chapters
 

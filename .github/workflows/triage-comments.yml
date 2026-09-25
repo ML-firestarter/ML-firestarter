@@ -24,7 +24,7 @@ jobs:
     # Only issues sent from the site, which end with its marker: when they're opened, and when
     # someone asks for a proposal on one that's open.
     if: >-
-      contains(github.event.issue.body, '<!-- ml-workout:comment ') && (github.event_name == 'issues' ||
+      contains(github.event.issue.body, '<!-- ml-firestarter:comment ') && (github.event_name == 'issues' ||
       (!github.event.issue.pull_request && github.event.issue.state == 'open' &&
       startsWith(github.event.comment.body, '/propose') && github.event.comment.user.type != 'Bot'))
     runs-on: ubuntu-latest

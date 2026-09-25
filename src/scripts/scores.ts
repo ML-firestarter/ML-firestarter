@@ -4,7 +4,7 @@
  */
 import { site } from '../site.config.ts';
 
-export const SCORES_KEY = 'ml-workout:tests';
+export const SCORES_KEY = 'ml-firestarter:tests';
 
 /** Shares of right answers, from 0 to 1. */
 interface Score {
