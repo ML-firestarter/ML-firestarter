@@ -8,8 +8,8 @@ import { loadExams, paintExams } from './exams.ts';
 import { SCORES_KEY, paintCounter, paintScores } from './scores.ts';
 
 /** Lessons marked as done, by language-neutral path, so progress carries over between languages. */
-const DONE_KEY = 'ml-workout:done';
-const THEME_KEY = 'ml-workout:theme';
+const DONE_KEY = 'ml-firestarter:done';
+const THEME_KEY = 'ml-firestarter:theme';
 
 function readDone(): Set<string> {
   try {

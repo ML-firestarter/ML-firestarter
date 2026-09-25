@@ -4,7 +4,7 @@ description: Jak pliki Markdown stają się lekcjami i jak wypchnięcie zmian na
 
 # Jak to działa
 
-Ta strona powstaje z folderu `notes` w repozytorium ML-workout na GitHubie. Po każdym wypchnięciu zmian (ang. push) Netlify buduje stronę od nowa i publikuje nową wersję, zwykle w ciągu minuty.
+Ta strona powstaje z folderu `notes` w repozytorium ML-firestarter na GitHubie. Po każdym wypchnięciu zmian (ang. push) Netlify buduje stronę od nowa i publikuje nową wersję, zwykle w ciągu minuty.
 
 ## Lekcje i rozdziały
 

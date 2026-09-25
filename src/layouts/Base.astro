@@ -60,7 +60,7 @@ const signInHint = t.account.signInHint[comments && exams ? 'both' : comments ? 
       (() => {
         let theme;
         try {
-          theme = localStorage.getItem('ml-workout:theme');
+          theme = localStorage.getItem('ml-firestarter:theme');
         } catch {}
         if (theme !== 'light' && theme !== 'dark') {
           theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

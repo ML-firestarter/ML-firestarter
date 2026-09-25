@@ -1,4 +1,4 @@
-# ML-workout
+# ML-firestarter
 
 My machine learning notes, published as a course website in English and Polish.
 
@@ -72,14 +72,14 @@ The site shows signed-in readers the changes that are waiting to be merged, on e
    - **Webhook**: turn off **Active**.
    - **Repository permissions**: **Issues**, read and write. Nothing else: the site reads the pull requests too, which needs no permission while the repository is public. Add **Pull requests**, read-only, if it isn't.
    - **Where can this GitHub App be installed?**: **Any account**, so that everyone can sign in with it.
-2. On the app's page, copy the **Client ID** and generate a **client secret**. Then, under **Install App**, install it on your account for the ML-workout repository only.
+2. On the app's page, copy the **Client ID** and generate a **client secret**. Then, under **Install App**, install it on the ML-firestarter organization for the ML-firestarter repository only.
 3. In Netlify, under **Site configuration → Environment variables**, add these for Functions:
    - `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` from step 2;
    - `SESSION_SECRET`: 32 or more random characters, like the output of `openssl rand -base64 32`. It encrypts the sign-in cookies, and changing it signs everyone out.
 
    Deploy previews have addresses of their own, so signing in works on one only once its callback URL is added to the app.
 4. For Copilot to check the comments, create a fine-grained personal access token (**Settings → Developer settings → Personal access tokens → Fine-grained tokens**) with the **Copilot Requests** permission, and add it to this repository as the `COPILOT_GITHUB_TOKEN` secret (**Settings → Secrets and variables → Actions**). The checks and proposals use your Copilot plan's requests, one for each comment and one more for each proposal. Copilot picks the model from the ones your plan has, unless the `COPILOT_MODEL` repository variable names one, like `claude-haiku-4.5`. Without the token, or once it expires, every comment is kept for review. When Copilot can't answer, the workflow run shows the Copilot CLI's error.
-5. For the changes that get the votes to become pull requests, turn on **Allow GitHub Actions to create and approve pull requests** under **Settings → Actions → General → Workflow permissions**. Until then, the change is still made on its `comment-<issue number>` branch, and the issue gets a link that opens the pull request filled in. To change how many votes a proposal needs, add a `CHANGE_VOTES` repository variable (**Settings → Secrets and variables → Actions → Variables**), like `5`. GitHub turns off the vote count, a scheduled workflow, after 60 days without activity in the repository; turn it back on under **Actions → Open voted changes**.
+5. For the changes that get the votes to become pull requests, turn on **Allow GitHub Actions to create and approve pull requests** under **Settings → Actions → General → Workflow permissions**, first in the organization's settings and then in the repository's, whose checkbox stays greyed out until the organization allows it. Until then, the change is still made on its `comment-<issue number>` branch, and the issue gets a link that opens the pull request filled in. To change how many votes a proposal needs, add a `CHANGE_VOTES` repository variable (**Settings → Secrets and variables → Actions → Variables**), like `5`. GitHub turns off the vote count, a scheduled workflow, after 60 days without activity in the repository; turn it back on under **Actions → Open voted changes**.
 
 To try comments locally, copy `.env.example` to `.env` and fill it in.
 
@@ -94,7 +94,7 @@ Each chapter can end with an exam on all of its lessons. Unlike the tests, which
 
 ### Writing exam questions
 
-The questions aren't in this repository but in the private [ML-workout-exams](https://github.com/fijisoo/ML-workout-exams) one (`exams.repo`), laid out like `tests/`: `vocabulary/sft.md` holds the exam questions on `notes/vocabulary/sft.md`, and `vocabulary/sft.pl.md` is their Polish translation. They're written like tests, except that:
+The questions aren't in this repository but in the private [ML-firestarter-exams](https://github.com/ML-firestarter/ML-firestarter-exams) one (`exams.repo`), laid out like `tests/`: `vocabulary/sft.md` holds the exam questions on `notes/vocabulary/sft.md`, and `vocabulary/sft.pl.md` is their Polish translation. They're written like tests, except that:
 
 - Readers only see the questions and their answers. Anything after a question's answers is left out, so it can hold notes for whoever writes the questions. Footnotes fail the build; put their text in the question instead.
 - The answers are shown in an order of the site's own, the same on every attempt and in every language, so the right ones can go anywhere in the list. As in tests, several `[x]` make checkboxes.
@@ -110,13 +110,13 @@ The exam page holds the questions of every lesson of the chapter, hidden until a
 
 - The right answers are only ever in the private repository: not in the published pages, the site's code, the build logs or Netlify's build cache.
 - An attempt can be handed in only once, and starting it again draws the same questions, so readers can't try answers out or look for easier questions.
-- The results are kept by the site's bot, a GitHub App of its own, in the private [ML-workout-results](https://github.com/fijisoo/ML-workout-results) repository (`exams.results`). Each reader has a file there, `readers/<GitHub id>.json`, with the date, score and version of the questions of each of their attempts, and whether it passed, and the ids of their certificates; their answers aren't kept.
+- The results are kept by the site's bot, a GitHub App of its own, in the private [ML-firestarter-results](https://github.com/ML-firestarter/ML-firestarter-results) repository (`exams.results`). Each reader has a file there, `readers/<GitHub id>.json`, with the date, score and version of the questions of each of their attempts, and whether it passed, and the ids of their certificates; their answers aren't kept.
 
 A few things still show. Checkboxes tell that a question has several right answers, as in tests, and the lessons to read again tell which questions were answered wrong when only one question of a lesson was drawn. All readers share the bot's rate limit, 5,000 requests an hour, and each attempt or certificate takes a few.
 
 ### Certificates
 
-A reader who passed a chapter's exam can get a certificate for it on the exam's page. The site's bot writes it to the public [ML-workout-certificates](https://github.com/fijisoo/ML-workout-certificates) repository (`exams.certificates`) as `certificates/<id>.json`, and the certificate has a page of its own, like `/certificates/3f9a1c0e7b2d4a55/`, in each language. The page reads the certificate straight from the repository and shows who it was issued to, with their GitHub name and picture, the chapter and the lessons its exam asked about, and when and how well they passed.
+A reader who passed a chapter's exam can get a certificate for it on the exam's page. The site's bot writes it to the public [ML-firestarter-certificates](https://github.com/ML-firestarter/ML-firestarter-certificates) repository (`exams.certificates`) as `certificates/<id>.json`, and the certificate has a page of its own, like `/certificates/3f9a1c0e7b2d4a55/`, in each language. The page reads the certificate straight from the repository and shows who it was issued to, with their GitHub name and picture, the chapter and the lessons its exam asked about, and when and how well they passed.
 
 - Certificates are public, so readers get one only when they ask for it, and the exam page says what it will show. Each reader gets one certificate for each exam they pass, however often they ask.
 - The repository vouches for them: the bot writes each certificate there, and GitHub marks its commits as verified, so a certificate's history on GitHub shows that the site's bot issued it. A certificate that isn't in the repository doesn't exist, whatever a copy of its page shows.
@@ -128,14 +128,14 @@ A reader who passed a chapter's exam can get a certificate for it on the exam's 
 
 Exams need signing in, so set up [comments](#setting-up-comments) first (steps 1 to 3). Then:
 
-1. Create three repositories: two private ones, `ML-workout-exams` for the questions and `ML-workout-results`, empty, for the results, and a public one, `ML-workout-certificates`, for the certificates, with a README saying what they are. To name them otherwise, change `exams` in `src/site.config.ts`.
-2. Create the bot, a second GitHub App, under **Settings → Developer settings → GitHub Apps → New GitHub App**:
+1. Use the organization's three repositories: two private ones, `ML-firestarter-exams` for the questions and `ML-firestarter-results`, initially empty, for the results, and the public [ML-firestarter-certificates](https://github.com/ML-firestarter/ML-firestarter-certificates) for the certificates, with a README saying what they are. To name them otherwise, change `exams` in `src/site.config.ts`.
+2. Create the bot, a second GitHub App, in the organization's settings under **Developer settings → GitHub Apps → New GitHub App**:
    - **Homepage URL**: the site's address. It needs no callback URL.
    - **Webhook**: turn off **Active**.
    - **Repository permissions**: **Contents**, read and write. Nothing else.
-   - **Where can this GitHub App be installed?**: **Only on this account**.
+   - **Where can this GitHub App be installed?**: **Only on this account**. That's the organization, since it owns the app; an app created in your own account's settings could only be installed on your account.
 
-   On the app's page, copy the **App ID** and generate a **private key**. Then, under **Install App**, install it on your account for those three repositories only.
+   On the app's page, copy the **App ID** and generate a **private key**. Then, under **Install App**, install it on the organization for those three repositories only.
 3. In Netlify, under **Site configuration → Environment variables**, add these for Builds and Functions, and for the **Production** deploy context only:
    - `EXAM_SECRET`: 32 or more random characters, like the output of `openssl rand -base64 32`. It encrypts the answer keys and the attempts; changing it ends the attempts in progress, and the results stay.
    - `BOT_APP_ID`: the App ID from step 2.
@@ -143,7 +143,7 @@ Exams need signing in, so set up [comments](#setting-up-comments) first (steps 1
 
    Deploy previews run the code of pull requests, which anyone can open, so they mustn't get these settings: with them, that code could read the questions the build downloads, answers and all, or open the answer keys. Without them, deploy previews are built without exams. Mark `EXAM_SECRET` and `BOT_APP_PRIVATE_KEY` as secret values, too, so that Netlify hides them.
 
-The next production build downloads the questions, and its log says how many files it found. `exams/` is left as it is in other builds, including local ones: to try the exams locally, clone the questions repository into it with `git clone https://github.com/fijisoo/ML-workout-exams exams` and add the three settings to `.env`. Builds with `exams/` need `EXAM_SECRET`, and `npm run dev` keeps results in the same results repository as the site.
+The next production build downloads the questions, and its log says how many files it found. `exams/` is left as it is in other builds, including local ones: to try the exams locally, clone the questions repository into it with `git clone https://github.com/ML-firestarter/ML-firestarter-exams exams` and add the three settings to `.env`. Builds with `exams/` need `EXAM_SECRET`, and `npm run dev` keeps results in the same results repository as the site.
 
 ## Running it locally
 

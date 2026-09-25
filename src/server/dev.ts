@@ -17,7 +17,7 @@ const CERTIFICATE = new RegExp(`^(/(?:${LANGS.filter((lang) => lang !== DEFAULT_
 export function devApi(): AstroIntegration {
   let env = '.env';
   return {
-    name: 'ml-workout:dev-api',
+    name: 'ml-firestarter:dev-api',
     hooks: {
       'astro:config:done': ({ config }) => {
         env = fileURLToPath(new URL('.env', config.root));

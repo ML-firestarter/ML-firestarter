@@ -34,9 +34,9 @@ interface Draft {
   suggestion: string;
 }
 
-const DRAFT_KEY = 'ml-workout:comment-draft';
+const DRAFT_KEY = 'ml-firestarter:comment-draft';
 /** Whether comments are highlighted; readers can turn it off to read without them. */
-const SHOWN_KEY = 'ml-workout:comments-shown';
+const SHOWN_KEY = 'ml-firestarter:comments-shown';
 const CACHE_TIME = 60 * 1000;
 const DRAFT_TIME = 60 * 60 * 1000;
 const MARK = 'mark.comment-mark[data-comment]';
