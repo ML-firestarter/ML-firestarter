@@ -7,6 +7,7 @@
  * of their own, so only production builds and the production API may see it.
  */
 import { createHmac } from 'node:crypto';
+import type { Covered } from '../lib/certificates.ts';
 import type { Exam } from '../lib/course.ts';
 import type { Attempt, ExamKey, ExamRecord, KeyQuestion } from '../lib/exams.ts';
 import { site } from '../site.config.ts';
@@ -14,11 +15,13 @@ import { botToken, isConflict, readFile, writeFile, type Bot } from './github.ts
 import { seal, unseal, type User } from './session.ts';
 
 export interface ExamConfig {
-  /** Seals answer keys and attempts, and makes versions and draws nobody can work out. */
+  /** Seals answer keys and attempts, and makes versions, draws and certificate ids nobody can work out. */
   secret: string;
   bot: Bot;
   /** Repository that keeps readers' results, as `owner/name`. */
   results: string;
+  /** Public repository that keeps the certificates, as `owner/name`. */
+  certificates: string;
 }
 
 /** Longest an attempt can take, in ms: once it's over, the attempt has to be started again. */
@@ -35,7 +38,7 @@ export function readExamConfig(env: Record<string, string | undefined> = process
   if (!appId) missing.push('BOT_APP_ID');
   if (!privateKey) missing.push('BOT_APP_PRIVATE_KEY');
   if (missing.length > 0) return missing;
-  return { secret, bot: { appId, privateKey }, results: repoName(site.exams.results) };
+  return { secret, bot: { appId, privateKey }, results: repoName(site.exams.results), certificates: repoName(site.exams.certificates) };
 }
 
 /** EXAM_SECRET, which builds with exam questions need to seal their answer keys into the pages. */
@@ -59,13 +62,14 @@ export function repoName(url: string): string {
 
 /**
  * An exam's answer key, sealed for its page at build time, and the version of its questions,
- * which the page shows as it is: pages in every language get the same one.
+ * which the page shows as it is: pages in every language get the same one. The key also holds
+ * what the exam covers, in every language, for the certificates the API issues from it.
  */
-export async function pageKey(exam: Exam, secret: string): Promise<{ key: string; version: string }> {
+export async function pageKey(exam: Exam, covers: Covered, secret: string): Promise<{ key: string; version: string }> {
   const files = exam.parts.flatMap((part) => part.versions.map((note) => ({ path: note.filePath ?? note.id, text: note.body ?? '' })));
   const version = examVersion(files, secret);
   const questions = exam.parts.flatMap((part) => part.key.map(({ id, right }) => ({ id, lesson: part.lesson.path, right })));
-  return { key: await sealKey({ chapter: exam.chapter.path, version, questions }, secret), version };
+  return { key: await sealKey({ chapter: exam.chapter.path, version, questions, covers }, secret), version };
 }
 
 /**
@@ -177,6 +181,8 @@ export interface Results {
   login: string;
   /** Attempts at each exam, by the chapter's language-neutral URL, oldest first. */
   exams: Record<string, Attempt[]>;
+  /** Ids of the reader's certificates, by the chapter's language-neutral URL; missing until they ask for one. */
+  certificates?: Record<string, string>;
 }
 
 function resultsFile(reader: number): string {
@@ -190,8 +196,15 @@ export async function readResults(config: ExamConfig, reader: User): Promise<{ r
   if (!file) return { results: { id: reader.id, login: reader.login, exams: {} } };
   const results = JSON.parse(file.text) as Partial<Results>;
   const exams = Object.entries(typeof results.exams === 'object' && results.exams !== null ? results.exams : {});
+  const certificates = Object.entries(typeof results.certificates === 'object' && results.certificates !== null ? results.certificates : {});
+  const ids = certificates.filter(([, id]) => typeof id === 'string');
   return {
-    results: { id: reader.id, login: String(results.login ?? reader.login), exams: Object.fromEntries(exams.filter(([, attempts]) => Array.isArray(attempts))) },
+    results: {
+      id: reader.id,
+      login: String(results.login ?? reader.login),
+      exams: Object.fromEntries(exams.filter(([, attempts]) => Array.isArray(attempts))),
+      ...(ids.length > 0 && { certificates: Object.fromEntries(ids) }),
+    },
     sha: file.sha,
   };
 }
@@ -199,16 +212,39 @@ export async function readResults(config: ExamConfig, reader: User): Promise<{ r
 /**
  * Adds a handed-in attempt to the reader's results, as number `number` of that exam. Gives false,
  * and records nothing, when that number is already taken: the attempt was handed in already,
- * from another tab or device. When the file changes while it's being written, it's read again.
+ * from another tab or device.
  */
-export async function recordAttempt(config: ExamConfig, reader: User, chapter: string, number: number, attempt: Attempt): Promise<boolean> {
-  const token = await botToken(config.bot, config.results, 'write');
+export function recordAttempt(config: ExamConfig, reader: User, chapter: string, number: number, attempt: Attempt): Promise<boolean> {
   const message = `${chapter} exam: @${reader.login}, ${Math.round(attempt.score * 100)}%${attempt.passed ? ', passed' : ''}`;
+  return updateResults(config, reader, message, (results) => {
+    const attempts = results.exams[chapter] ?? [];
+    if (attempts.length !== number) return undefined;
+    return { ...results, login: reader.login, exams: { ...results.exams, [chapter]: [...attempts, attempt] } };
+  });
+}
+
+/** Notes the id of the reader's certificate for a chapter in their results, and gives the id they have: theirs already, if they had one. */
+export async function recordCertificate(config: ExamConfig, reader: User, chapter: string, id: string): Promise<string> {
+  let kept = id;
+  await updateResults(config, reader, `${chapter} certificate: @${reader.login}`, (results) => {
+    const had = results.certificates?.[chapter];
+    kept = had ?? id;
+    return had ? undefined : { ...results, certificates: { ...results.certificates, [chapter]: id } };
+  });
+  return kept;
+}
+
+/**
+ * Replaces the reader's results with what `change` makes of them, or leaves them as they are
+ * when it gives undefined; gives whether they changed. When the file changes while it's being
+ * written, it's read and changed again.
+ */
+async function updateResults(config: ExamConfig, reader: User, message: string, change: (results: Results) => Results | undefined): Promise<boolean> {
+  const token = await botToken(config.bot, config.results, 'write');
   for (let tries = 1; ; tries++) {
     const { results, sha } = await readResults(config, reader);
-    const attempts = results.exams[chapter] ?? [];
-    if (attempts.length !== number) return false;
-    const updated: Results = { ...results, login: reader.login, exams: { ...results.exams, [chapter]: [...attempts, attempt] } };
+    const updated = change(results);
+    if (!updated) return false;
     try {
       await writeFile(token, config.results, resultsFile(reader.id), `${JSON.stringify(updated, null, 2)}\n`, message, sha);
       return true;

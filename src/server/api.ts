@@ -1,27 +1,30 @@
 /**
- * The site's API: signing in with GitHub, readers' comments on the notes (lib/comments.ts) and
- * the chapter exams (lib/exams.ts). Runs as a Netlify function (netlify/functions/api.ts) and
- * inside `astro dev` (server/dev.ts).
+ * The site's API: signing in with GitHub, readers' comments on the notes (lib/comments.ts), the
+ * chapter exams (lib/exams.ts) and their certificates (lib/certificates.ts). Runs as a Netlify
+ * function (netlify/functions/api.ts) and inside `astro dev` (server/dev.ts).
  *
  *   GET  /api/auth/login?return=/page/  sends the reader to GitHub to sign in
  *   GET  /api/auth/callback             where GitHub sends them back; signs them in
  *   POST /api/auth/logout               signs the reader out
  *   GET  /api/comments                  comments' changes waiting to be merged, for signed-in readers
  *   POST /api/comments                  posts a comment as an issue, as the reader
- *   GET  /api/exams                     the reader's attempts at the exams
+ *   GET  /api/exams                     the reader's attempts at the exams, and their certificates
  *   POST /api/exams/start               starts an attempt at an exam: draws its questions
  *   POST /api/exams/submit              hands an attempt in: checks it and keeps the result
+ *   POST /api/certificates              issues the reader's certificate for an exam they passed
  *
  * Needs the GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET of the site's GitHub App and a
  * SESSION_SECRET; see "Comments" in the README. The exams also need an EXAM_SECRET and the
  * BOT_APP_ID and BOT_APP_PRIVATE_KEY of the site's bot; see "Exams".
  */
 import { Buffer } from 'node:buffer';
+import type { CertificateResponse } from '../lib/certificates.ts';
 import { CONTEXT, LIMITS, changeFrom, hasComments, issueFor, type NewComment } from '../lib/comments.ts';
 import type { Attempt, ExamError, ExamStatus, StartResponse, SubmitResponse } from '../lib/exams.ts';
 import { isLang } from '../lib/i18n.ts';
 import { NOTES_DIR, noteUrl } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
+import { issueCertificate } from './certificates.ts';
 import {
   ATTEMPT_TIME,
   checkAnswers,
@@ -96,6 +99,7 @@ const routes = new Map<string, Record<string, Handler>>([
   ['/api/exams', { GET: examStatus }],
   ['/api/exams/start', { POST: startExam }],
   ['/api/exams/submit', { POST: submitExam }],
+  ['/api/certificates', { POST: certify }],
 ]);
 // Comments can be turned off in site.config.ts; signing in stays, for the exams.
 if (site.comments.length === 0) routes.delete('/api/comments');
@@ -252,7 +256,10 @@ async function examStatus(context: Context): Promise<Response> {
   if (!reader) return signedOut(context);
 
   const { results } = await readResults(exams, reader.user);
-  const records = Object.entries(results.exams).map(([chapter, attempts]) => [chapter, examRecord(attempts)] as const);
+  const records = Object.entries(results.exams).map(([chapter, attempts]) => {
+    const certificate = results.certificates?.[chapter];
+    return [chapter, { ...examRecord(attempts), ...(certificate && { certificate }) }] as const;
+  });
   return json({ exams: Object.fromEntries(records) } satisfies ExamStatus, 200, reader.cookies);
 }
 
@@ -316,6 +323,33 @@ async function submitExam(context: Context): Promise<Response> {
   const wrong = attempt.questions.filter((question) => !right.includes(question));
   const handedIn: SubmitResponse = { result, review: [...new Set(wrong.map((question) => question.lesson))], next: examRecord([result]).next };
   return json(handedIn, 200, reader.cookies);
+}
+
+/**
+ * Issues the reader's certificate for the exam whose key the page sent, once they've passed it.
+ * The key tells which chapter the exam covers and its lessons, as the site built them, so the
+ * certificate says what it certifies without trusting the page.
+ */
+async function certify(context: Context): Promise<Response> {
+  const exams = examSettings();
+  if (exams instanceof Response) return exams;
+  const body = await readJson(context, MAX_EXAM_BODY);
+  if (body instanceof Response) return body;
+  const sealed = isRecord(body.data) ? text(body.data.key, MAX_EXAM_BODY) : undefined;
+  if (!sealed) return refuse(400, 'invalid', "Send the exam's key from its page.");
+  const reader = await verifiedReader(context);
+  if (!reader) return signedOut(context);
+
+  const key = await openKey(sealed, exams.secret);
+  if (!key?.covers) return refuse(409, 'outdated', 'This page is out of date. Reload it to get your certificate.', reader.cookies);
+  const { results } = await readResults(exams, reader.user);
+  const kept = results.certificates?.[key.chapter];
+  if (kept) return json({ certificate: kept } satisfies CertificateResponse, 200, reader.cookies);
+  const passed = results.exams[key.chapter]?.find((attempt) => attempt.passed);
+  if (!passed) return refuse(409, 'not-passed', "You haven't passed this exam yet.", reader.cookies);
+
+  const id = await issueCertificate(exams, reader.user, key.chapter, key.covers, passed, context.url.origin);
+  return json({ certificate: id } satisfies CertificateResponse, 201, reader.cookies);
 }
 
 /** The exams' settings, or the response saying which are missing. */

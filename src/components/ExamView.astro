@@ -2,12 +2,14 @@
 /**
  * A chapter's exam (scripts/exam.ts). The page holds every exam question on the chapter's
  * lessons, hidden until an attempt draws some of them, without their answers: those are in
- * the exam's answer key, sealed with EXAM_SECRET so that only the API can open it.
+ * the exam's answer key, sealed with EXAM_SECRET so that only the API can open it. Once they
+ * pass, readers can get the exam's certificate here.
  */
 import { render } from 'astro:content';
-import { testGroupId, type Course, type Exam } from '../lib/course.ts';
-import { langAttr, localizeUrl, ui } from '../lib/i18n.ts';
-import { TESTS_PATH } from '../lib/paths.ts';
+import type { Covered, Titles } from '../lib/certificates.ts';
+import { getCourse, testGroupId, type Course, type Exam } from '../lib/course.ts';
+import { LANGS, langAttr, localizeUrl, ui } from '../lib/i18n.ts';
+import { CERTIFICATES_PATH, TESTS_PATH } from '../lib/paths.ts';
 import { ATTEMPT_TIME, examSecret, pageKey } from '../server/exams.ts';
 import { site } from '../site.config.ts';
 import Crumbs from './Crumbs.astro';
@@ -24,7 +26,12 @@ const { lang } = course;
 const { chapter } = exam;
 const t = ui[lang];
 const s = t.exams.script;
-const { key, version } = await pageKey(exam, examSecret());
+// What the exam's certificates say it covers, in every language: the key carries it to the API.
+const courses = await Promise.all(LANGS.map((code) => getCourse(code)));
+const titles = (path: string): Titles =>
+  Object.fromEntries(courses.flatMap((other) => (other.byPath.has(path) ? [[other.lang, other.byPath.get(path)!.title]] : [])));
+const covers: Covered = { title: titles(chapter.path), lessons: exam.parts.map(({ lesson }) => ({ path: lesson.path, title: titles(lesson.path) })) };
+const { key, version } = await pageKey(exam, covers, examSecret());
 const parts = await Promise.all(exam.parts.map(async (part) => ({ lang: part.lang, Content: (await render(part.note)).Content })));
 /** The language of questions that aren't translated yet, if there are any. */
 const untranslated = exam.parts.find((part) => part.lang !== lang)?.lang;
@@ -39,7 +46,7 @@ const lessons = Object.fromEntries(
   exam.parts.map(({ lesson }) => [lesson.path, { url: lesson.url, title: lesson.title, lang: langAttr(lesson.lang, lang) }]),
 );
 // For the script; `<` is escaped so the JSON can't end the script element.
-const strings = JSON.stringify({ lang, ...s, lessons }).replace(/</g, '\\u003c');
+const strings = JSON.stringify({ lang, ...s, lessons, certificates: localizeUrl(CERTIFICATES_PATH, lang) }).replace(/</g, '\\u003c');
 ---
 
 <div class="exam-page" data-exam-page={chapter.path} data-exam-key={key} data-exam-version={version}>
@@ -137,6 +144,21 @@ const strings = JSON.stringify({ lang, ...s, lessons }).replace(/</g, '\\u003c')
       <h2>{s.review}</h2>
       <ul></ul>
     </div>
+  </section>
+
+  <section class="certificate-offer" aria-labelledby="exam-certificate" data-certificate hidden>
+    <h2 id="exam-certificate"><Icon name="award" />{s.certificate.title}</h2>
+    <div data-certificate-offer>
+      <p>{s.certificate.offer}</p>
+      <button class="button primary" type="button" data-certificate-get>
+        <Icon name="award" /><span data-label>{s.certificate.get}</span>
+      </button>
+    </div>
+    <div data-certificate-ready hidden>
+      <p>{s.certificate.ready}</p>
+      <a class="button primary" data-certificate-link><Icon name="right" />{s.certificate.see}</a>
+    </div>
+    <p class="exam-error" role="alert" data-certificate-error hidden></p>
   </section>
 
   <script is:inline type="application/json" data-exam-strings set:html={strings}></script>

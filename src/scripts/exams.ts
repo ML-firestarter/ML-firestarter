@@ -45,6 +45,13 @@ export function keepAttempt(chapter: string, attempt: Attempt, next?: string) {
   writeKept({ ...kept, exams: { ...kept.exams, [chapter]: { attempts, next } } });
 }
 
+/** Adds the certificate the reader just got, so other pages know of it without asking the API again. */
+export function keepCertificate(chapter: string, certificate: string) {
+  const kept = readKept();
+  if (!kept || kept.login !== readReader()?.login) return;
+  writeKept({ ...kept, exams: { ...kept.exams, [chapter]: { ...(kept.exams[chapter] ?? { attempts: [] }), certificate } } });
+}
+
 /** Shows the best score and whether it passed wherever an exam is linked. */
 export function paintExams(exams: Exams) {
   for (const el of document.querySelectorAll<HTMLElement>('[data-exam]')) {

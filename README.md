@@ -2,7 +2,7 @@
 
 My machine learning notes, published as a course website in English and Polish.
 
-Every Markdown file in [`notes/`](notes/) becomes a lesson and every folder becomes a chapter. Lessons can have multiple-choice tests, kept in [`tests/`](tests/), and chapters can have [exams](#exams), which the site grades. Each push to `main` makes Netlify build and publish a new version of the site.
+Every Markdown file in [`notes/`](notes/) becomes a lesson and every folder becomes a chapter. Lessons can have multiple-choice tests, kept in [`tests/`](tests/), and chapters can have [exams](#exams), which the site grades, with a [certificate](#certificates) for readers who pass. Each push to `main` makes Netlify build and publish a new version of the site.
 
 ## Writing lessons
 
@@ -89,7 +89,7 @@ Each chapter can end with an exam on all of its lessons. Unlike the tests, which
 
 - An attempt has 10 questions (`exams.questions` in `src/site.config.ts`), drawn from the chapter's lessons in turn. The reader has 24 hours to hand it in and can leave and come back until then: their answers are kept in the browser.
 - An exam is passed at 80% (`passScore`, as for the tests), and then it's done. After an attempt that doesn't pass, the reader can start another 24 hours later (`exams.wait`).
-- Once an attempt is handed in, the reader sees their score and the lessons to read again.
+- Once an attempt is handed in, the reader sees their score and the lessons to read again. Readers who pass can get the exam's [certificate](#certificates).
 - The **Tests** tab lists each chapter's exam after its tests, and the chapter's page links to it.
 
 ### Writing exam questions
@@ -110,22 +110,32 @@ The exam page holds the questions of every lesson of the chapter, hidden until a
 
 - The right answers are only ever in the private repository: not in the published pages, the site's code, the build logs or Netlify's build cache.
 - An attempt can be handed in only once, and starting it again draws the same questions, so readers can't try answers out or look for easier questions.
-- The results are kept by the site's bot, a GitHub App of its own, in the private [ML-workout-results](https://github.com/fijisoo/ML-workout-results) repository (`exams.results`). Each reader has a file there, `readers/<GitHub id>.json`, with the date, score and version of the questions of each of their attempts, and whether it passed; their answers aren't kept.
+- The results are kept by the site's bot, a GitHub App of its own, in the private [ML-workout-results](https://github.com/fijisoo/ML-workout-results) repository (`exams.results`). Each reader has a file there, `readers/<GitHub id>.json`, with the date, score and version of the questions of each of their attempts, and whether it passed, and the ids of their certificates; their answers aren't kept.
 
-A few things still show. Checkboxes tell that a question has several right answers, as in tests, and the lessons to read again tell which questions were answered wrong when only one question of a lesson was drawn. All readers share the bot's rate limit, 5,000 requests an hour, and each attempt takes a few.
+A few things still show. Checkboxes tell that a question has several right answers, as in tests, and the lessons to read again tell which questions were answered wrong when only one question of a lesson was drawn. All readers share the bot's rate limit, 5,000 requests an hour, and each attempt or certificate takes a few.
+
+### Certificates
+
+A reader who passed a chapter's exam can get a certificate for it on the exam's page. The site's bot writes it to the public [ML-workout-certificates](https://github.com/fijisoo/ML-workout-certificates) repository (`exams.certificates`) as `certificates/<id>.json`, and the certificate has a page of its own, like `/certificates/3f9a1c0e7b2d4a55/`, in each language. The page reads the certificate straight from the repository and shows who it was issued to, with their GitHub name and picture, the chapter and the lessons its exam asked about, and when and how well they passed.
+
+- Certificates are public, so readers get one only when they ask for it, and the exam page says what it will show. Each reader gets one certificate for each exam they pass, however often they ask.
+- The repository vouches for them: the bot writes each certificate there, and GitHub marks its commits as verified, so a certificate's history on GitHub shows that the site's bot issued it. A certificate that isn't in the repository doesn't exist, whatever a copy of its page shows.
+- A certificate names the chapter and its lessons, and its reader, as they were when it was issued, and doesn't change when they do. It holds nothing about the questions or their answers.
+- On the certificate's page, the reader it was issued to gets a badge for the README of their GitHub profile, as Markdown to copy, linked to the page. Each top-level chapter has a badge in each language, like `/certificates/badges/foundations.svg`.
+- To withdraw a certificate, delete its file from the repository. Its reader can't get it back, since their results file still notes it; to let them, delete its entry under `certificates` there too.
 
 ### Setting up exams
 
 Exams need signing in, so set up [comments](#setting-up-comments) first (steps 1 to 3). Then:
 
-1. Create the two private repositories: `ML-workout-exams` for the questions and `ML-workout-results`, empty, for the results. To name them otherwise, change `exams` in `src/site.config.ts`.
+1. Create three repositories: two private ones, `ML-workout-exams` for the questions and `ML-workout-results`, empty, for the results, and a public one, `ML-workout-certificates`, for the certificates, with a README saying what they are. To name them otherwise, change `exams` in `src/site.config.ts`.
 2. Create the bot, a second GitHub App, under **Settings → Developer settings → GitHub Apps → New GitHub App**:
    - **Homepage URL**: the site's address. It needs no callback URL.
    - **Webhook**: turn off **Active**.
    - **Repository permissions**: **Contents**, read and write. Nothing else.
    - **Where can this GitHub App be installed?**: **Only on this account**.
 
-   On the app's page, copy the **App ID** and generate a **private key**. Then, under **Install App**, install it on your account for the two private repositories only.
+   On the app's page, copy the **App ID** and generate a **private key**. Then, under **Install App**, install it on your account for those three repositories only.
 3. In Netlify, under **Site configuration → Environment variables**, add these for Builds and Functions, and for the **Production** deploy context only:
    - `EXAM_SECRET`: 32 or more random characters, like the output of `openssl rand -base64 32`. It encrypts the answer keys and the attempts; changing it ends the attempts in progress, and the results stay.
    - `BOT_APP_ID`: the App ID from step 2.
@@ -146,11 +156,11 @@ npm run build   # production build into dist/
 npm run check   # type-check the site code
 ```
 
-`npm run dev` also serves the API behind signing in, comments and exams, with the settings from `.env` (see [Comments](#comments) and [Exams](#exams)).
+`npm run dev` also serves the API behind signing in, comments, exams and certificates, with the settings from `.env` (see [Comments](#comments) and [Exams](#exams)), and shows certificates' pages as Netlify does.
 
 ## Deployment
 
-Netlify builds the site from this repository. The settings are in [`netlify.toml`](netlify.toml): it runs `npm run build` on Node 24, publishes `dist/`, and serves the Polish "page not found" page for missing addresses under `/pl/`. A push to `main` deploys to production. If a build fails, the previous version stays online, and the Netlify deploy log explains what went wrong.
+Netlify builds the site from this repository. The settings are in [`netlify.toml`](netlify.toml): it runs `npm run build` on Node 24, publishes `dist/`, shows the certificate page at each certificate's address, and serves the Polish "page not found" page for missing addresses under `/pl/`. A push to `main` deploys to production. If a build fails, the previous version stays online, and the Netlify deploy log explains what went wrong.
 
 ## Code
 
@@ -160,10 +170,10 @@ Built with [Astro](https://astro.build). The code is in `src/`:
 - `lib/course.ts` turns the notes into chapters and lessons, one course per language, picks each note's translation, gives each lesson its test and each chapter its exam.
 - `lib/paths.ts` turns file paths into titles and addresses.
 - `lib/markdown.ts` handles math, callouts, footnotes, the leading heading and links between notes, and turns tests and exam questions into question forms.
-- `lib/comments.ts` describes readers' comments, the issues that hold them and the pull requests with the changes they lead to, and `lib/exams.ts` the exams' attempts and results.
-- `pages/` holds the home, chapter, lesson, test, exam and 404 pages and the tests overview, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
-- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them. `scripts/account.ts` shows who's signed in, and `scripts/comments.ts` handles selecting passages, the comment form and the highlighted changes. `scripts/exam.ts` takes an exam, and `scripts/exams.ts` shows the reader's results wherever an exam is linked.
-- `server/api.ts` is the API for signing in with GitHub, for comments and for the exams, with `server/session.ts` keeping readers signed in with encrypted cookies and `server/github.ts` talking to GitHub, as the reader or as the site's bot. Netlify runs it as a function ([`netlify/functions/api.ts`](netlify/functions/api.ts)), and `server/dev.ts` serves it in `npm run dev`. `server/exams.ts` seals the answer keys into the exam pages, draws and grades the attempts and keeps the results, and `server/exam-questions.ts` downloads the exam questions for production builds.
+- `lib/comments.ts` describes readers' comments, the issues that hold them and the pull requests with the changes they lead to, `lib/exams.ts` the exams' attempts and results, and `lib/certificates.ts` the certificates. `lib/badge.ts` draws the certificates' badges.
+- `pages/` holds the home, chapter, lesson, test, exam, certificate and 404 pages, the tests overview and the badges, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
+- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them. `scripts/account.ts` shows who's signed in, and `scripts/comments.ts` handles selecting passages, the comment form and the highlighted changes. `scripts/exam.ts` takes an exam and gets its certificate, `scripts/exams.ts` shows the reader's results wherever an exam is linked, and `scripts/certificate.ts` shows a certificate.
+- `server/api.ts` is the API for signing in with GitHub, for comments and for the exams and their certificates, with `server/session.ts` keeping readers signed in with encrypted cookies and `server/github.ts` talking to GitHub, as the reader or as the site's bot. Netlify runs it as a function ([`netlify/functions/api.ts`](netlify/functions/api.ts)), and `server/dev.ts` serves it in `npm run dev`. `server/exams.ts` seals the answer keys into the exam pages, draws and grades the attempts and keeps the results, `server/certificates.ts` issues the certificates, and `server/exam-questions.ts` downloads the exam questions for production builds.
 - `site.config.ts` holds the site title, the tagline in each language, the GitHub repository, the tests' pass mark, the sections that take comments and the exams' settings.
 
-To add a language, add its code to `LANGS` in `lib/i18n.ts` and run `npm run check`, which lists the text still missing for it. Then add a "page not found" rule for it to `netlify.toml`, like the one for `/pl/`.
+To add a language, add its code to `LANGS` in `lib/i18n.ts` and run `npm run check`, which lists the text still missing for it. Then add a certificate rule and a "page not found" rule for it to `netlify.toml`, like the ones for `/pl/`.

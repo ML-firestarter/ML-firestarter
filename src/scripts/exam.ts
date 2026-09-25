@@ -3,17 +3,21 @@
  * reader's answers are kept in this browser's localStorage until they hand them in, so they
  * can leave and come back. Handing in has the API check the answers and keep the result. The
  * page never knows which answers are right: it gets the score and the lessons to read again.
+ * Once the reader has passed, the page offers the exam's certificate, which the API issues.
  */
+import type { CertificateResponse } from '../lib/certificates.ts';
 import type { ExamError, ExamRecord, StartResponse, SubmitResponse } from '../lib/exams.ts';
 import { plural, type Lang, type ui } from '../lib/i18n.ts';
 import { EXAM_ATTEMPTS_KEY, paintAccount, readReader } from './account.ts';
-import { keepAttempt, loadExams, paintExams } from './exams.ts';
+import { keepAttempt, keepCertificate, loadExams, paintExams } from './exams.ts';
 import { percent } from './scores.ts';
 
 type Strings = (typeof ui)['en']['exams']['script'] & {
   lang: Lang;
   /** The chapter's lessons with exam questions, by language-neutral URL, to link the ones to read again. */
   lessons: Record<string, { url: string; title: string; lang?: Lang }>;
+  /** URL of the certificate page in the page's language; each certificate's page is under it. */
+  certificates: string;
 };
 
 /** An attempt in progress. */
@@ -48,6 +52,9 @@ function setUpExam(page: HTMLElement) {
   const handInButton = form.querySelector<HTMLButtonElement>('[data-exam-hand-in]')!;
   const answered = form.querySelector<HTMLElement>('[data-answered]')!;
   const result = page.querySelector<HTMLElement>('[data-result]')!;
+  const certificate = page.querySelector<HTMLElement>('[data-certificate]')!;
+  const certificateError = certificate.querySelector<HTMLElement>('[data-certificate-error]')!;
+  const getButton = certificate.querySelector<HTMLButtonElement>('[data-certificate-get]')!;
   const sections = new Map([...form.querySelectorAll<HTMLElement>('[data-question]')].map((section) => [section.dataset.question!, section]));
   const dates = new Intl.DateTimeFormat(t.lang, { dateStyle: 'long', timeStyle: 'short' });
   const date = (iso: string) => dates.format(new Date(iso));
@@ -64,6 +71,16 @@ function setUpExam(page: HTMLElement) {
     panel.hidden = false;
     form.hidden = true;
     result.hidden = true;
+    certificate.hidden = true;
+  }
+
+  /** Offers the reader who passed their certificate, or links to it once they have it. */
+  function offerCertificate(id?: string) {
+    certificate.querySelector<HTMLElement>('[data-certificate-offer]')!.hidden = Boolean(id);
+    certificate.querySelector<HTMLElement>('[data-certificate-ready]')!.hidden = !id;
+    if (id) certificate.querySelector<HTMLAnchorElement>('[data-certificate-link]')!.href = `${t.certificates}${id}/`;
+    say(certificateError, '');
+    certificate.hidden = false;
   }
 
   /** Where the reader stands with the exam, as the API says. */
@@ -76,12 +93,13 @@ function setUpExam(page: HTMLElement) {
       return show('error', loaded.error === 'rate-limited' ? t.errors.rateLimited : loaded.error === 'not-configured' ? t.errors.notConfigured : t.errors.generic);
     }
     paintExams(loaded.exams);
-    const { attempts, next }: ExamRecord = loaded.exams[chapter] ?? { attempts: [] };
+    const { attempts, next, certificate: id }: ExamRecord = loaded.exams[chapter] ?? { attempts: [] };
     const passed = attempts.find((attempt) => attempt.passed);
     if (passed || next) forget();
     if (passed) {
       say(panel.querySelector<HTMLElement>('[data-exam-passed]')!, t.passed.replace('{date}', date(passed.at)).replace('{score}', percent(passed.score)));
-      return show('passed', message);
+      show('passed', message);
+      return offerCertificate(id);
     }
     if (next) {
       say(panel.querySelector<HTMLElement>('[data-exam-waiting]')!, t.waiting.replace('{date}', date(next)));
@@ -152,6 +170,7 @@ function setUpExam(page: HTMLElement) {
     paintAnswered();
     panel.hidden = true;
     result.hidden = true;
+    certificate.hidden = true;
     form.hidden = false;
   }
 
@@ -210,14 +229,37 @@ function setUpExam(page: HTMLElement) {
     panel.hidden = true;
     form.hidden = true;
     result.hidden = false;
+    if (attempt.passed) offerCertificate();
     result.focus();
   }
 
-  /** What the page does when the API won't start or take an attempt. */
-  async function refused(response: Response, during: 'start' | 'hand-in') {
+  async function getCertificate() {
+    if (busy) return;
+    busy = true;
+    getButton.disabled = true;
+    label(getButton, t.certificate.getting);
+    say(certificateError, '');
+    try {
+      const response = await post('/api/certificates', { key });
+      if (!response.ok) return await refused(response, 'certificate');
+      const issued: CertificateResponse = await response.json();
+      keepCertificate(chapter, issued.certificate);
+      offerCertificate(issued.certificate);
+    } catch {
+      say(certificateError, t.errors.generic);
+    } finally {
+      busy = false;
+      getButton.disabled = false;
+      label(getButton, t.certificate.get);
+    }
+  }
+
+  /** What the page does when the API won't start or take an attempt, or issue the certificate. */
+  async function refused(response: Response, during: 'start' | 'hand-in' | 'certificate') {
     const data: Partial<ExamError> = await response.json().catch(() => ({}));
     const error = data.error ?? (response.status === 429 ? 'rate-limited' : 'server');
-    const problem = (message: string) => (during === 'start' ? show('ready', message) : say(formError, message));
+    const problem = (message: string) =>
+      during === 'start' ? show('ready', message) : say(during === 'hand-in' ? formError : certificateError, message);
     switch (error) {
       case 'signed-out':
         // The answers stay, for when the reader signs in again.
@@ -230,10 +272,11 @@ function setUpExam(page: HTMLElement) {
         return refresh(t.errors.handedIn);
       case 'waiting':
       case 'passed':
+      case 'not-passed':
         forget();
         return refresh();
       case 'outdated':
-        return show('error', t.errors.outdated);
+        return show('error', during === 'certificate' ? t.certificate.outdated : t.errors.outdated);
       case 'not-configured':
         return show('error', t.errors.notConfigured);
       case 'rate-limited':
@@ -286,6 +329,7 @@ function setUpExam(page: HTMLElement) {
     handIn();
   });
   startButton.addEventListener('click', start);
+  getButton.addEventListener('click', getCertificate);
   panel.querySelector('[data-exam-reload]')!.addEventListener('click', () => location.reload());
   result.querySelector('[data-exam-again]')!.addEventListener('click', () => refresh());
   // The back button can bring back the page as it was left, before signing in or handing in in another tab.

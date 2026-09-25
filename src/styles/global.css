@@ -713,6 +713,7 @@ main {
 .tests-page,
 .test-page,
 .exam-page,
+.certificate-page,
 .not-found {
   margin-inline: auto;
 }
@@ -722,6 +723,7 @@ main {
 .tests-page,
 .test-page,
 .exam-page,
+.certificate-page,
 .not-found {
   max-width: 46rem;
 }
@@ -1935,6 +1937,257 @@ main {
   }
 }
 
+/* ---------- Certificates ---------- */
+
+/* On the exam page, once the reader has passed. */
+.certificate-offer {
+  display: grid;
+  justify-items: start;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+  padding: 1.2rem 1.35rem 1.35rem;
+  border: 1px solid color-mix(in srgb, var(--done) 40%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--done) 7%, var(--surface));
+}
+
+.certificate-offer h2,
+.certificate-share h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+.certificate-offer h2 .icon {
+  color: var(--done);
+}
+
+.certificate-offer [data-certificate-offer],
+.certificate-offer [data-certificate-ready] {
+  display: grid;
+  justify-items: start;
+  gap: 0.85rem;
+}
+
+.certificate-offer p,
+.certificate-share p {
+  margin: 0;
+}
+
+.certificate-loading {
+  color: var(--muted);
+}
+
+/* The certificate itself, framed like a paper one. */
+.certificate {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  margin-top: 1.75rem;
+  padding: 2.5rem 2rem 1.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow:
+    inset 0 0 0 6px var(--surface),
+    inset 0 0 0 7px var(--border);
+  text-align: center;
+}
+
+.certificate-seal {
+  position: absolute;
+  top: -1.4rem;
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 50%;
+  background: var(--done);
+  color: var(--on-done);
+}
+
+.certificate-seal .icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.certificate-avatar {
+  width: 88px;
+  height: 88px;
+  margin-top: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+}
+
+.certificate-name {
+  margin: 0.8rem 0 0;
+  font-size: clamp(1.7rem, 4vw, 2.3rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.certificate-login {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+}
+
+.certificate-login a,
+.certificate-chapter a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.certificate-login a {
+  color: var(--muted);
+}
+
+.certificate-login a:hover,
+.certificate-chapter a[href]:hover {
+  color: var(--link);
+  text-decoration: underline;
+}
+
+.certificate-statement {
+  margin: 1.4rem 0 0;
+  color: var(--muted);
+}
+
+.certificate-chapter {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.4rem, 3.4vw, 1.9rem);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.certificate-passed {
+  margin: 0.9rem 0 0;
+  font-weight: 600;
+}
+
+.certificate-lessons,
+.certificate-footer {
+  width: 100%;
+  margin-top: 1.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.certificate-lessons {
+  font-size: 0.92rem;
+}
+
+.certificate-lessons p,
+.certificate-footer p {
+  margin: 0;
+}
+
+.certificate-lessons ul {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem 0.5rem;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.certificate-lessons a {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.certificate-lessons a[href]:hover {
+  border-color: var(--accent);
+}
+
+.certificate-footer {
+  font-size: 0.82rem;
+}
+
+.certificate-footer p + p {
+  margin-top: 0.35rem;
+}
+
+.certificate-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.2rem 1rem;
+}
+
+.certificate-footer a {
+  color: inherit;
+}
+
+.certificate-footer a:hover {
+  color: var(--link);
+}
+
+/* For the reader it was issued to: the badge for their GitHub profile. */
+.certificate-share {
+  display: grid;
+  justify-items: start;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1.2rem 1.35rem 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.certificate-badge {
+  height: 20px;
+}
+
+.certificate-snippet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.certificate-snippet pre {
+  flex: 1 1 18rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font: 0.82rem/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.certificate-help {
+  font-size: 0.88rem;
+}
+
+@media (max-width: 639px) {
+  .certificate {
+    padding: 2.4rem 1.1rem 1.4rem;
+  }
+
+  .certificate-offer,
+  .certificate-share {
+    padding: 1rem 1rem 1.1rem;
+  }
+}
+
 /* ---------- 404 ---------- */
 
 .not-found {
@@ -2319,6 +2572,8 @@ main {
   .quiz-result,
   .exam-status,
   .exam-error,
+  .certificate-offer,
+  .certificate-share,
   .comments-chip,
   .comment-float,
   .comment-card,

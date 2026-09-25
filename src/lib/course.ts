@@ -11,6 +11,7 @@ import { site } from '../site.config.ts';
 import { DEFAULT_LANG, LANGS, localizeUrl, type Lang } from './i18n.ts';
 import type { Quiz } from './markdown.ts';
 import {
+  CERTIFICATES_PATH,
   EXAMS_DIR,
   EXAMS_PATH,
   NOTES_DIR,
@@ -463,6 +464,9 @@ function claimPath(byPath: Map<string, Node>, node: Chapter | Lesson) {
   }
   if (node.path.startsWith(EXAMS_PATH)) {
     throw new Error(`"${describe(node)}" would be published at ${node.path}, where the chapter exams live. Rename it.`);
+  }
+  if (node.path.startsWith(CERTIFICATES_PATH)) {
+    throw new Error(`"${describe(node)}" would be published at ${node.path}, where the exams' certificates live. Rename it.`);
   }
   const taken = byPath.get(node.path);
   if (taken) {
