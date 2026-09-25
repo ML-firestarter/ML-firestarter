@@ -79,7 +79,7 @@ The site shows signed-in readers the changes that are waiting to be merged, on e
 
    Deploy previews have addresses of their own, so signing in works on one only once its callback URL is added to the app.
 4. For Copilot to check the comments, create a fine-grained personal access token (**Settings → Developer settings → Personal access tokens → Fine-grained tokens**) with the **Copilot Requests** permission, and add it to this repository as the `COPILOT_GITHUB_TOKEN` secret (**Settings → Secrets and variables → Actions**). The checks and proposals use your Copilot plan's requests, one for each comment and one more for each proposal. Copilot picks the model from the ones your plan has, unless the `COPILOT_MODEL` repository variable names one, like `claude-haiku-4.5`. Without the token, or once it expires, every comment is kept for review. When Copilot can't answer, the workflow run shows the Copilot CLI's error.
-5. For the changes that get the votes to become pull requests, turn on **Allow GitHub Actions to create and approve pull requests** under **Settings → Actions → General → Workflow permissions**. Until then, the change is still made on its `comment-<issue number>` branch, and the issue gets a link that opens the pull request filled in. To change how many votes a proposal needs, add a `CHANGE_VOTES` repository variable (**Settings → Secrets and variables → Actions → Variables**), like `5`. GitHub turns off the vote count, a scheduled workflow, after 60 days without activity in the repository; turn it back on under **Actions → Open voted changes**.
+5. For the changes that get the votes to become pull requests, turn on **Allow GitHub Actions to create and approve pull requests** under **Settings → Actions → General → Workflow permissions**, first in the organization's settings and then in the repository's, whose checkbox stays greyed out until the organization allows it. Until then, the change is still made on its `comment-<issue number>` branch, and the issue gets a link that opens the pull request filled in. To change how many votes a proposal needs, add a `CHANGE_VOTES` repository variable (**Settings → Secrets and variables → Actions → Variables**), like `5`. GitHub turns off the vote count, a scheduled workflow, after 60 days without activity in the repository; turn it back on under **Actions → Open voted changes**.
 
 To try comments locally, copy `.env.example` to `.env` and fill it in.
 
@@ -119,13 +119,13 @@ A few things still show. Checkboxes tell that a question has several right answe
 Exams need signing in, so set up [comments](#setting-up-comments) first (steps 1 to 3). Then:
 
 1. Use the organization's private repositories: `ML-firestarter-exams` for the questions and `ML-firestarter-results`, initially empty, for the results. The public [ML-firestarter-certificates](https://github.com/ML-firestarter/ML-firestarter-certificates) repository is reserved for issued certificates. To change the exam repository names, update `exams` in `src/site.config.ts`.
-2. Create the bot, a second GitHub App, under **Settings → Developer settings → GitHub Apps → New GitHub App**:
+2. Create the bot, a second GitHub App, in the organization's settings under **Developer settings → GitHub Apps → New GitHub App**:
    - **Homepage URL**: the site's address. It needs no callback URL.
    - **Webhook**: turn off **Active**.
    - **Repository permissions**: **Contents**, read and write. Nothing else.
-   - **Where can this GitHub App be installed?**: **Only on this account**.
+   - **Where can this GitHub App be installed?**: **Only on this account**. That's the organization, since it owns the app; an app created in your own account's settings could only be installed on your account.
 
-   On the app's page, copy the **App ID** and generate a **private key**. Then, under **Install App**, install it on your account for the two private repositories only.
+   On the app's page, copy the **App ID** and generate a **private key**. Then, under **Install App**, install it on the organization for the two private repositories only.
 3. In Netlify, under **Site configuration → Environment variables**, add these for Builds and Functions, and for the **Production** deploy context only:
    - `EXAM_SECRET`: 32 or more random characters, like the output of `openssl rand -base64 32`. It encrypts the answer keys and the attempts; changing it ends the attempts in progress, and the results stay.
    - `BOT_APP_ID`: the App ID from step 2.
