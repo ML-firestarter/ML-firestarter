@@ -4,7 +4,7 @@ description: Further training of an already trained model on a smaller, focused 
 
 # Fine-tuning
 
-Training a large model from scratch takes enormous amounts of data and compute. Fine-tuning reuses what a trained model already knows and adjusts it with a little more training on a much smaller dataset, usually with a lower learning rate.
+Training a large model from scratch takes enormous amounts of data and compute. Fine-tuning (FT) reuses what a trained model already knows and adjusts it with a little more training on a much smaller dataset, usually with a lower learning rate.
 
 It's how a general model is adapted to a task, a domain or a style. [SFT](sft.md) is fine-tuning on examples of good responses, while [RLHF](rlhf.md) and [DPO](dpo.md) fine-tune on preferences instead.
 

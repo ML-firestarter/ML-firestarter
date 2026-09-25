@@ -4,7 +4,7 @@ description: Dalsze trenowanie już wytrenowanego modelu na mniejszym, ukierunko
 
 # Dostrajanie
 
-Trenowanie dużego modelu od zera wymaga ogromnych ilości danych i mocy obliczeniowej. Dostrajanie (ang. fine-tuning) wykorzystuje to, co wytrenowany model już wie, i koryguje go odrobiną dodatkowego treningu na znacznie mniejszym zbiorze danych, zwykle z mniejszym współczynnikiem uczenia.
+Trenowanie dużego modelu od zera wymaga ogromnych ilości danych i mocy obliczeniowej. Dostrajanie (ang. fine-tuning, FT) wykorzystuje to, co wytrenowany model już wie, i koryguje go odrobiną dodatkowego treningu na znacznie mniejszym zbiorze danych, zwykle z mniejszym współczynnikiem uczenia.
 
 W ten sposób dopasowuje się ogólny model do zadania, dziedziny albo stylu. [SFT](sft.pl.md) to dostrajanie na przykładach dobrych odpowiedzi, a [RLHF](rlhf.pl.md) i [DPO](dpo.pl.md) dostrajają model na podstawie preferencji.
 
