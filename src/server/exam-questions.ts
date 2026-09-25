@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
 import { EXAMS_DIR } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
+import { certificateKey } from './certificates.ts';
 import { readExamConfig, repoName } from './exams.ts';
 import { botToken, listFiles, readBlob, type Bot } from './github.ts';
 
@@ -36,6 +37,8 @@ export function examQuestions(): AstroIntegration {
         const root = fileURLToPath(config.root);
         // Variables already set, as on Netlify, win over the file.
         if (existsSync(path.join(root, '.env'))) process.loadEnvFile(path.join(root, '.env'));
+        // A CERTIFICATE_KEY that isn't one stops the build here, before the pages that publish its public half.
+        certificateKey();
         if (command !== 'build' || process.env.NETLIFY !== 'true') return;
 
         const dir = path.join(root, EXAMS_DIR);
@@ -58,6 +61,7 @@ export function examQuestions(): AstroIntegration {
         const repo = repoName(site.exams.repo);
         const count = await download(exams.bot, repo, dir);
         logger.info(`Downloaded ${count} files of exam questions from ${repo}.`);
+        if (!exams.certificateKey) logger.warn("Building the exams without certificates: CERTIFICATE_KEY isn't set for this deploy.");
       },
       'astro:build:done': cleanUp,
     },

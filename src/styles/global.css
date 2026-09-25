@@ -1966,8 +1966,8 @@ main {
   color: var(--done);
 }
 
-.certificate-offer [data-certificate-offer],
-.certificate-offer [data-certificate-ready] {
+.certificate-offer [data-certificate-unpublished],
+.certificate-offer [data-certificate-published] {
   display: grid;
   justify-items: start;
   gap: 0.85rem;
@@ -1976,6 +1976,11 @@ main {
 .certificate-offer p,
 .certificate-share p {
   margin: 0;
+}
+
+.certificate-note {
+  color: var(--muted);
+  font-size: 0.88rem;
 }
 
 .certificate-loading {
@@ -2119,6 +2124,11 @@ main {
 
 .certificate-footer p + p {
   margin-top: 0.35rem;
+}
+
+.certificate-signature.is-valid {
+  color: var(--done);
+  font-weight: 600;
 }
 
 .certificate-links {

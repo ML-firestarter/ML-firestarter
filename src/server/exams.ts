@@ -6,11 +6,12 @@
  * Everything here rests on EXAM_SECRET. Whoever has it can open the answer keys and seal keys
  * of their own, so only production builds and the production API may see it.
  */
-import { createHmac } from 'node:crypto';
+import { createHmac, type KeyObject } from 'node:crypto';
 import type { Covered } from '../lib/certificates.ts';
 import type { Exam } from '../lib/course.ts';
 import type { Attempt, ExamKey, ExamRecord, KeyQuestion } from '../lib/exams.ts';
 import { site } from '../site.config.ts';
+import { certificateKey } from './certificates.ts';
 import { botToken, isConflict, readFile, writeFile, type Bot } from './github.ts';
 import { seal, unseal, type User } from './session.ts';
 
@@ -20,8 +21,10 @@ export interface ExamConfig {
   bot: Bot;
   /** Repository that keeps readers' results, as `owner/name`. */
   results: string;
-  /** Public repository that keeps the certificates, as `owner/name`. */
+  /** Public repository that keeps the certificates readers publish, as `owner/name`. */
   certificates: string;
+  /** Signs the certificates (server/certificates.ts); without it, the exams give none. */
+  certificateKey?: KeyObject;
 }
 
 /** Longest an attempt can take, in ms: once it's over, the attempt has to be started again. */
@@ -37,8 +40,20 @@ export function readExamConfig(env: Record<string, string | undefined> = process
   if (secret.length < 32) missing.push('EXAM_SECRET (32 characters or more)');
   if (!appId) missing.push('BOT_APP_ID');
   if (!privateKey) missing.push('BOT_APP_PRIVATE_KEY');
+  let signing: KeyObject | undefined;
+  try {
+    signing = certificateKey(env);
+  } catch {
+    missing.push('CERTIFICATE_KEY to be an Ed25519 private key in PEM, or empty');
+  }
   if (missing.length > 0) return missing;
-  return { secret, bot: { appId, privateKey }, results: repoName(site.exams.results), certificates: repoName(site.exams.certificates) };
+  return {
+    secret,
+    bot: { appId, privateKey },
+    results: repoName(site.exams.results),
+    certificates: repoName(site.exams.certificates),
+    ...(signing && { certificateKey: signing }),
+  };
 }
 
 /** EXAM_SECRET, which builds with exam questions need to seal their answer keys into the pages. */
@@ -108,6 +123,8 @@ export interface OpenAttempt {
   questions: KeyQuestion[];
   /** When it started, in ms since 1970. */
   at: number;
+  /** What the exam covers, from its key, for the certificate a pass earns; attempts started before certificates don't have it. */
+  covers?: Covered;
 }
 
 export function sealAttempt(attempt: OpenAttempt, secret: string): Promise<string> {
@@ -181,8 +198,17 @@ export interface Results {
   login: string;
   /** Attempts at each exam, by the chapter's language-neutral URL, oldest first. */
   exams: Record<string, Attempt[]>;
-  /** Ids of the reader's certificates, by the chapter's language-neutral URL; missing until they ask for one. */
-  certificates?: Record<string, string>;
+  /** The reader's certificates, by the chapter's language-neutral URL; missing until they have one. */
+  certificates?: Record<string, KeptCertificate>;
+}
+
+/** A reader's certificate for an exam, as their results keep it. */
+export interface KeptCertificate {
+  id: string;
+  /** The certificate, as the site signed it (server/certificates.ts). */
+  jws: string;
+  /** Whether it's in the public certificates repository, which is up to the reader. */
+  published: boolean;
 }
 
 function resultsFile(reader: number): string {
@@ -195,43 +221,65 @@ export async function readResults(config: ExamConfig, reader: User): Promise<{ r
   const file = await readFile(token, config.results, resultsFile(reader.id));
   if (!file) return { results: { id: reader.id, login: reader.login, exams: {} } };
   const results = JSON.parse(file.text) as Partial<Results>;
-  const exams = Object.entries(typeof results.exams === 'object' && results.exams !== null ? results.exams : {});
-  const certificates = Object.entries(typeof results.certificates === 'object' && results.certificates !== null ? results.certificates : {});
-  const ids = certificates.filter(([, id]) => typeof id === 'string');
+  const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+  const exams = Object.entries(isRecord(results.exams) ? results.exams : {});
+  const certificates = Object.entries(isRecord(results.certificates) ? results.certificates : {}).filter(
+    ([, kept]) => isRecord(kept) && typeof kept.id === 'string' && typeof kept.jws === 'string' && typeof kept.published === 'boolean',
+  );
   return {
     results: {
       id: reader.id,
       login: String(results.login ?? reader.login),
-      exams: Object.fromEntries(exams.filter(([, attempts]) => Array.isArray(attempts))),
-      ...(ids.length > 0 && { certificates: Object.fromEntries(ids) }),
+      exams: Object.fromEntries(exams.filter(([, attempts]) => Array.isArray(attempts))) as Results['exams'],
+      ...(certificates.length > 0 && { certificates: Object.fromEntries(certificates) as Results['certificates'] }),
     },
     sha: file.sha,
   };
 }
 
 /**
- * Adds a handed-in attempt to the reader's results, as number `number` of that exam. Gives false,
- * and records nothing, when that number is already taken: the attempt was handed in already,
- * from another tab or device.
+ * Adds a handed-in attempt to the reader's results, as number `number` of that exam, with the
+ * certificate it earned if it passed. Gives false, and records nothing, when that number is
+ * already taken: the attempt was handed in already, from another tab or device.
  */
-export function recordAttempt(config: ExamConfig, reader: User, chapter: string, number: number, attempt: Attempt): Promise<boolean> {
+export function recordAttempt(
+  config: ExamConfig,
+  reader: User,
+  chapter: string,
+  number: number,
+  attempt: Attempt,
+  certificate?: KeptCertificate,
+): Promise<boolean> {
   const message = `${chapter} exam: @${reader.login}, ${Math.round(attempt.score * 100)}%${attempt.passed ? ', passed' : ''}`;
   return updateResults(config, reader, message, (results) => {
     const attempts = results.exams[chapter] ?? [];
     if (attempts.length !== number) return undefined;
-    return { ...results, login: reader.login, exams: { ...results.exams, [chapter]: [...attempts, attempt] } };
+    const earned = certificate && !results.certificates?.[chapter] && { certificates: { ...results.certificates, [chapter]: certificate } };
+    return { ...results, login: reader.login, exams: { ...results.exams, [chapter]: [...attempts, attempt] }, ...earned };
   });
 }
 
-/** Notes the id of the reader's certificate for a chapter in their results, and gives the id they have: theirs already, if they had one. */
-export async function recordCertificate(config: ExamConfig, reader: User, chapter: string, id: string): Promise<string> {
-  let kept = id;
-  await updateResults(config, reader, `${chapter} certificate: @${reader.login}`, (results) => {
+/**
+ * Keeps what `change` makes of the reader's certificate for a chapter, which they may not have
+ * yet, in their results, and gives the certificate as it's kept then. `action` says what
+ * happened to it, for the commit.
+ */
+export async function setCertificate(
+  config: ExamConfig,
+  reader: User,
+  chapter: string,
+  action: 'issued' | 'published' | 'unpublished',
+  change: (had: KeptCertificate | undefined) => KeptCertificate,
+): Promise<KeptCertificate> {
+  let kept: KeptCertificate | undefined;
+  await updateResults(config, reader, `${chapter} certificate: @${reader.login}, ${action}`, (results) => {
     const had = results.certificates?.[chapter];
-    kept = had ?? id;
-    return had ? undefined : { ...results, certificates: { ...results.certificates, [chapter]: id } };
+    const now = change(had);
+    kept = now;
+    if (had && had.id === now.id && had.jws === now.jws && had.published === now.published) return undefined;
+    return { ...results, certificates: { ...results.certificates, [chapter]: now } };
   });
-  return kept;
+  return kept!;
 }
 
 /**

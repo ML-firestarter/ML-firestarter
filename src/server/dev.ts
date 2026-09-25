@@ -11,8 +11,12 @@ import type { AstroIntegration } from 'astro';
 import { DEFAULT_LANG, LANGS } from '../lib/i18n.ts';
 import { CERTIFICATES_PATH } from '../lib/paths.ts';
 
-/** A certificate's address in any language, like `/certificates/3f9a1c0e7b2d4a55/` or `/pl/certificates/3f9a1c0e7b2d4a55/`. */
-const CERTIFICATE = new RegExp(`^(/(?:${LANGS.filter((lang) => lang !== DEFAULT_LANG).join('|')}))?${CERTIFICATES_PATH}[^/?#]+/?(?:\\?.*)?$`);
+/**
+ * A certificate's address in any language, like `/certificates/3f9a1c0e7b2d4a55/` or
+ * `/pl/certificates/3f9a1c0e7b2d4a55/`. Names with a dot are files, like the public keys, which
+ * are served as they are, as on Netlify.
+ */
+const CERTIFICATE = new RegExp(`^(/(?:${LANGS.filter((lang) => lang !== DEFAULT_LANG).join('|')}))?${CERTIFICATES_PATH}[^/?#.]+/?(?:\\?.*)?$`);
 
 export function devApi(): AstroIntegration {
   let env = '.env';

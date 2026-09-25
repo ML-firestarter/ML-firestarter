@@ -178,6 +178,11 @@ export async function writeFile(token: string, repo: string, path: string, text:
   await api(token, `/repos/${repo}/contents/${encodePath(path)}`, { method: 'PUT', body: JSON.stringify(body) }, true);
 }
 
+/** Deletes a file from a repository's default branch; `sha` is the blob it deletes. */
+export async function deleteFile(token: string, repo: string, path: string, message: string, sha: string): Promise<void> {
+  await api(token, `/repos/${repo}/contents/${encodePath(path)}`, { method: 'DELETE', body: JSON.stringify({ message, sha }) }, true);
+}
+
 /** Whether a write failed because the file changed in the meantime, so it's worth reading it again. */
 export function isConflict(error: unknown): boolean {
   return error instanceof GitHubError && (error.status === 409 || error.status === 422);

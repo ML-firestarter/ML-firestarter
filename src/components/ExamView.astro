@@ -2,14 +2,15 @@
 /**
  * A chapter's exam (scripts/exam.ts). The page holds every exam question on the chapter's
  * lessons, hidden until an attempt draws some of them, without their answers: those are in
- * the exam's answer key, sealed with EXAM_SECRET so that only the API can open it. Once they
- * pass, readers can get the exam's certificate here.
+ * the exam's answer key, sealed with EXAM_SECRET so that only the API can open it. Readers who
+ * pass can publish their certificate here, and unpublish it, when the site signs certificates.
  */
 import { render } from 'astro:content';
 import type { Covered, Titles } from '../lib/certificates.ts';
 import { getCourse, testGroupId, type Course, type Exam } from '../lib/course.ts';
 import { LANGS, langAttr, localizeUrl, ui } from '../lib/i18n.ts';
 import { CERTIFICATES_PATH, TESTS_PATH } from '../lib/paths.ts';
+import { publicKeys } from '../server/certificates.ts';
 import { ATTEMPT_TIME, examSecret, pageKey } from '../server/exams.ts';
 import { site } from '../site.config.ts';
 import Crumbs from './Crumbs.astro';
@@ -47,6 +48,8 @@ const lessons = Object.fromEntries(
 );
 // For the script; `<` is escaped so the JSON can't end the script element.
 const strings = JSON.stringify({ lang, ...s, lessons, certificates: localizeUrl(CERTIFICATES_PATH, lang) }).replace(/</g, '\\u003c');
+/** Whether the site signs certificates: builds without CERTIFICATE_KEY offer none. */
+const signs = publicKeys().length > 0;
 ---
 
 <div class="exam-page" data-exam-page={chapter.path} data-exam-key={key} data-exam-version={version}>
@@ -146,20 +149,38 @@ const strings = JSON.stringify({ lang, ...s, lessons, certificates: localizeUrl(
     </div>
   </section>
 
-  <section class="certificate-offer" aria-labelledby="exam-certificate" data-certificate hidden>
-    <h2 id="exam-certificate"><Icon name="award" />{s.certificate.title}</h2>
-    <div data-certificate-offer>
-      <p>{s.certificate.offer}</p>
-      <button class="button primary" type="button" data-certificate-get>
-        <Icon name="award" /><span data-label>{s.certificate.get}</span>
-      </button>
-    </div>
-    <div data-certificate-ready hidden>
-      <p>{s.certificate.ready}</p>
-      <a class="button primary" data-certificate-link><Icon name="right" />{s.certificate.see}</a>
-    </div>
-    <p class="exam-error" role="alert" data-certificate-error hidden></p>
-  </section>
+  {
+    signs && (
+      <section class="certificate-offer" aria-labelledby="exam-certificate" data-certificate hidden>
+        <h2 id="exam-certificate">
+          <Icon name="award" />
+          {s.certificate.title}
+        </h2>
+        <div data-certificate-unpublished>
+          <p>{s.certificate.offer}</p>
+          <button class="button primary" type="button" data-certificate-publish>
+            <Icon name="award" />
+            <span data-label>{s.certificate.publish}</span>
+          </button>
+        </div>
+        <div data-certificate-published hidden>
+          <p>{s.certificate.ready}</p>
+          <div class="actions">
+            <a class="button primary" data-certificate-link>
+              <Icon name="right" />
+              {s.certificate.see}
+            </a>
+            <button class="button" type="button" data-certificate-unpublish>
+              <span data-label>{s.certificate.unpublish}</span>
+            </button>
+          </div>
+          <p class="certificate-note">{s.certificate.history}</p>
+        </div>
+        <p class="certificate-note" role="status" data-certificate-message hidden />
+        <p class="exam-error" role="alert" data-certificate-error hidden />
+      </section>
+    )
+  }
 
   <script is:inline type="application/json" data-exam-strings set:html={strings}></script>
 </div>

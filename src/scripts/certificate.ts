@@ -1,12 +1,13 @@
 /**
  * The certificate page (CertificateView.astro). Every certificate's address serves this page
  * (netlify.toml), which takes the certificate's id from the address, reads the certificate from
- * the public certificates repository and shows it. The reader it was issued to also gets the
- * badge to add to their GitHub profile.
+ * the public certificates repository, checks the site's signature on it with the public keys the
+ * page holds, and shows it. The reader it was issued to also gets the badge to add to their
+ * GitHub profile and a link that adds the certificate to their LinkedIn profile.
  */
-import { certificateFile, isCertificateId, type Certificate, type Titles } from '../lib/certificates.ts';
+import { certificateFile, isCertificateId, readJws, type Certificate, type CertificateKey, type Titles } from '../lib/certificates.ts';
 import { DEFAULT_LANG, isLang, localizeUrl, type Lang, type ui } from '../lib/i18n.ts';
-import { CERTIFICATES_PATH, badgeUrl, certificateUrl } from '../lib/paths.ts';
+import { CERTIFICATES_PATH, badgeUrl, certificateUrl, examUrl } from '../lib/paths.ts';
 import { readReader } from './account.ts';
 import { percent } from './scores.ts';
 
@@ -16,13 +17,20 @@ type Strings = (typeof ui)['en']['certificates']['script'] & {
   site: string;
   /** The certificates repository, as `owner/name`. */
   repo: string;
-  /** Language-neutral URLs of the site's pages, to link the chapter and lessons a certificate names while they exist. */
+  /** Language-neutral URLs of the site's pages, to link the chapter, lessons and exam a certificate names while they exist. */
   pages: string[];
+  /** The public keys the site signs certificates with; none when it was built without CERTIFICATE_KEY. */
+  keys: CertificateKey[];
+  /** Where the site publishes them. */
+  keysUrl: string;
 };
 
-type State = 'loading' | 'none' | 'missing' | 'failed' | 'shown';
+type State = 'loading' | 'none' | 'missing' | 'invalid' | 'failed' | 'shown';
 
-/** How long to wait before looking again for a certificate that isn't there, in ms: one just issued can take a moment to show up. */
+/** How far the page could check a certificate's signature: `valid`, or why it couldn't tell. */
+type Signature = 'valid' | 'noKey' | 'unsupported';
+
+/** How long to wait before looking again for a certificate that isn't there, in ms: one just published can take a moment to show up. */
 const RETRIES = [1000, 2500];
 
 const page = document.querySelector<HTMLElement>('[data-certificate-page]');
@@ -49,27 +57,29 @@ function setUpCertificate(page: HTMLElement) {
     if (!id) return show('none');
     if (!isCertificateId(id)) return show('missing');
     try {
-      const certificate = await fetchCertificate();
-      if (!certificate) return show('missing');
-      paint(certificate);
+      const file = await fetchFile();
+      if (file === undefined) return show('missing');
+      const checked = await check(file, id, t.keys);
+      if (!checked) return show('invalid');
+      paint(checked.certificate, checked.signature);
       show('shown');
     } catch {
       show('failed');
     }
   }
 
-  /** The certificate from the repository, or undefined when there's none with this id. */
-  async function fetchCertificate(): Promise<Certificate | undefined> {
+  /** The certificate's file in the repository, or undefined when there's none with this id. */
+  async function fetchFile(): Promise<unknown> {
     for (let tries = 0; ; tries++) {
       const response = await fetch(certificateFile(t.repo, id).raw);
-      if (response.ok) return readCertificate(await response.json(), id);
+      if (response.ok) return response.json().catch(() => null);
       if (response.status !== 404) throw new Error(`GitHub answered ${response.status}`);
       if (tries === RETRIES.length) return undefined;
       await new Promise((resolve) => setTimeout(resolve, RETRIES[tries]));
     }
   }
 
-  function paint(certificate: Certificate) {
+  function paint(certificate: Certificate, signature: Signature) {
     const { reader, passed } = certificate;
     const name = reader.name || `@${reader.login}`;
     document.title = `${t.pageTitle.replace('{name}', name)} · ${t.site}`;
@@ -88,6 +98,10 @@ function setUpCertificate(page: HTMLElement) {
     );
     const file = certificateFile(t.repo, id);
     fill(part('issued'), t.issued, { date: date(certificate.issued), repo: link(document.createElement('a'), t.repo, `https://github.com/${t.repo}`) });
+    const checked = part('signature');
+    checked.classList.toggle('is-valid', signature === 'valid');
+    if (signature === 'valid') fill(checked, t.signature.valid, { key: link(document.createElement('a'), t.signature.key, t.keysUrl) });
+    else checked.textContent = t.signature[signature];
     part('id').textContent = t.id.replace('{id}', id);
     part<HTMLAnchorElement>('file').href = file.page;
     part<HTMLAnchorElement>('history').href = file.history;
@@ -96,13 +110,13 @@ function setUpCertificate(page: HTMLElement) {
     for (const other of document.querySelectorAll<HTMLAnchorElement>('a.lang-link')) {
       if (isLang(other.hreflang)) other.href = localizeUrl(certificateUrl(id), other.hreflang);
     }
-    // Only the reader it was issued to gets the badge for their profile.
+    // Only the reader it was issued to gets the badge and the link for their profiles.
     const isTheirs = readReader()?.login.toLowerCase() === reader.login.toLowerCase();
     if (isTheirs) paintShare(certificate);
     part('share').hidden = !isTheirs;
   }
 
-  /** The badge for the reader's profile README, as Markdown linking it to this page. */
+  /** The badge for the reader's profile README, as Markdown linking it to this page, and the link that adds the certificate to LinkedIn. */
   function paintShare(certificate: Certificate) {
     const profile = `${certificate.reader.login}/${certificate.reader.login}`;
     const badge = new URL(localizeUrl(badgeUrl(certificate.chapter), t.lang), location.origin).href;
@@ -113,6 +127,26 @@ function setUpCertificate(page: HTMLElement) {
     img.src = badge;
     img.alt = alt;
     part('snippet').textContent = `[![${alt.replace(/[[\]\\]/g, '\\$&')}](${badge})](${here})`;
+
+    // LinkedIn's "Add to profile" link for certifications, with the site as the issuing organization.
+    const issued = new Date(certificate.issued);
+    const linkedin = new URL('https://www.linkedin.com/profile/add');
+    linkedin.search = new URLSearchParams({
+      startTask: 'CERTIFICATION_NAME',
+      name: t.share.linkedinName.replace('{chapter}', title(certificate.title)),
+      organizationName: t.site,
+      issueYear: String(issued.getUTCFullYear()),
+      issueMonth: String(issued.getUTCMonth() + 1),
+      certUrl: here,
+      certId: id,
+    }).toString();
+    part<HTMLAnchorElement>('linkedin').href = linkedin.href;
+
+    // Unpublishing is on the exam's page, while the site has the exam.
+    const exam = pageUrl(examUrl(certificate.chapter));
+    const manage = part('manage');
+    if (exam) fill(manage, t.share.manage, { exam: link(document.createElement('a'), t.share.exam, exam) });
+    manage.hidden = !exam;
   }
 
   part('copy').addEventListener('click', async () => {
@@ -130,6 +164,31 @@ function setUpCertificate(page: HTMLElement) {
   part('retry').addEventListener('click', load);
 
   load();
+}
+
+/**
+ * The certificate a file of the certificates repository holds, as the site signed it, and how
+ * far its signature could be checked; undefined when it isn't one the site signed. Only the
+ * signed certificate counts, not the copy next to it that's there to read on GitHub.
+ */
+async function check(file: unknown, id: string, keys: CertificateKey[]): Promise<{ certificate: Certificate; signature: Signature } | undefined> {
+  const signed = typeof file === 'object' && file !== null ? (file as { jws?: unknown }).jws : undefined;
+  const jws = typeof signed === 'string' ? readJws(signed) : undefined;
+  const certificate = jws && readCertificate(jws.payload, id);
+  if (!jws || !certificate || jws.header.alg !== 'EdDSA') return undefined;
+  // A copy of the site built without the key, like a deploy preview, can't tell.
+  if (keys.length === 0) return { certificate, signature: 'noKey' };
+  const key = keys.find((candidate) => candidate.kid === jws.header.kid);
+  if (!key) return undefined;
+  let valid: boolean;
+  try {
+    const publicKey = await crypto.subtle.importKey('jwk', { kty: key.kty, crv: key.crv, x: key.x }, { name: 'Ed25519' }, false, ['verify']);
+    valid = await crypto.subtle.verify({ name: 'Ed25519' }, publicKey, jws.signature, new TextEncoder().encode(jws.input));
+  } catch {
+    // Browsers without Ed25519 in Web Crypto.
+    return { certificate, signature: 'unsupported' };
+  }
+  return valid ? { certificate, signature: 'valid' } : undefined;
 }
 
 /** An anchor with `text`, linked to `href` when there's one. */

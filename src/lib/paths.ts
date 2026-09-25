@@ -48,6 +48,9 @@ export function certificateUrl(id: string): string {
   return `${CERTIFICATES_PATH}${id}/`;
 }
 
+/** URL of the public keys certificates are signed with, the same in every language (pages/certificates/keys.json.ts). */
+export const CERTIFICATE_KEYS_URL = `${CERTIFICATES_PATH}keys.json`;
+
 /** URL of the badge for certificates on a top-level chapter: `/foundations/` → `/certificates/badges/foundations.svg` */
 export function badgeUrl(chapterPath: string): string {
   return `${CERTIFICATES_PATH}badges/${chapterPath.slice(1, -1)}.svg`;

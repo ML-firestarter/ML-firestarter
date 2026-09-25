@@ -2,12 +2,14 @@
 /**
  * The certificate page (scripts/certificate.ts). Netlify serves it at every certificate's
  * address, like `/certificates/3f9a1c0e7b2d4a55/` (netlify.toml): the script reads the
- * certificate from the public certificates repository and shows it. At `/certificates/`
- * itself, the page says what certificates are.
+ * certificate from the public certificates repository, checks its signature with the site's
+ * public keys, which the page holds, and shows it. At `/certificates/` itself, the page says
+ * what certificates are.
  */
 import { getCourse } from '../lib/course.ts';
 import { localizeUrl, ui, type Lang } from '../lib/i18n.ts';
-import { TESTS_PATH } from '../lib/paths.ts';
+import { CERTIFICATE_KEYS_URL, TESTS_PATH } from '../lib/paths.ts';
+import { publicKeys } from '../server/certificates.ts';
 import { repoName } from '../server/exams.ts';
 import { site } from '../site.config.ts';
 import Icon from './Icon.astro';
@@ -27,6 +29,8 @@ const strings = JSON.stringify({
   site: site.title,
   repo: repoName(site.exams.certificates),
   pages: [...course.byPath.keys()],
+  keys: publicKeys(),
+  keysUrl: CERTIFICATE_KEYS_URL,
 }).replace(/</g, '\\u003c');
 ---
 
@@ -44,6 +48,12 @@ const strings = JSON.stringify({
     <p class="eyebrow">{s.eyebrow}</p>
     <h1 class="page-title">{s.missing}</h1>
     <p class="lede">{s.missingLede}</p>
+  </div>
+
+  <div data-state="invalid" hidden>
+    <p class="eyebrow">{s.eyebrow}</p>
+    <h1 class="page-title">{s.invalid}</h1>
+    <p class="lede">{s.invalidLede}</p>
   </div>
 
   <div data-state="failed" hidden>
@@ -67,6 +77,7 @@ const strings = JSON.stringify({
     </div>
     <footer class="certificate-footer">
       <p data-certificate-issued></p>
+      <p class="certificate-signature" data-certificate-signature></p>
       <p class="certificate-links">
         <span data-certificate-id></span>
         <a data-certificate-file>{s.file}</a>
@@ -86,6 +97,8 @@ const strings = JSON.stringify({
     <p class="certificate-help">
       <a href="https://docs.github.com/en/account-and-profile/how-tos/profile-customization/managing-your-profile-readme">{s.share.help}</a>
     </p>
+    <a class="button" target="_blank" rel="noopener" data-certificate-linkedin><Icon name="plus" />{s.share.linkedin}</a>
+    <p class="certificate-help" data-certificate-manage hidden></p>
   </section>
 
   <script is:inline type="application/json" data-certificate-strings set:html={strings}></script>

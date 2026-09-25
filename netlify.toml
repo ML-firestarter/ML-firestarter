@@ -12,9 +12,15 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
+# The public keys certificates are signed with, for anyone to check them with, from any site.
+[[headers]]
+  for = "/certificates/keys.json"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+
 # Each certificate's address, like /certificates/3f9a1c0e7b2d4a55/, shows the certificate page,
 # which reads the certificate's id from the address. Files under /certificates/, like the
-# badges, are served as they are.
+# badges and the public keys, are served as they are.
 [[redirects]]
   from = "/certificates/*"
   to = "/certificates/index.html"
