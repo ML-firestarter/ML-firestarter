@@ -14,11 +14,13 @@
 import { site } from '../site.config.ts';
 import { isLang, localizeUrl, type Lang } from './i18n.ts';
 
-/** Opens the hidden marker of a comment's issue, as in `<!-- ml-firestarter:comment {…} -->`. The workflows look for it too. */
-export const MARKER = 'ml-firestarter:comment';
+// Keep these persisted marker names stable so transferred issues and pull requests remain readable.
+/** Opens the hidden marker of a comment's issue, as in `<!-- ml-workout:comment {…} -->`. The workflows look for it too. */
+export const MARKER = 'ml-workout:comment';
 
+// Keep these persisted marker names stable so transferred issues and pull requests remain readable.
 /** Opens the hidden marker of a pull request with a comment's change, as .github/scripts/changes.cjs writes it. */
-export const CHANGE_MARKER = 'ml-firestarter:change';
+export const CHANGE_MARKER = 'ml-workout:change';
 
 /** Longest passage, comment and suggested change, in characters. */
 export const LIMITS = { quote: 1000, comment: 3000, suggestion: 3000 };
