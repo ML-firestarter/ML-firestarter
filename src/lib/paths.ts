@@ -2,7 +2,7 @@
  * Pure helpers that turn paths inside `notes/` into titles and URLs.
  *
  * Shared by the site (course.ts) and the Markdown link plugin (markdown.ts),
- * so a link to `../02-foundations/01-intro.md` points at the exact URL
+ * so a link to `../04-foundations/01-intro.md` points at the exact URL
  * that lesson is published under.
  */
 import { DEFAULT_LANG, isLang, type Lang } from './i18n.ts';
@@ -38,6 +38,21 @@ export function examUrl(chapterPath: string): string {
 /** Id of an exam question, the same in every language: `/vocabulary/sft/` and 2 → `vocabulary-sft-2` */
 export function examQuestionId(lessonPath: string, number: number): string {
   return `${lessonPath.slice(1, -1).replaceAll('/', '-')}-${number}`;
+}
+
+/**
+ * Folder, relative to the project root, that holds the exercises: each is a folder of its own,
+ * inside a folder with its lesson's path. `exercises/python/01-running-python/01-week/` is an
+ * exercise on `notes/python/01-running-python.md`.
+ */
+export const EXERCISES_DIR = 'exercises';
+
+/** Language-neutral URL under which each exercise is published. */
+export const EXERCISES_PATH = '/exercises/';
+
+/** URL of an exercise, from its folder inside exercises/: `python/01-running-python/01-week` → `/exercises/python/running-python/week/` */
+export function exerciseUrl(dir: string): string {
+  return EXERCISES_PATH + noteUrl(dir).slice(1);
 }
 
 /** Language-neutral URL of the certificate page; every certificate has its page under it. */
@@ -127,10 +142,10 @@ function segmentSlug(name: string): string {
  * Ordering numbers and language codes are dropped, so renumbering files keeps
  * URLs stable and every translation shares its original's address.
  *
- *   `02-foundations/01-what-is-ml.md`    → `/foundations/what-is-ml/`
- *   `02-foundations/01-what-is-ml.pl.md` → `/foundations/what-is-ml/`
- *   `02-foundations/README.md`           → `/foundations/`
- *   `02-foundations`                     → `/foundations/`
+ *   `04-foundations/01-what-is-ml.md`    → `/foundations/what-is-ml/`
+ *   `04-foundations/01-what-is-ml.pl.md` → `/foundations/what-is-ml/`
+ *   `04-foundations/README.md`           → `/foundations/`
+ *   `04-foundations`                     → `/foundations/`
  */
 export function noteUrl(relativePath: string): string {
   const parts = splitLang(relativePath).file.split('/').filter(Boolean);

@@ -10,6 +10,6 @@ A language model writes its reply one [token](token.md) at a time. It reads the 
 
 Training happens once, but inference runs for every request from every user, so for a popular model the total cost of inference can exceed the cost of training. Making inference cheaper and faster, with smaller models, [quantization](quantization.md), batching and better hardware, is a large part of ML engineering.
 
-**Example:** in the [linear regression lesson](../02-foundations/02-linear-regression.md), finding $w$ and $b$ from the data is training. Using them to predict $y$ for a new $x$ is inference.
+**Example:** in the [linear regression lesson](../04-foundations/02-linear-regression.md), finding $w$ and $b$ from the data is training. Using them to predict $y$ for a new $x$ is inference.
 
 **Related:** [Token](token.md) · [Quantization](quantization.md) · [Pretraining](pretraining.md) · [Revenue model](revenue-model.md)

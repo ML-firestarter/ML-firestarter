@@ -14,7 +14,7 @@ interface Score {
 }
 
 /** Elements that count something, like `[data-progress]` for lessons done; each has its own `[data-progress-label]`. */
-const COUNTERS = '[data-progress], [data-test-progress]';
+const COUNTERS = '[data-progress], [data-test-progress], [data-exercise-progress]';
 
 export function isPass(share: number): boolean {
   return share >= site.passScore;

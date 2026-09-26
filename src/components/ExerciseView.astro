@@ -1,0 +1,173 @@
+---
+/**
+ * An exercise's page (scripts/exercise.ts): what to do, an editor with the code the reader
+ * starts from, and buttons that run the code and check it with Python in the browser
+ * (scripts/python.ts). Checking runs the exercise's checks.py on the code; once every check
+ * passes, the page keeps the pass in this browser and shows the exercise's solution.
+ */
+import { Code } from 'astro:components';
+import { render } from 'astro:content';
+import { editUrl, type Course, type Exercise } from '../lib/course.ts';
+import { langAttr, ui } from '../lib/i18n.ts';
+import { site } from '../site.config.ts';
+import Crumbs from './Crumbs.astro';
+import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+import Untranslated from './Untranslated.astro';
+
+interface Props {
+  course: Course;
+  exercise: Exercise;
+}
+
+const { course, exercise } = Astro.props;
+const { lang } = course;
+const { lesson } = exercise;
+const t = ui[lang];
+const e = t.exercises;
+/** Set when the task isn't translated yet and shows the original. */
+const contentLang = langAttr(exercise.lang, lang);
+const { Content } = await render(exercise.note);
+const siblings = lesson.exercises;
+const index = siblings.indexOf(exercise);
+// Before the first exercise comes its lesson, and after the last one, the next lesson.
+const previous = siblings[index - 1] ?? lesson;
+const next = siblings[index + 1] ?? course.lessons[course.lessons.indexOf(lesson) + 1];
+/** For the script; `<` is escaped so the JSON can't end the script element. */
+const json = (value: unknown) => JSON.stringify(value).replace(/</g, '\\u003c');
+const data = json({
+  path: exercise.path,
+  starter: exercise.starter,
+  checks: exercise.checks,
+  files: JSON.stringify(exercise.files),
+  input: exercise.input,
+});
+const strings = json({ lang, ...e.script, run: e.run, check: e.check, stop: e.stop, editor: e.editor });
+/** The lessons' code colours (astro.config.mjs). */
+const themes = { light: 'github-light', dark: 'github-dark' } as const;
+---
+
+<div class="exercise-page" data-exercise-page>
+  <header class="page-header">
+    <Crumbs lang={lang} parents={[...lesson.parents, lesson]} />
+    <p class="eyebrow">{e.exerciseOf(exercise.number, siblings.length)}</p>
+    <h1 class="page-title" lang={contentLang}>{exercise.title}</h1>
+    {exercise.description && <p class="lede" lang={contentLang}>{exercise.description}</p>}
+    <div class="meta" data-exercise={exercise.path}>
+      <span class="meta-item passed-chip"><Icon name="check" />{e.passed}</span>
+      <a class="meta-item" href={lesson.url}><Icon name="book" />{t.tests.readLesson}</a>
+      <a class="meta-item" href={editUrl(site.repo, site.branch, exercise.note)}><Icon name="edit" />{t.edit}</a>
+    </div>
+  </header>
+
+  {contentLang && <Untranslated lang={lang} note={exercise.note} noteLang={exercise.lang} />}
+
+  <div class="prose" lang={contentLang}>
+    <Content />
+  </div>
+
+  <div class="workbench">
+    <div class="code-box">
+      <div class="box-bar">
+        <span class="box-title">{e.editor}</span>
+        <button class="text-button" type="button" title={e.resetHint} data-reset>
+          <Icon name="refresh" />
+          <span>{e.reset}</span>
+        </button>
+      </div>
+      {/* The script puts the editor here, with the code the reader wrote last time, if any. */}
+      <div class="editor" data-editor>
+        <Code code={exercise.starter} lang="python" themes={themes} />
+      </div>
+    </div>
+
+    {
+      exercise.input !== undefined && (
+        <div class="code-box">
+          <div class="box-bar">
+            <label class="box-title" for="exercise-input">
+              {e.input}
+            </label>
+            <span class="box-hint" id="exercise-input-hint">
+              {e.inputHint}
+            </span>
+          </div>
+          <textarea
+            class="input-field"
+            id="exercise-input"
+            rows="3"
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"
+            aria-describedby="exercise-input-hint"
+            data-input
+          >{exercise.input}</textarea>
+        </div>
+      )
+    }
+
+    <div class="workbench-actions">
+      <button class="button" type="button" data-run>
+        <Icon name="play" class="when-idle" />
+        <Icon name="stop" class="when-busy" />
+        <span data-label>{e.run}</span>
+      </button>
+      <button class="button primary" type="button" data-check>
+        <Icon name="check" class="when-idle" />
+        <Icon name="stop" class="when-busy" />
+        <span data-label>{e.check}</span>
+      </button>
+      <p class="shortcut"><Phrase text={e.shortcut}><kbd data-shortcut>Ctrl+Enter</kbd></Phrase></p>
+    </div>
+
+    <p class="run-status" role="status" data-status hidden></p>
+
+    <section class="code-box" aria-labelledby="exercise-output" data-output-box hidden>
+      <div class="box-bar">
+        <h2 class="box-title" id="exercise-output">{e.output}</h2>
+      </div>
+      <pre class="output" tabindex="0" data-output></pre>
+    </section>
+
+    <section class="check-results" aria-labelledby="exercise-results" tabindex="-1" data-results hidden>
+      <h2 class="box-title" id="exercise-results">{e.results}</h2>
+      <div class="check-summary" data-summary></div>
+      <ol class="check-list" data-check-list></ol>
+    </section>
+  </div>
+
+  <section class="solution" aria-labelledby="exercise-solution" data-solution hidden>
+    <h2 id="exercise-solution">{e.solution}</h2>
+    <p>{e.solutionNote}</p>
+    <div class="prose">
+      <Code code={exercise.solution} lang="python" themes={themes} />
+    </div>
+  </section>
+
+  <footer class="lesson-end">
+    <nav class="pager" aria-label={e.pager}>
+      <a class="previous" href={previous.url}>
+        <small><Icon name="left" />{t.previous}</small>
+        <strong lang={langAttr(previous.lang, lang)}>{previous.title}</strong>
+      </a>
+      {
+        next && (
+          <a class="next" href={next.url}>
+            <small>{t.next}<Icon name="right" /></small>
+            <strong lang={langAttr(next.lang, lang)}>{next.title}</strong>
+          </a>
+        )
+      }
+    </nav>
+  </footer>
+
+  {/* Icons for the checks' results, which the script copies. */}
+  <template data-check-icons>
+    <Icon name="check" />
+    <Icon name="close" />
+  </template>
+  <script is:inline type="application/json" data-exercise-data set:html={data}></script>
+  <script is:inline type="application/json" data-exercise-strings set:html={strings}></script>
+</div>
+
+<script src="../scripts/exercise.ts"></script>

@@ -2,16 +2,16 @@
 
 ## Which of these files in `notes/` is *not* a lesson?
 
-- [ ] `02-foundations/02-linear-regression.md`
+- [ ] `04-foundations/02-linear-regression.md`
 - [ ] `vocabulary/agent.md`
-- [x] `02-foundations/README.md`
+- [x] `04-foundations/README.md`
 - [ ] `01-start-here/02-markdown-cheatsheet.md`
 
 A folder's `README.md` (or `index.md`) is the introduction on its chapter's page. Every other `.md` file is a lesson, and every folder is a chapter.
 
-## Where is `02-foundations/01-what-is-machine-learning.md` published?
+## Where is `04-foundations/01-what-is-machine-learning.md` published?
 
-- [ ] `/02-foundations/01-what-is-machine-learning/`
+- [ ] `/04-foundations/01-what-is-machine-learning/`
 - [x] `/foundations/what-is-machine-learning/`
 - [ ] `/foundations/01-what-is-machine-learning/`
 - [ ] `/what-is-machine-learning/`
@@ -62,3 +62,21 @@ A test has the same path in `tests/` as its lesson in `notes/`, and its Polish t
 - [ ] The build fails, because a question can only have one right answer
 
 One `[x]` gives radio buttons and several give checkboxes. A question counts as right only when exactly its right answers are picked; there are no half points.
+
+## Where does the code you write in an exercise run?
+
+- [ ] On the site's server
+- [x] In your browser
+- [ ] On GitHub, in a workflow
+- [ ] Nowhere until you install Python
+
+Python runs in your browser, so there's nothing to install. The first run downloads it, which takes a few seconds.
+
+## When does **Our solution** show on an exercise's page?
+
+- [ ] Right away, under the task
+- [ ] After three wrong tries
+- [x] Once your code passes every check
+- [ ] Never, as solutions are only in the repository
+
+The solution shows once your code passes, so you can compare the two. Any code that passes the checks is right, even if it looks different.

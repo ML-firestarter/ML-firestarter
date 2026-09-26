@@ -16,6 +16,8 @@ interface Props {
    * in the sidebar and links to it in the other languages; error pages leave it out.
    */
   path?: string;
+  /** Language-neutral URL of the page this one belongs to, like an exercise's lesson, which the sidebar marks instead. */
+  parent?: string;
   /** Page title; the site name is appended. */
   title?: string;
   description?: string;
@@ -25,7 +27,7 @@ interface Props {
   noindex?: boolean;
 }
 
-const { lang, path, title, description = site.tagline[lang], section = 'lessons', noindex = false } = Astro.props;
+const { lang, path, parent, title, description = site.tagline[lang], section = 'lessons', noindex = false } = Astro.props;
 const t = ui[lang];
 const tabs = [
   { section: 'lessons', path: '/', icon: 'book', label: t.lessonsTab },
@@ -153,7 +155,7 @@ const signInHint = t.account.signInHint[comments && exams ? 'both' : comments ? 
     </header>
     <div class="shell">
       <aside class="sidebar" id="sidebar">
-        <Sidebar lang={lang} current={path ?? ''} section={section} />
+        <Sidebar lang={lang} current={path ?? ''} parent={parent} section={section} />
       </aside>
       <div class="scrim" data-nav-close></div>
       <main id="content">

@@ -2,6 +2,7 @@
 import CertificateView from '../components/CertificateView.astro';
 import ChapterView from '../components/ChapterView.astro';
 import ExamView from '../components/ExamView.astro';
+import ExerciseView from '../components/ExerciseView.astro';
 import LessonView from '../components/LessonView.astro';
 import TestsView from '../components/TestsView.astro';
 import TestView from '../components/TestView.astro';
@@ -10,7 +11,7 @@ import { getCourse } from '../lib/course.ts';
 import { LANGS, localizeUrl, ui, type Lang } from '../lib/i18n.ts';
 import { CERTIFICATES_PATH, TESTS_PATH } from '../lib/paths.ts';
 
-/** Every lesson, chapter, test and exam, the tests overview and the certificate page, once per language. */
+/** Every lesson, chapter, test, exam and exercise, the tests overview and the certificate page, once per language. */
 export async function getStaticPaths() {
   const courses = await Promise.all(LANGS.map((lang) => getCourse(lang)));
   return courses.flatMap((course) =>
@@ -19,6 +20,7 @@ export async function getStaticPaths() {
       ...course.chapters,
       ...course.tests,
       ...course.exams,
+      ...course.exercises,
       { path: TESTS_PATH, url: localizeUrl(TESTS_PATH, course.lang) },
       { path: CERTIFICATES_PATH, url: localizeUrl(CERTIFICATES_PATH, course.lang) },
     ].map((node) => ({
@@ -62,6 +64,16 @@ const node = path === TESTS_PATH || path === CERTIFICATES_PATH ? undefined : cou
   ) : node.kind === 'exam' ? (
     <Base lang={lang} path={path} title={ui[lang].exams.pageTitle(node.title)} description={ui[lang].exams.lede} section="tests" noindex>
       <ExamView course={course} exam={node} />
+    </Base>
+  ) : node.kind === 'exercise' ? (
+    <Base
+      lang={lang}
+      path={path}
+      parent={node.lesson.path}
+      title={ui[lang].exercises.pageTitle(node.title)}
+      description={node.description ?? node.lesson.description}
+    >
+      <ExerciseView course={course} exercise={node} />
     </Base>
   ) : (
     <Base lang={lang} path={path} title={node.title} description={node.description}>

@@ -10,6 +10,6 @@ Model językowy pisze odpowiedź po jednym [tokenie](token.pl.md). Cały prompt 
 
 Trening odbywa się raz, a inferencja przy każdym zapytaniu każdego użytkownika, więc w przypadku popularnego modelu łączny koszt inferencji może przekroczyć koszt treningu. Przyspieszanie i obniżanie kosztów inferencji za pomocą mniejszych modeli, [kwantyzacji](quantization.pl.md), grupowania zapytań (ang. batching) i lepszego sprzętu to duża część inżynierii ML.
 
-**Przykład:** w [lekcji o regresji liniowej](../02-foundations/02-linear-regression.pl.md) znalezienie $w$ i $b$ na podstawie danych to trening. Użycie ich do przewidzenia $y$ dla nowego $x$ to inferencja.
+**Przykład:** w [lekcji o regresji liniowej](../04-foundations/02-linear-regression.pl.md) znalezienie $w$ i $b$ na podstawie danych to trening. Użycie ich do przewidzenia $y$ dla nowego $x$ to inferencja.
 
 **Powiązane:** [Token](token.pl.md) · [Kwantyzacja](quantization.pl.md) · [Pretrening](pretraining.pl.md) · [Model przychodów](revenue-model.pl.md)

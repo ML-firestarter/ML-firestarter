@@ -9,11 +9,13 @@ interface Props {
   lang: Lang;
   /** Language-neutral URL of the current page. */
   current: string;
+  /** Language-neutral URL of the page the current one belongs to, like an exercise's lesson. */
+  parent?: string;
   /** Lists the lessons, or the lessons that have a test. */
   section: 'lessons' | 'tests';
 }
 
-const { lang, current, section } = Astro.props;
+const { lang, current, parent, section } = Astro.props;
 const t = ui[lang];
 const course = await getCourse(lang);
 ---
@@ -41,7 +43,7 @@ const course = await getCourse(lang);
         <p><Phrase text={t.lessonsDone}><strong data-progress-label>0/{course.lessons.length}</strong></Phrase></p>
       </div>
       <ol class="tree">
-        {course.root.children.map((node) => <TreeItem node={node} lang={lang} current={current} section="lessons" />)}
+        {course.root.children.map((node) => <TreeItem node={node} lang={lang} current={current} parent={parent} section="lessons" />)}
       </ol>
       {course.lessons.length === 0 && (
         <p class="empty">

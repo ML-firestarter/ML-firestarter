@@ -2,7 +2,7 @@
 
 My machine learning notes, published as a course website in English and Polish.
 
-Every Markdown file in [`notes/`](notes/) becomes a lesson and every folder becomes a chapter. Lessons can have multiple-choice tests, kept in [`tests/`](tests/), and chapters can have [exams](#exams), which the site grades, with a [certificate](#certificates) for readers who pass. Each push to `main` makes Netlify build and publish a new version of the site.
+Every Markdown file in [`notes/`](notes/) becomes a lesson and every folder becomes a chapter. Lessons can have multiple-choice tests, kept in [`tests/`](tests/), and Python exercises that readers solve in the page, kept in [`exercises/`](exercises/). Chapters can have [exams](#exams), which the site grades, with a [certificate](#certificates) for readers who pass. Each push to `main` makes Netlify build and publish a new version of the site.
 
 ## Writing lessons
 
@@ -14,7 +14,10 @@ notes/
 │   ├── README.md            ← chapter introduction (title and description)
 │   ├── 01-how-this-works.md ← lesson "How this works"
 │   └── 02-markdown-cheatsheet.md
-├── 02-foundations/
+├── 02-python/
+│   └── 01-basics/           ← a chapter inside a chapter
+│       └── 01-running-python.md
+├── 04-foundations/
 │   └── 01-what-is-machine-learning.md
 └── vocabulary/              ← no numbers, so sorted by title
     └── sft.md
@@ -23,8 +26,8 @@ notes/
 - Numbered files and folders (`01-`, `02-`, …) come first, in number order, and the rest follow alphabetically by title. The numbers don't appear in titles or addresses.
 - A lesson's title comes from `title:` in its frontmatter, else its first `# Heading`, else its file name.
 - Frontmatter is optional: `title`, `description`, and `draft: true` to hide a lesson.
-- Link notes to each other with relative paths (`../02-foundations/01-what-is-machine-learning.md`); the links work on GitHub and on the site.
-- Math (`$…$` and `$$…$$`), highlighted code, tables, task lists, footnotes and GitHub callouts (`> [!TIP]`) all work.
+- Link notes to each other with relative paths (`../04-foundations/01-what-is-machine-learning.md`); the links work on GitHub and on the site.
+- Math (`$…$` and `$$…$$`), highlighted code, tables, task lists, footnotes and GitHub callouts (`> [!TIP]`) all work, and Python examples can be [run in the page](#runnable-examples).
 
 The [How this works](notes/01-start-here/01-how-this-works.md) and [Markdown cheatsheet](notes/01-start-here/02-markdown-cheatsheet.md) lessons have the details.
 
@@ -49,13 +52,65 @@ The model is trained to produce the responses in its examples.
 
 The [Tests](notes/01-start-here/01-how-this-works.md#tests) section of *How this works* has the details.
 
+## Writing exercises
+
+Exercises are Python tasks that readers solve in the page: they write code in an editor, run it, and **Check** runs the exercise's checks on it. Python runs in the reader's browser, in [Pyodide](https://pyodide.org), so readers install nothing and the site's servers run none of their code.
+
+An exercise is a folder in [`exercises/`](exercises/), inside a folder with its lesson's path, the way tests sit at their lesson's path:
+
+```text
+exercises/02-python/01-basics/01-running-python/  ← exercises on notes/02-python/01-basics/01-running-python.md
+└── 01-how-long-is-a-week/
+    ├── task.md       ← what to do, published at /exercises/python/basics/running-python/how-long-is-a-week/
+    ├── task.pl.md    ← the same in Polish
+    ├── starter.py    ← the code the reader starts from
+    ├── solution.py   ← our solution, shown once the reader's code passes
+    ├── checks.py     ← what the code has to do
+    └── files/        ← optional: files the code can open, like open("words.txt"), 1 MB in all
+```
+
+`checks.py` sets `CHECKS` to a list of checks, each a Python expression, as a string, with what it should give:
+
+```python
+CHECKS = [
+    ("area(2, 3)", 6),                       # returns 6
+    ("average([])", raises(ValueError)),     # raises a ValueError
+    ("greet('Ada')", prints("Hello, Ada!")), # prints this text
+    ("program('3', '4')", prints("Width? 3\nHeight? 4\nArea: 12\n")),
+]
+```
+
+- An expression can use anything the reader's code defines. Numbers count as equal when they differ only by rounding, and `True`, `False` and `None` only equal themselves.
+- `raises(SomeError)` expects an error of that kind, and `prints("…")` what's printed. Spaces at the ends of lines and blank lines at the end don't count.
+- `program('3', '4')` runs the whole file as a program, with those lines typed in, and `program()` runs it with nothing typed in: that's for exercises that are programs rather than functions. What it prints includes each `input()` prompt followed by the line typed after it, as in a terminal.
+- Each check has 10 seconds.
+- The page writes what each check tried and what happened in the reader's language, from the expression and the values, so one `checks.py` serves every language. `starter.py` and `solution.py` do too, so keep words out of what they print where you can.
+
+`task.md` is written like a lesson. Its frontmatter can have `title`, `description`, `input` for what the page's **Input** box holds at first, and `draft: true` to hide the exercise. The **Input** box is there when the exercise sets `input` or its code calls `input()`. Numbered folders (`01-`, `02-`, …) set the exercises' order, and the lesson lists them after its text.
+
+Readers' code, and which exercises they've passed, are saved in their browser, like lesson progress. Checks that run in the browser can be fooled, so exercises count toward a reader's progress but not toward exams or certificates.
+
+`npm run check:exercises` runs each exercise's checks on its `solution.py`, which has to pass them all, and on its `starter.py`, which mustn't, in the same Pyodide as the site. Pull requests that change exercises run it too ([`check-exercises.yml`](.github/workflows/check-exercises.yml)), and show any problems next to the files. A missing lesson or file fails the build.
+
+### Runnable examples
+
+A code block in a lesson fenced as ```` ```python run ```` gets a **Run** button, and readers can edit the code and run it again:
+
+````md
+```python run
+print("Hello!")
+```
+````
+
+The output shows under the code, and an example that calls `input()` gets an **Input** box.
+
 ## Translations
 
-English pages are at the root of the site and Polish ones under `/pl/`. A translation sits next to its original: `sft.pl.md` is the Polish version of `sft.md` and is published at `/pl/vocabulary/sft/`. Tests are translated the same way. Until a note or test is translated, the Polish site shows the original with a notice and a link for adding the translation on GitHub. Progress and test scores are shared between the languages.
+English pages are at the root of the site and Polish ones under `/pl/`. A translation sits next to its original: `sft.pl.md` is the Polish version of `sft.md` and is published at `/pl/vocabulary/sft/`. Tests and exercises' `task.md` are translated the same way. Until a note, test or task is translated, the Polish site shows the original with a notice and a link for adding the translation on GitHub. Progress, test scores and passed exercises are shared between the languages.
 
 ## Comments
 
-Readers can comment on the vocabulary and foundations pages the way code gets reviewed: they select a passage, write what they think of it and can suggest new wording for it. They sign in with GitHub to do it, and each comment becomes an issue in this repository, opened in their name, with the passage, the comment, the suggested change as a diff and a link back to the page. Each comment's issue is assigned to its reader, so GitHub tells them about replies and about what becomes of it. The sections that take comments are listed under `comments` in `src/site.config.ts`; with none, signing in stays for the [exams](#exams) only.
+Readers can comment on the vocabulary, Python and foundations lessons the way code gets reviewed: they select a passage, write what they think of it and can suggest new wording for it. They sign in with GitHub to do it, and each comment becomes an issue in this repository, opened in their name, with the passage, the comment, the suggested change as a diff and a link back to the page. Each comment's issue is assigned to its reader, so GitHub tells them about replies and about what becomes of it. The sections that take comments are listed under `comments` in `src/site.config.ts`; with none, signing in stays for the [exams](#exams) only.
 
 Copilot checks each new comment ([`triage-comments.yml`](.github/workflows/triage-comments.yml)): it closes spam, tests and comments that aren't about the notes, and gives the rest the `needs-review` label. The workflow run of an issue says why Copilot closed or kept it, and Copilot's instructions are in [`triage-comment.prompt.yml`](.github/prompts/triage-comment.prompt.yml).
 
@@ -156,6 +211,7 @@ npm install
 npm run dev     # http://localhost:4321, reloads as you edit notes
 npm run build   # production build into dist/
 npm run check   # type-check the site code
+npm run check:exercises   # run every exercise's checks on its solution and starter
 ```
 
 `npm run dev` also serves the API behind signing in, comments, exams and certificates, with the settings from `.env` (see [Comments](#comments) and [Exams](#exams)), and shows certificates' pages as Netlify does.
@@ -164,17 +220,20 @@ npm run check   # type-check the site code
 
 Netlify builds the site from this repository. The settings are in [`netlify.toml`](netlify.toml): it runs `npm run build` on Node 24, publishes `dist/`, shows the certificate page at each certificate's address, lets any site read the certificates' public keys, and serves the Polish "page not found" page for missing addresses under `/pl/`. A push to `main` deploys to production. If a build fails, the previous version stays online, and the Netlify deploy log explains what went wrong.
 
+Pyodide isn't part of the deploy, which it would make 13 MB bigger: readers' browsers load it from [jsDelivr](https://www.jsdelivr.com), at the version in `package.json`, the first time they run some code.
+
 ## Code
 
 Built with [Astro](https://astro.build). The code is in `src/`:
 
 - `lib/i18n.ts` lists the languages and holds the interface text in each of them.
-- `lib/course.ts` turns the notes into chapters and lessons, one course per language, picks each note's translation, gives each lesson its test and each chapter its exam.
+- `lib/course.ts` turns the notes into chapters and lessons, one course per language, picks each note's translation, gives each lesson its test and exercises and each chapter its exam.
 - `lib/paths.ts` turns file paths into titles and addresses.
-- `lib/markdown.ts` handles math, callouts, footnotes, the leading heading and links between notes, and turns tests and exam questions into question forms.
+- `lib/markdown.ts` handles math, callouts, footnotes, the leading heading, links between notes and runnable examples, and turns tests and exam questions into question forms.
 - `lib/comments.ts` describes readers' comments, the issues that hold them and the pull requests with the changes they lead to, `lib/exams.ts` the exams' attempts and results, and `lib/certificates.ts` the certificates. `lib/badge.ts` draws the certificates' badges.
-- `pages/` holds the home, chapter, lesson, test, exam, certificate and 404 pages, the tests overview, the badges and the certificates' public keys, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
+- `pages/` holds the home, chapter, lesson, test, exercise, exam, certificate and 404 pages, the tests overview, the badges and the certificates' public keys, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
 - `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them. `scripts/account.ts` shows who's signed in, and `scripts/comments.ts` handles selecting passages, the comment form and the highlighted changes. `scripts/exam.ts` takes an exam and gets its certificate, `scripts/exams.ts` shows the reader's results wherever an exam is linked, and `scripts/certificate.ts` shows a certificate.
+- `scripts/exercise.ts` runs and checks the code on an exercise's page, and `scripts/runnable.ts` runs the lessons' examples; `scripts/running.ts` holds what they share. `scripts/editor.ts` is the code editor, [CodeMirror](https://codemirror.net), and `scripts/exercises.ts` saves which exercises the reader has passed and shows them. `scripts/python.ts` runs Python in a Web Worker, `scripts/python.worker.ts`, which loads Pyodide and `scripts/harness.py`, the Python that runs the reader's code and the checks. [`scripts/check-exercises.mjs`](scripts/check-exercises.mjs), outside `src/`, runs the harness under Node for `npm run check:exercises`.
 - `server/api.ts` is the API for signing in with GitHub, for comments and for the exams and their certificates, with `server/session.ts` keeping readers signed in with encrypted cookies and `server/github.ts` talking to GitHub, as the reader or as the site's bot. Netlify runs it as a function ([`netlify/functions/api.ts`](netlify/functions/api.ts)), and `server/dev.ts` serves it in `npm run dev`. `server/exams.ts` seals the answer keys into the exam pages, draws and grades the attempts and keeps the results, `server/certificates.ts` signs the certificates and publishes and unpublishes them, and `server/exam-questions.ts` downloads the exam questions for production builds.
 - `site.config.ts` holds the site title, the tagline in each language, the GitHub repository, the tests' pass mark, the sections that take comments and the exams' settings.
 
