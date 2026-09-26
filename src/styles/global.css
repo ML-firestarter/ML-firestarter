@@ -21,6 +21,14 @@
   --important: #8250df;
   --warning: #b35900;
   --caution: #cf222e;
+  /* Code in the editor, coloured like Shiki colours the lessons' code (GitHub's themes). */
+  --code-keyword: #d73a49;
+  --code-string: #032f62;
+  --code-constant: #005cc5;
+  --code-comment: #6a737d;
+  --code-definition: #6f42c1;
+  --code-selection: color-mix(in srgb, var(--note) 22%, transparent);
+  --code-bracket: color-mix(in srgb, var(--note) 16%, transparent);
 
   --shadow: 0 10px 30px rgb(28 25 23 / 0.12), 0 2px 6px rgb(28 25 23 / 0.08);
 
@@ -52,6 +60,11 @@
   --important: #b392f0;
   --warning: #f0a53a;
   --caution: #ff7b72;
+  --code-keyword: #f97583;
+  --code-string: #9ecbff;
+  --code-constant: #79b8ff;
+  --code-comment: #6a737d;
+  --code-definition: #b392f0;
   --shadow: 0 10px 30px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
 }
 
@@ -403,7 +416,7 @@ main {
 }
 
 @media (max-width: 699px) {
-  .text-button span {
+  .topbar .text-button span {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -621,7 +634,8 @@ main {
   color: var(--text);
 }
 
-.lesson-link[aria-current='page'] {
+/* The page, or the lesson it belongs to, like an exercise's. */
+.lesson-link[aria-current] {
   background: var(--accent-soft);
   color: var(--link);
   font-weight: 600;
@@ -703,6 +717,19 @@ main {
   margin-top: 0.05rem;
 }
 
+/* A lesson's exercises passed: grey until the first, amber until the last, then green. */
+.exercise-pill {
+  --c: var(--muted);
+}
+
+.exercise-pill.is-started {
+  --c: var(--warning);
+}
+
+.exercise-pill.is-complete {
+  --c: var(--done);
+}
+
 .empty {
   padding: 0.5rem;
   color: var(--muted);
@@ -756,6 +783,7 @@ main {
 .home,
 .chapter-page,
 .lesson,
+.exercise-page,
 .tests-page,
 .test-page,
 .exam-page,
@@ -766,6 +794,7 @@ main {
 
 .chapter-page,
 .lesson,
+.exercise-page,
 .tests-page,
 .test-page,
 .exam-page,
@@ -897,6 +926,16 @@ main {
 }
 
 .meta.is-done .done-chip {
+  display: inline-flex;
+}
+
+.passed-chip {
+  display: none;
+  color: var(--done);
+  font-weight: 600;
+}
+
+.meta.is-passed .passed-chip {
   display: inline-flex;
 }
 
@@ -1352,6 +1391,18 @@ main {
   border-radius: 5px;
   background: var(--surface-2);
   font-size: 0.87em;
+}
+
+/* A key to press, like the shortcut on an exercise's page. */
+.prose kbd {
+  padding: 0.05em 0.4em;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.8em;
+  white-space: nowrap;
 }
 
 .prose code,
@@ -2244,6 +2295,434 @@ main {
   }
 }
 
+/* ---------- Exercises and runnable code ---------- */
+
+/* The editor's colours for Python's parts; see src/scripts/editor.ts. */
+.tok-keyword {
+  color: var(--code-keyword);
+}
+
+.tok-string {
+  color: var(--code-string);
+}
+
+.tok-constant {
+  color: var(--code-constant);
+}
+
+.tok-comment {
+  color: var(--code-comment);
+}
+
+.tok-definition {
+  color: var(--code-definition);
+}
+
+/* A lesson's exercises, after its text. */
+.lesson-exercises {
+  margin-top: 3rem;
+}
+
+.lesson-exercises .group-header h2 {
+  font-size: 1.35rem;
+}
+
+.lesson-exercises.is-complete .count {
+  color: var(--done);
+}
+
+.lesson-exercises-lede {
+  margin: 0.35rem 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.lesson-exercises .lesson-rows {
+  margin: 1rem 0 0;
+}
+
+.row-arrow {
+  color: var(--muted);
+}
+
+/* The exercise page: an editor, an input box when the code reads input, and what running and checking it gave. */
+.workbench {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.code-box {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.box-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 1rem;
+  min-height: 2.5rem;
+  padding: 0.15rem 0.35rem 0.15rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.box-title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.box-hint {
+  padding: 0.3rem 0.65rem 0.3rem 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.box-bar .text-button {
+  height: 2.2rem;
+  font-size: 0.85rem;
+}
+
+/* The editor; until its script runs, the starting code, highlighted. */
+.editor .cm-editor {
+  max-height: 70vh;
+}
+
+.editor .cm-content,
+.editor .cm-gutter {
+  min-height: 11rem;
+}
+
+.editor .astro-code {
+  min-height: 11rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background-color: var(--surface) !important;
+  font: 0.87rem/1.6 var(--font-mono);
+  tab-size: 4;
+}
+
+.input-field {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.6rem 1rem;
+  border: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: 0.87rem/1.6 var(--font-mono);
+  resize: vertical;
+}
+
+.input-field:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: 0;
+}
+
+.workbench-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.shortcut {
+  margin: 0 0 0 auto;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.shortcut kbd {
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--text);
+  font: 0.8rem var(--font-mono);
+  white-space: nowrap;
+}
+
+/* Touch screens mostly have no keyboard to press it on. */
+@media (hover: none) {
+  .shortcut {
+    display: none;
+  }
+}
+
+/* A button that runs code shows Stop while it runs. */
+button[data-busy] .when-idle,
+button:not([data-busy]) .when-busy {
+  display: none;
+}
+
+.workbench .button:disabled,
+.runnable .button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.run-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+/* What the code printed: what input() read shows as typed in, and errors in red. */
+.output {
+  max-height: 24rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  overflow: auto;
+  background: var(--surface);
+  color: var(--text);
+  font: 0.87rem/1.6 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  tab-size: 4;
+}
+
+.output .typed {
+  color: var(--note);
+  font-weight: 650;
+}
+
+.output .error {
+  color: var(--caution);
+}
+
+/* The checks' results: amber until every check passes, then green. */
+.check-results {
+  --c: var(--warning);
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.1rem 1.25rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--c) 7%, var(--surface));
+  scroll-margin: calc(var(--topbar-h) + 1rem) 0 1rem;
+}
+
+.check-results.is-passed {
+  --c: var(--done);
+}
+
+.check-results:focus {
+  outline: none;
+}
+
+.check-summary > * {
+  margin: 0;
+}
+
+.check-summary > * + * {
+  margin-top: 0.5rem;
+}
+
+.check-summary > p:first-child {
+  color: color-mix(in srgb, var(--c) 80%, var(--text));
+  font-weight: 700;
+}
+
+.check-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check-list:empty {
+  display: none;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.check > .icon {
+  margin-top: 0.2rem;
+  color: var(--caution);
+  stroke-width: 3;
+}
+
+.check.is-ok > .icon {
+  color: var(--done);
+}
+
+.check-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.93rem;
+  line-height: 1.55;
+}
+
+.check-body > * {
+  margin: 0;
+}
+
+.check-body > * + * {
+  margin-top: 0.4rem;
+}
+
+.check-subject {
+  font-weight: 600;
+}
+
+.check-body code,
+.check-summary code {
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-2);
+  font: 0.87em var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.check-body pre,
+.check-summary pre {
+  max-height: 16rem;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  font: 0.82rem/1.5 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.check-outputs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.check-output-title {
+  margin: 0 0 0.25rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 639px) {
+  .check-results {
+    padding: 1rem 1rem 1.1rem;
+  }
+
+  .check-outputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shortcut {
+    display: none;
+  }
+}
+
+/* Shown once the exercise is passed. */
+.solution {
+  margin-top: 2.5rem;
+}
+
+.solution h2 {
+  margin: 0;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.solution > p {
+  margin: 0.35rem 0 1rem;
+  color: var(--muted);
+}
+
+/* A lesson's example with a Run button; see src/scripts/runnable.ts. */
+.runnable {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.runnable > * {
+  margin: 0;
+}
+
+.runnable-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+}
+
+.button.small {
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.runnable-bar .text-button {
+  height: 2.2rem;
+}
+
+.runnable-editor {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.runnable-editor .cm-editor {
+  max-height: 60vh;
+}
+
+.runnable-input,
+.runnable-input label {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.runnable-input small {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.runnable-input .input-field {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+}
+
+.runnable-input .input-field:focus-visible {
+  border-radius: 8px;
+}
+
+.runnable .run-status {
+  font-size: 0.9rem;
+}
+
+.prose .runnable .output {
+  background: var(--surface-2);
+  font-size: 0.85rem;
+}
+
 /* ---------- 404 ---------- */
 
 .not-found {
@@ -2630,6 +3109,12 @@ main {
   .exam-error,
   .certificate-offer,
   .certificate-share,
+  .workbench-actions,
+  .run-status,
+  .check-results,
+  .runnable-bar,
+  .runnable-input,
+  .runnable .output,
   .comments-chip,
   .comment-float,
   .comment-card,

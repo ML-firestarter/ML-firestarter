@@ -4,7 +4,7 @@ description: Uczenie przez wzmacnianie (ang. reinforcement learning). Uczenie si
 
 # RL
 
-W [uczeniu nadzorowanym](../02-foundations/01-what-is-machine-learning.pl.md#trzy-rodzaje-uczenia) każdy przykład ma poprawną odpowiedź. W uczeniu przez wzmacnianie nikt jej nie podaje. Uczący się system dostaje tylko nagrodę, która mówi, jak dobrze poszło, czasem długo po działaniach, które do tego doprowadziły, i musi sam ustalić, którym działaniom należy się zasługa.
+W [uczeniu nadzorowanym](../04-foundations/01-what-is-machine-learning.pl.md#trzy-rodzaje-uczenia) każdy przykład ma poprawną odpowiedź. W uczeniu przez wzmacnianie nikt jej nie podaje. Uczący się system dostaje tylko nagrodę, która mówi, jak dobrze poszło, czasem długo po działaniach, które do tego doprowadziły, i musi sam ustalić, którym działaniom należy się zasługa.
 
 Elementy:
 

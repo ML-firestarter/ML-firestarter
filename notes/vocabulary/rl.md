@@ -4,7 +4,7 @@ description: Reinforcement learning. Learning by trial and error, from rewards r
 
 # RL
 
-In [supervised learning](../02-foundations/01-what-is-machine-learning.md#three-kinds-of-learning), every example comes with the right answer. In reinforcement learning nobody provides the right answer. The learner only gets a reward that says how well things went, sometimes long after the actions that caused it, and has to work out which actions deserve the credit.
+In [supervised learning](../04-foundations/01-what-is-machine-learning.md#three-kinds-of-learning), every example comes with the right answer. In reinforcement learning nobody provides the right answer. The learner only gets a reward that says how well things went, sometimes long after the actions that caused it, and has to work out which actions deserve the credit.
 
 The pieces:
 

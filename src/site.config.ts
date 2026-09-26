@@ -17,7 +17,7 @@ export const site = {
    * and comment on it. Comments become issues in `repo`; see "Comments" in the README.
    * An empty list turns comments off, and signing in too unless the site has exams.
    */
-  comments: ['/vocabulary/', '/foundations/'] as string[],
+  comments: ['/vocabulary/', '/python/', '/foundations/'] as string[],
   /** Chapter exams, which the site's API grades; see "Exams" in the README. */
   exams: {
     /** Private repository with the exam questions, laid out like tests/; production builds download it into exams/. */

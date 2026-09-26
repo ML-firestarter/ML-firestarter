@@ -8,6 +8,7 @@ import Comments from './Comments.astro';
 import CommentsChip from './CommentsChip.astro';
 import Crumbs from './Crumbs.astro';
 import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
 import Untranslated from './Untranslated.astro';
 
 interface Props {
@@ -15,21 +16,32 @@ interface Props {
   lesson: Lesson;
 }
 
+/** A Python example the reader can run, fenced as ```python run (see runnableCode in markdown.ts). */
+const RUNNABLE = /^[ \t]*(?:`{3,}|~{3,})[ \t]*py(?:thon)?[ \t][^\n]*\brun\b/m;
+
 const { course, lesson } = Astro.props;
 const { lang } = course;
 const t = ui[lang];
+const e = t.exercises;
 /** Set when the lesson isn't translated yet and shows the original. */
 const contentLang = langAttr(lesson.lang, lang);
 const { Content, headings } = await render(lesson.note);
+const { exercises } = lesson;
 // Footnotes come with a hidden "Footnotes" heading that doesn't belong in the contents.
-const toc = headings.filter(
-  (heading) => (heading.depth === 2 || heading.depth === 3) && heading.slug !== 'footnote-label',
-);
+const toc = [
+  ...headings
+    .filter((heading) => (heading.depth === 2 || heading.depth === 3) && heading.slug !== 'footnote-label')
+    .map((heading) => ({ ...heading, lang: contentLang })),
+  ...(exercises.length ? [{ depth: 2, slug: 'lesson-exercises', text: e.title, lang: undefined }] : []),
+];
 const index = course.lessons.indexOf(lesson);
 const previous = course.lessons[index - 1];
 const next = course.lessons[index + 1];
 const chapter = lesson.parents.at(-1);
 const comments = hasComments(lesson.path);
+const runnable = RUNNABLE.test(lesson.note.body ?? '');
+/** For the script; `<` is escaped so the JSON can't end the script element. */
+const strings = JSON.stringify({ lang, ...e.script, run: e.run, stop: e.stop, editor: e.editor }).replace(/</g, '\\u003c');
 ---
 
 <div class:list={['lesson', { 'has-toc': toc.length > 1 }]}>
@@ -58,6 +70,38 @@ const comments = hasComments(lesson.path);
     >
       <Content />
     </div>
+
+    {
+      exercises.length > 0 && (
+        <section
+          class="lesson-exercises"
+          aria-labelledby="lesson-exercises"
+          data-exercise-progress={JSON.stringify(exercises.map((exercise) => exercise.path))}
+        >
+          <div class="group-header">
+            <h2 id="lesson-exercises">{e.title}</h2>
+            <span class="count">
+              <Phrase text={e.progress}><span data-progress-label>0/{exercises.length}</span></Phrase>
+            </span>
+          </div>
+          <p class="lesson-exercises-lede">{e.lede}</p>
+          <ol class="lesson-rows">
+            {exercises.map((exercise) => (
+              <li>
+                <a class="lesson-row" href={exercise.url} data-exercise={exercise.path}>
+                  <span class="status"><Icon name="check" /></span>
+                  <span class="row-text" lang={langAttr(exercise.lang, lang)}>
+                    <span class="row-title">{exercise.title}</span>
+                    {exercise.description && <span class="row-description">{exercise.description}</span>}
+                  </span>
+                  <Icon name="right" class="row-arrow" />
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )
+    }
 
     <footer class="lesson-end">
       <div class="lesson-actions">
@@ -101,10 +145,12 @@ const comments = hasComments(lesson.path);
     toc.length > 1 && (
       <aside class="on-this-page" aria-label={t.onThisPage}>
         <p class="toc-title">{t.onThisPage}</p>
-        <ol lang={contentLang}>
+        <ol>
           {toc.map((heading) => (
             <li class={`depth-${heading.depth}`}>
-              <a href={`#${heading.slug}`}>{heading.text}</a>
+              <a href={`#${heading.slug}`} lang={heading.lang}>
+                {heading.text}
+              </a>
             </li>
           ))}
         </ol>
@@ -114,3 +160,40 @@ const comments = hasComments(lesson.path);
 </div>
 
 {comments && <Comments lang={lang} />}
+
+{
+  runnable && (
+    <>
+      {/* What the script adds under each runnable example. */}
+      <template data-runnable>
+        <div class="runnable-input" data-input-field>
+          <label>
+            <span class="box-title">{e.input}</span>
+            <textarea class="input-field" rows="2" spellcheck="false" autocomplete="off" autocapitalize="off" data-input></textarea>
+          </label>
+          <small data-input-hint>{e.inputHint}</small>
+        </div>
+        <div class="runnable-bar">
+          <button class="button small" type="button" data-run>
+            <Icon name="play" class="when-idle" />
+            <Icon name="stop" class="when-busy" />
+            <span data-label>{e.run}</span>
+          </button>
+          <button class="text-button" type="button" data-edit>
+            <Icon name="edit" />
+            <span>{e.edit}</span>
+          </button>
+          <button class="text-button" type="button" data-restore hidden>
+            <Icon name="refresh" />
+            <span>{e.restore}</span>
+          </button>
+        </div>
+        <p class="run-status" role="status" data-status hidden></p>
+        <pre class="output" tabindex="0" data-output hidden></pre>
+      </template>
+      <script is:inline type="application/json" data-runnable-strings set:html={strings}></script>
+    </>
+  )
+}
+
+<script src="../scripts/runnable.ts"></script>

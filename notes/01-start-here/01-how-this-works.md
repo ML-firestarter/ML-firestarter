@@ -21,7 +21,12 @@ notes/
 │   ├── 01-how-this-works.md         ← a lesson
 │   ├── 01-how-this-works.pl.md      ← its Polish translation
 │   └── 02-markdown-cheatsheet.md
-├── 02-foundations/
+├── 02-python/
+│   ├── README.md
+│   └── 01-basics/                   ← a sub-chapter
+│       ├── README.md
+│       └── 01-running-python.md
+├── 04-foundations/
 │   ├── README.md
 │   ├── 01-what-is-machine-learning.md
 │   ├── 02-linear-regression.md
@@ -35,7 +40,7 @@ notes/
 
 ## Order and names
 
-Files and folders whose names start with a number, like `01-`, `02-`, `03-`…, come first, in number order. Everything else follows alphabetically by title, which suits reference chapters such as the vocabulary. The number is left out of the page address and the title, so `02-foundations/01-what-is-machine-learning.md` is published at `/foundations/what-is-machine-learning/`.
+Files and folders whose names start with a number, like `01-`, `02-`, `03-`…, come first, in number order. Everything else follows alphabetically by title, which suits reference chapters such as the vocabulary. The number is left out of the page address and the title, so `04-foundations/01-what-is-machine-learning.md` is published at `/foundations/what-is-machine-learning/`.
 
 A lesson's title is, in order of preference:
 
@@ -62,7 +67,7 @@ draft: true # hides the lesson until you remove this line or set it to false
 
 ## Links and images
 
-Link to another note by its file path, just as you would on GitHub, for example `[Linear regression](../02-foundations/02-linear-regression.md)`. The link works on GitHub and on this site. Add `#section-name` to jump to a heading, like [the normal equation](../02-foundations/02-linear-regression.md#the-normal-equation).
+Link to another note by its file path, just as you would on GitHub, for example `[Linear regression](../04-foundations/02-linear-regression.md)`. The link works on GitHub and on this site. Add `#section-name` to jump to a heading, like [the normal equation](../04-foundations/02-linear-regression.md#the-normal-equation).
 
 Keep images next to your notes (an `images` folder works well) and use a relative path: `![A scatter plot](images/scatter.png)`.
 
@@ -114,6 +119,44 @@ In RL, by contrast, the model only gets a score.
 - `draft: true` in its frontmatter hides a test, and a hidden lesson's test is hidden too.
 - If a test has a mistake, such as a question without a right answer, or there's no lesson at its path, the build fails and says what to fix.
 
+## Exercises
+
+Lessons can end with exercises: small Python tasks that you solve in the page. There's nothing to install, because Python runs in your browser. The first time you run some code, the browser downloads Python, about 6 MB, which takes a few seconds. After that it starts right away.
+
+An exercise's page has the task, an editor with the code to start from, and these buttons:
+
+- **Run** runs your code and shows what it prints under **Output**. When the code reads what's typed in with `input()`, type that in the **Input** box first, one line for each `input()`.
+- **Check** runs the exercise's checks on your code and says which ones pass, and for the others, what your code did and what it should have done.
+- **Stop** ends code that runs too long, like a loop that never ends. Each check stops on its own after 10 seconds.
+- **Start over** puts back the code you started from, and <kbd>Ctrl</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Z</kbd> on a Mac) in the editor brings yours back.
+
+Once your code passes every check, **Our solution** appears under it. Yours doesn't have to look the same: any code that passes the checks is right. Your code is saved in this browser as you type, so you can leave and come back to it.
+
+The code examples in lessons run too: press **Run** under an example, or **Edit** to change it first. **Undo changes** brings back the lesson's version.
+
+To write an exercise, make a folder for it in `exercises/`, inside a folder with its lesson's path, the way tests sit at their lesson's path:
+
+```text
+exercises/02-python/01-basics/01-running-python/
+└── 01-how-long-is-a-week/
+    ├── task.md       ← the task, written like a lesson
+    ├── task.pl.md    ← its Polish translation
+    ├── starter.py    ← the code the reader starts from
+    ├── solution.py   ← our solution
+    └── checks.py     ← what the code has to do
+```
+
+`checks.py` lists the checks: each is a Python expression with what it should give, which is a value, `raises(SomeError)` for an error, or `prints("…")` for printed text. `program()` runs the whole file, and `program("3", "4")` runs it with those two lines typed in:
+
+```python
+CHECKS = [
+    ("area(2, 3)", 6),
+    ("program('3', '4')", prints("Width? 3\nHeight? 4\nArea: 12\n")),
+]
+```
+
+To make a Python example in a lesson runnable, write `python run` after the backticks that open its code block. The [README](https://github.com/ML-firestarter/ML-firestarter#writing-exercises) has the details, including `npm run check:exercises`, which makes sure every solution passes its checks.
+
 ## Tracking progress
 
-Press **Mark lesson as done** at the end of a lesson. After you take a test, your best score shows in the **Tests** tab and at the end of the lesson. Progress and scores are shared between the languages and stored in this browser only, so they don't sync between devices.
+Press **Mark lesson as done** at the end of a lesson. After you take a test, your best score shows in the **Tests** tab and at the end of the lesson. The exercises you've passed get a tick in the lesson's list of exercises, and the sidebar counts them. Progress, scores and your exercises are shared between the languages and stored in this browser only, so they don't sync between devices.

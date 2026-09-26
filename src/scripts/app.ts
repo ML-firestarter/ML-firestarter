@@ -1,10 +1,11 @@
 /**
- * Browser-side behaviour: lesson progress and test scores (kept in this browser's
- * localStorage), the reader's exam results, the light/dark switch, the mobile lessons menu
- * and the account button.
+ * Browser-side behaviour: lesson progress, test scores and exercises passed (kept in this
+ * browser's localStorage), the reader's exam results, the light/dark switch, the mobile
+ * lessons menu and the account button.
  */
 import { readReader, setUpAccount } from './account.ts';
 import { loadExams, paintExams } from './exams.ts';
+import { EXERCISES_KEY, paintExercises } from './exercises.ts';
 import { SCORES_KEY, paintCounter, paintScores } from './scores.ts';
 
 /** Lessons marked as done, by language-neutral path, so progress carries over between languages. */
@@ -88,21 +89,23 @@ document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') setNavOpen(false);
 });
 
-// Another tab marked a lesson as done or finished a test.
+// Another tab marked a lesson as done, finished a test or passed an exercise.
 window.addEventListener('storage', (event) => {
   if (event.key === DONE_KEY) {
     done = readDone();
     paintProgress();
   }
   if (event.key === SCORES_KEY) paintScores();
+  if (event.key === EXERCISES_KEY) paintExercises();
 });
 
-// The back button can bring back a page as it was left, before a lesson was marked or a test taken.
+// The back button can bring back a page as it was left, before a lesson was marked, a test taken or an exercise passed.
 window.addEventListener('pageshow', (event) => {
   if (!event.persisted) return;
   done = readDone();
   paintProgress();
   paintScores();
+  paintExercises();
   paintExamLinks();
 });
 
@@ -120,12 +123,13 @@ function setNavOpen(open: boolean) {
 
 paintProgress();
 paintScores();
+paintExercises();
 setUpAccount();
 paintExamLinks();
 
-// Long course? Scroll the sidebar so the current lesson is visible.
+// Long course? Scroll the sidebar so the current lesson, or the lesson of the current exercise, is visible.
 const sidebar = document.querySelector<HTMLElement>('.sidebar');
-const activeLink = sidebar?.querySelector<HTMLElement>('[aria-current="page"]');
+const activeLink = sidebar?.querySelector<HTMLElement>('[aria-current]');
 if (sidebar && activeLink) {
   const offset = activeLink.getBoundingClientRect().top - sidebar.getBoundingClientRect().top;
   if (offset > sidebar.clientHeight * 0.8) sidebar.scrollTop = offset - sidebar.clientHeight / 3;

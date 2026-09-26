@@ -8,8 +8,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import katex from 'katex';
 import type { HastNode, HastPluginDefinition, HastVisitorContext, MdastPluginDefinition } from 'satteri';
+import type { ShikiTransformer } from 'shiki';
 import { DEFAULT_LANG, ui, type Lang } from './i18n.ts';
-import { examQuestionId, isIndexFile, noteUrl, relativeUrl, splitLang, testUrl } from './paths.ts';
+import { examQuestionId, exerciseUrl, isIndexFile, noteUrl, relativeUrl, splitLang, testUrl } from './paths.ts';
 
 type Element = Extract<HastNode, { type: 'element' }>;
 type Content = Element['children'][number];
@@ -24,6 +25,18 @@ export const katexMath: MdastPluginDefinition = {
 function renderMath(tex: string, displayMode: boolean): string {
   return katex.renderToString(tex, { displayMode, throwOnError: false, strict: 'ignore' });
 }
+
+/**
+ * A Python example whose fence says `run`, like ```` ```python run ````, gets a Run button on the
+ * site (runnable.ts): Shiki marks its <pre> with `data-run`. GitHub ignores the word.
+ */
+export const runnableCode: ShikiTransformer = {
+  name: 'ml-firestarter:runnable-code',
+  pre(node) {
+    const words = (this.options.meta?.__raw ?? '').split(/\s+/);
+    if (['python', 'py'].includes(this.options.lang) && words.includes('run')) node.properties.dataRun = '';
+  },
+};
 
 /** Language of the note being processed, from its file name (`sft.pl.md` is Polish). */
 function noteLang(ctx: HastVisitorContext): Lang {
@@ -95,20 +108,23 @@ export const localizedFootnotes: HastPluginDefinition = {
 };
 
 /**
- * Relative links between notes, like `[see](../02-foundations/01-intro.md#loss)`,
+ * Relative links between notes, like `[see](../04-foundations/01-intro.md#loss)`,
  * work on GitHub; this points them at the matching lesson page on the site too.
  * Links between notes and tests work the same way: `tests/README.md` is the tests
- * overview and `tests/vocabulary/sft.md` the test for `notes/vocabulary/sft.md`.
+ * overview and `tests/vocabulary/sft.md` the test for `notes/vocabulary/sft.md`. So do links
+ * to and from exercises, as their folders or their task.md files.
  * The new link is relative as well, so it stays in the language of the page
  * showing the note, even when that page shows an untranslated original.
  */
-export function noteLinks(roots: { notes: string; tests: string }): HastPluginDefinition {
-  /** Language-neutral URL of the page made from a file or folder; undefined outside notes/ and tests/. */
+export function noteLinks(roots: { notes: string; tests: string; exercises: string }): HastPluginDefinition {
+  /** Language-neutral URL of the page made from a file or folder; undefined outside notes/, tests/ and exercises/. */
   function pageUrl(file: string): string | undefined {
     const note = inside(roots.notes, file);
     if (note !== undefined) return noteUrl(note);
     const test = inside(roots.tests, file);
-    return test === undefined ? undefined : testUrl(noteUrl(test));
+    if (test !== undefined) return testUrl(noteUrl(test));
+    const exercise = inside(roots.exercises, file);
+    return exercise === undefined ? undefined : exerciseUrl(splitLang(exercise).file.replace(/\/?task\.md$/i, ''));
   }
 
   return {

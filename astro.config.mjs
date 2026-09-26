@@ -2,8 +2,8 @@
 import { fileURLToPath } from 'node:url';
 import { satteri } from '@astrojs/markdown-satteri';
 import { defineConfig } from 'astro/config';
-import { dropLeadingH1, githubAlerts, katexMath, localizedFootnotes, noteLinks, quizzes } from './src/lib/markdown.ts';
-import { EXAMS_DIR, NOTES_DIR, TESTS_DIR } from './src/lib/paths.ts';
+import { dropLeadingH1, githubAlerts, katexMath, localizedFootnotes, noteLinks, quizzes, runnableCode } from './src/lib/markdown.ts';
+import { EXAMS_DIR, EXERCISES_DIR, NOTES_DIR, TESTS_DIR } from './src/lib/paths.ts';
 import { devApi } from './src/server/dev.ts';
 import { examQuestions } from './src/server/exam-questions.ts';
 
@@ -27,13 +27,18 @@ export default defineConfig({
         dropLeadingH1,
         githubAlerts,
         localizedFootnotes,
-        noteLinks({ notes: folder(NOTES_DIR), tests: folder(TESTS_DIR) }),
+        noteLinks({ notes: folder(NOTES_DIR), tests: folder(TESTS_DIR), exercises: folder(EXERCISES_DIR) }),
         // Turns tests/ and exams/ into forms; runs last so answers and explanations get the plugins above.
         quizzes({ tests: folder(TESTS_DIR), exams: folder(EXAMS_DIR) }),
       ],
     }),
     shikiConfig: {
       themes: { light: 'github-light', dark: 'github-dark' },
+      transformers: [runnableCode],
     },
+  },
+  vite: {
+    // The Python worker (src/scripts/python.worker.ts) imports Pyodide, which needs a module worker.
+    worker: { format: 'es' },
   },
 });

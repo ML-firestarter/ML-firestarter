@@ -9,14 +9,19 @@ interface Props {
   lang: Lang;
   /** Language-neutral URL of the current page. */
   current: string;
+  /** Language-neutral URL of the page the current one belongs to, like an exercise's lesson, which is marked too. */
+  parent?: string;
   /** Links lessons, or the tests of the lessons that have one. */
   section: 'lessons' | 'tests';
 }
 
-const { node, lang, current, section } = Astro.props;
+const { node, lang, current, parent, section } = Astro.props;
+const t = ui[lang];
 /** Lessons with a test, inside a chapter; the tests sidebar leaves out chapters without any, unless they have an exam. */
 const tested = node.kind === 'chapter' ? node.lessons.filter((lesson) => lesson.test) : [];
 const exam = node.kind === 'chapter' ? node.exam : undefined;
+/** Around the count of a lesson's exercises passed, for screen readers: `{} exercises passed`. */
+const [passedBefore, passedAfter = ''] = t.exercises.progress.split('{}');
 ---
 
 {
@@ -65,7 +70,7 @@ const exam = node.kind === 'chapter' ? node.exam : undefined;
                     <span class="status exam">
                       <Icon name="award" />
                     </span>
-                    <span>{ui[lang].exams.exam}</span>
+                    <span>{t.exams.exam}</span>
                     <span class="score-pill" data-exam-score></span>
                   </a>
                 </li>
@@ -81,17 +86,28 @@ const exam = node.kind === 'chapter' ? node.exam : undefined;
         class="lesson-link"
         href={node.url}
         data-lesson={node.path}
-        aria-current={node.path === current ? 'page' : undefined}
+        aria-current={node.path === current ? 'page' : node.path === parent ? 'true' : undefined}
       >
         <span class="status">
           <Icon name="check" />
         </span>
         <span lang={langAttr(node.lang, lang)}>{node.title}</span>
+        {node.exercises.length > 0 && (
+          <span
+            class="score-pill exercise-pill"
+            data-exercise-progress={JSON.stringify(node.exercises.map((exercise) => exercise.path))}
+            title={t.exercises.title}
+          >
+            {passedBefore && <span class="visually-hidden">{passedBefore}</span>}
+            <span data-progress-label>0/{node.exercises.length}</span>
+            {passedAfter && <span class="visually-hidden">{passedAfter}</span>}
+          </span>
+        )}
       </a>
     </li>
   ) : (
     <li>
-      <details open={current.startsWith(node.path)}>
+      <details open={current.startsWith(node.path) || Boolean(parent?.startsWith(node.path))}>
         <summary data-progress={JSON.stringify(node.lessons.map((lesson) => lesson.path))}>
           <span lang={langAttr(node.lang, lang)}>{node.title}</span>
           <span class="count" data-progress-label>
@@ -102,12 +118,12 @@ const exam = node.kind === 'chapter' ? node.exam : undefined;
           {node.intro && (
             <li>
               <a class="lesson-link overview" href={node.url} aria-current={node.path === current ? 'page' : undefined}>
-                {ui[lang].overview}
+                {t.overview}
               </a>
             </li>
           )}
           {node.children.map((child) => (
-            <Astro.self node={child} lang={lang} current={current} section={section} />
+            <Astro.self node={child} lang={lang} current={current} parent={parent} section={section} />
           ))}
         </ol>
       </details>

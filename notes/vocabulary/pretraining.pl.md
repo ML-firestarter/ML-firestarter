@@ -4,7 +4,7 @@ description: Pierwszy i największy etap treningu, w którym model uczy się prz
 
 # Pretrening
 
-Podczas pretreningu (ang. pretraining) model językowy czyta biliony [tokenów](token.pl.md) tekstu, takiego jak strony internetowe, książki i kod, i w każdym miejscu przewiduje następny token. Funkcja straty (entropia krzyżowa) jest niska, gdy model dał wysokie prawdopodobieństwo tokenowi, który rzeczywiście pojawił się jako następny, a spadek gradientu ją obniża. To ten sam pomysł co w [lekcji o regresji liniowej](../02-foundations/02-linear-regression.pl.md), tylko z miliardami parametrów zamiast dwóch.
+Podczas pretreningu (ang. pretraining) model językowy czyta biliony [tokenów](token.pl.md) tekstu, takiego jak strony internetowe, książki i kod, i w każdym miejscu przewiduje następny token. Funkcja straty (entropia krzyżowa) jest niska, gdy model dał wysokie prawdopodobieństwo tokenowi, który rzeczywiście pojawił się jako następny, a spadek gradientu ją obniża. To ten sam pomysł co w [lekcji o regresji liniowej](../04-foundations/02-linear-regression.pl.md), tylko z miliardami parametrów zamiast dwóch.
 
 Nikt nie musi niczego etykietować, bo odpowiedzi dostarcza sam tekst. Dlatego nazywa się to uczeniem *samonadzorowanym* (ang. self-supervised). Okazuje się, że dobre przewidywanie tekstu wymaga znajomości gramatyki, faktów i pewnej zdolności rozumowania, więc wynik, czyli [model bazowy](base-model.pl.md), wie bardzo dużo.
 

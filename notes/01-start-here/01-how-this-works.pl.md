@@ -21,7 +21,12 @@ notes/
 │   ├── 01-how-this-works.md         ← lekcja
 │   ├── 01-how-this-works.pl.md      ← jej polskie tłumaczenie
 │   └── 02-markdown-cheatsheet.md
-├── 02-foundations/
+├── 02-python/
+│   ├── README.md
+│   └── 01-basics/                   ← podrozdział
+│       ├── README.md
+│       └── 01-running-python.md
+├── 04-foundations/
 │   ├── README.md
 │   ├── 01-what-is-machine-learning.md
 │   ├── 02-linear-regression.md
@@ -35,7 +40,7 @@ notes/
 
 ## Kolejność i nazwy
 
-Najpierw idą pliki i foldery, których nazwy zaczynają się od numeru, jak `01-`, `02-`, `03-`…, w kolejności numerów. Po nich jest cała reszta, alfabetycznie według tytułów, co pasuje do rozdziałów podręcznych, takich jak słownik. Numer nie trafia ani do adresu strony, ani do tytułu, więc `02-foundations/01-what-is-machine-learning.md` jest publikowany pod adresem `/foundations/what-is-machine-learning/`.
+Najpierw idą pliki i foldery, których nazwy zaczynają się od numeru, jak `01-`, `02-`, `03-`…, w kolejności numerów. Po nich jest cała reszta, alfabetycznie według tytułów, co pasuje do rozdziałów podręcznych, takich jak słownik. Numer nie trafia ani do adresu strony, ani do tytułu, więc `04-foundations/01-what-is-machine-learning.md` jest publikowany pod adresem `/foundations/what-is-machine-learning/`.
 
 Tytuł lekcji pochodzi z pierwszego dostępnego źródła:
 
@@ -62,7 +67,7 @@ draft: true # ukrywa lekcję, dopóki nie usuniesz tego wiersza albo nie zmienis
 
 ## Linki i obrazy
 
-Do innej notatki linkuj przez ścieżkę jej pliku, tak jak na GitHubie, na przykład `[Regresja liniowa](../02-foundations/02-linear-regression.pl.md)`. Taki link działa i na GitHubie, i na tej stronie. Dopisz `#nazwa-sekcji`, żeby przejść do konkretnego nagłówka, jak tutaj: [równanie normalne](../02-foundations/02-linear-regression.pl.md#równanie-normalne).
+Do innej notatki linkuj przez ścieżkę jej pliku, tak jak na GitHubie, na przykład `[Regresja liniowa](../04-foundations/02-linear-regression.pl.md)`. Taki link działa i na GitHubie, i na tej stronie. Dopisz `#nazwa-sekcji`, żeby przejść do konkretnego nagłówka, jak tutaj: [równanie normalne](../04-foundations/02-linear-regression.pl.md#równanie-normalne).
 
 Obrazy trzymaj obok notatek (dobrze sprawdza się folder `images`) i podawaj do nich ścieżkę względną: `![Wykres punktowy](images/scatter.png)`.
 
@@ -114,6 +119,44 @@ W RL model dostaje za to tylko ocenę.
 - `draft: true` we frontmatterze ukrywa test, a test ukrytej lekcji też jest ukryty.
 - Jeśli w teście jest błąd, na przykład pytanie bez dobrej odpowiedzi, albo pod jego ścieżką nie ma lekcji, budowanie się nie powiedzie, a komunikat błędu powie, co poprawić.
 
+## Ćwiczenia
+
+Lekcje mogą kończyć się ćwiczeniami: małymi zadaniami w Pythonie, które rozwiązujesz na stronie. Nie trzeba niczego instalować, bo Python działa w twojej przeglądarce. Gdy pierwszy raz uruchamiasz kod, przeglądarka pobiera Pythona, około 6 MB, co trwa kilka sekund. Potem startuje on od razu.
+
+Strona ćwiczenia ma treść zadania, edytor z kodem na start i przyciski:
+
+- **Uruchom** uruchamia kod i pokazuje w polu **Wynik**, co wypisuje. Gdy kod wczytuje dane przez `input()`, najpierw wpisz je w polu **Wejście**, po jednym wierszu na każde `input()`.
+- **Sprawdź** uruchamia sprawdzenia ćwiczenia na twoim kodzie i mówi, które przechodzą, a przy pozostałych, co zrobił twój kod i co powinien był zrobić.
+- **Zatrzymaj** kończy kod, który działa za długo, na przykład pętlę bez końca. Każde sprawdzenie zatrzymuje się samo po 10 sekundach.
+- **Zacznij od nowa** przywraca kod, od którego zaczynasz, a <kbd>Ctrl</kbd>+<kbd>Z</kbd> (<kbd>⌘</kbd>+<kbd>Z</kbd> na Macu) w edytorze przywraca twój.
+
+Gdy kod przejdzie wszystkie sprawdzenia, pod nim pojawia się **Nasze rozwiązanie**. Twoje nie musi wyglądać tak samo: dobry jest każdy kod, który przechodzi sprawdzenia. Kod zapisuje się w tej przeglądarce na bieżąco, więc możesz wyjść i do niego wrócić.
+
+Przykłady kodu w lekcjach też można uruchamiać: naciśnij **Uruchom** pod przykładem albo najpierw **Edytuj**, żeby go zmienić. **Cofnij zmiany** przywraca wersję z lekcji.
+
+Żeby napisać ćwiczenie, utwórz dla niego folder w `exercises/`, w folderze ze ścieżką jego lekcji, tak jak testy leżą pod ścieżką swojej lekcji:
+
+```text
+exercises/02-python/01-basics/01-running-python/
+└── 01-how-long-is-a-week/
+    ├── task.md       ← treść zadania, pisana jak lekcja
+    ├── task.pl.md    ← jej polskie tłumaczenie
+    ├── starter.py    ← kod, od którego zaczyna czytelnik
+    ├── solution.py   ← nasze rozwiązanie
+    └── checks.py     ← co kod ma robić
+```
+
+`checks.py` zawiera listę sprawdzeń: każde to wyrażenie w Pythonie z tym, co powinno dać, czyli wartość, `raises(JakiśBłąd)` dla błędu albo `prints("…")` dla wypisanego tekstu. `program()` uruchamia cały plik, a `program("3", "4")` uruchamia go z tymi dwoma wierszami na wejściu:
+
+```python
+CHECKS = [
+    ("area(2, 3)", 6),
+    ("program('3', '4')", prints("Width? 3\nHeight? 4\nArea: 12\n")),
+]
+```
+
+Żeby przykład w Pythonie dało się uruchomić w lekcji, dopisz `python run` po grawisach, które otwierają jego blok kodu. Szczegóły są w [README](https://github.com/ML-firestarter/ML-firestarter#writing-exercises) (po angielsku), w tym `npm run check:exercises`, które sprawdza, czy każde rozwiązanie przechodzi swoje sprawdzenia.
+
 ## Śledzenie postępów
 
-Na końcu lekcji naciśnij **Oznacz lekcję jako ukończoną**. Po rozwiązaniu testu twój najlepszy wynik widać w zakładce **Testy** i na końcu lekcji. Postęp i wyniki są wspólne dla obu języków i zapisywane tylko w tej przeglądarce, więc nie synchronizują się między urządzeniami.
+Na końcu lekcji naciśnij **Oznacz lekcję jako ukończoną**. Po rozwiązaniu testu twój najlepszy wynik widać w zakładce **Testy** i na końcu lekcji. Zaliczone ćwiczenia dostają znacznik na liście ćwiczeń lekcji, a pasek boczny je zlicza. Postęp, wyniki i twoje ćwiczenia są wspólne dla obu języków i zapisywane tylko w tej przeglądarce, więc nie synchronizują się między urządzeniami.

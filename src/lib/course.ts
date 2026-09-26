@@ -5,7 +5,10 @@
  * Polish version of `sft.md`, and pages without a translation show the original.
  * Tests live in tests/, each at the same path as the lesson it tests. Exam questions live in
  * exams/ the same way, and each top-level chapter with some gets an exam that draws from them.
+ * Exercises live in exercises/, each in a folder of its own inside a folder with its lesson's path.
  */
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 import { getCollection, type CollectionEntry } from 'astro:content';
 import { site } from '../site.config.ts';
 import { DEFAULT_LANG, LANGS, localizeUrl, type Lang } from './i18n.ts';
@@ -14,11 +17,14 @@ import {
   CERTIFICATES_PATH,
   EXAMS_DIR,
   EXAMS_PATH,
+  EXERCISES_DIR,
+  EXERCISES_PATH,
   NOTES_DIR,
   TESTS_DIR,
   TESTS_PATH,
   examQuestionId,
   examUrl,
+  exerciseUrl,
   hasOrder,
   isIndexFile,
   leadingHeading,
@@ -32,13 +38,14 @@ import {
 type Note = CollectionEntry<'notes'>;
 type TestNote = CollectionEntry<'tests'>;
 type ExamNote = CollectionEntry<'exams'>;
+type ExerciseNote = CollectionEntry<'exercises'>;
 
 export interface Lesson {
   kind: 'lesson';
   note: Note;
   /** Language of `note`; not the course's language when the lesson isn't translated yet. */
   lang: Lang;
-  /** Path inside notes/ without a language code, e.g. `02-foundations/01-what-is-ml.md`. */
+  /** Path inside notes/ without a language code, e.g. `04-foundations/01-what-is-ml.md`. */
   file: string;
   /** Language-neutral URL, e.g. `/foundations/what-is-ml/`; also the key for progress and test scores. */
   path: string;
@@ -50,6 +57,8 @@ export interface Lesson {
   /** Enclosing chapters, outermost first. */
   parents: Chapter[];
   test?: Test;
+  /** In order. */
+  exercises: Exercise[];
 }
 
 export interface Chapter {
@@ -77,7 +86,7 @@ export interface Test {
   note: TestNote;
   /** Language of `note`; not the course's language when the test isn't translated yet. */
   lang: Lang;
-  /** Path inside tests/ without a language code, e.g. `02-foundations/02-linear-regression.md`. */
+  /** Path inside tests/ without a language code, e.g. `04-foundations/02-linear-regression.md`. */
   file: string;
   lesson: Lesson;
   /** Language-neutral URL, e.g. `/tests/foundations/linear-regression/`. */
@@ -107,6 +116,34 @@ export interface Exam {
   drawn: number;
 }
 
+export interface Exercise {
+  kind: 'exercise';
+  /** The task.md in the course's language, or the original when it isn't translated yet. */
+  note: ExerciseNote;
+  /** Language of `note`. */
+  lang: Lang;
+  /** Folder inside exercises/, e.g. `python/01-running-python/01-week`. */
+  dir: string;
+  lesson: Lesson;
+  /** Language-neutral URL, e.g. `/exercises/python/running-python/week/`; also the key for the reader's progress and code. */
+  path: string;
+  url: string;
+  title: string;
+  description?: string;
+  /** Its place among the lesson's exercises, counted from 1. */
+  number: number;
+  /** The code the reader starts from: starter.py. */
+  starter: string;
+  /** The code shown once the reader's passes: solution.py. */
+  solution: string;
+  /** The source of checks.py, which harness.py runs on the reader's code. */
+  checks: string;
+  /** Files the code can open, from the exercise's files/ folder, by path inside it, in base64. */
+  files: Record<string, string>;
+  /** What the input box holds at first; undefined when the code doesn't read input(), and there's no box. */
+  input?: string;
+}
+
 /** A lesson's exam questions. */
 export interface ExamPart {
   lesson: Lesson;
@@ -134,11 +171,13 @@ export interface Course {
   testsIntro?: { note: TestNote; lang: Lang };
   /** Every exam, in the order of the chapters. */
   exams: Exam[];
-  /** Lessons, chapters, tests and exams by language-neutral path. */
+  /** Every exercise, in the order of the lessons. */
+  exercises: Exercise[];
+  /** Lessons, chapters, tests, exams and exercises by language-neutral path. */
   byPath: Map<string, Node>;
 }
 
-type Node = Chapter | Lesson | Test | Exam;
+type Node = Chapter | Lesson | Test | Exam | Exercise;
 
 /** File names sort the same way in every language, so numbered lessons keep one order. */
 const nameCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
@@ -198,6 +237,7 @@ async function buildCourse(lang: Lang): Promise<Course> {
       description: note.data.description,
       minutes: readingMinutes(note.body),
       parents: chapter === root ? [] : [...chapter.parents, chapter],
+      exercises: [],
     });
   }
 
@@ -229,7 +269,9 @@ async function buildCourse(lang: Lang): Promise<Course> {
   const testsIntro = await addTests(lang, byPath, drafts);
   const tests = lessons.flatMap((lesson) => lesson.test ?? []);
   const exams = await addExams(lang, root, byPath, drafts);
-  return { lang, root, lessons, chapters, tests, testsIntro, exams, byPath };
+  await addExercises(lang, byPath, drafts);
+  const exercises = lessons.flatMap((lesson) => lesson.exercises);
+  return { lang, root, lessons, chapters, tests, testsIntro, exams, exercises, byPath };
 }
 
 /**
@@ -369,6 +411,114 @@ async function addExams(
   return exams;
 }
 
+/** Code that reads what's typed in, so its exercise's page gets an input box. */
+const READS_INPUT = /\binput\s*\(/;
+
+/** How big an exercise's files can be in all, as they're part of its page. */
+const MAX_FILES_BYTES = 1_000_000;
+
+/**
+ * Gives lessons their exercises: the folders in exercises/ with a task.md, inside a folder with
+ * the lesson's path. Each exercise's folder has its code next to task.md: starter.py,
+ * solution.py and checks.py, and files/ with any files the code opens. Mistakes fail the build;
+ * `npm run check:exercises` runs the checks.
+ */
+async function addExercises(
+  lang: Lang,
+  byPath: Map<string, Node>,
+  /** Paths of lessons hidden with `draft: true`, whose exercises are hidden too. */
+  drafts: Set<string>,
+): Promise<void> {
+  const entries = await getCollection('exercises', (entry) => !entry.data.draft);
+  const example = `"${EXERCISES_DIR}/python/01-running-python/01-week/task.md" for "${NOTES_DIR}/python/01-running-python.md"`;
+
+  for (const [file, versions] of groupTranslations(entries)) {
+    const noteLang = pickLang(versions, lang);
+    const note = versions.get(noteLang)!;
+    const slash = file.lastIndexOf('/');
+    const dir = file.slice(0, Math.max(slash, 0));
+    if (file.slice(slash + 1) !== 'task.md') {
+      throw new Error(`"${note.filePath}" isn't named task.md, or task.pl.md for a translation. An exercise's folder has one task.md, with its translations next to it.`);
+    }
+    if (!dir.includes('/')) {
+      throw new Error(`"${note.filePath}" isn't in a lesson's folder. An exercise's folder sits in a folder with its lesson's path, like ${example}.`);
+    }
+
+    const lessonPath = noteUrl(dir.slice(0, dir.lastIndexOf('/')));
+    const lesson = byPath.get(lessonPath);
+    if (lesson?.kind !== 'lesson') {
+      if (drafts.has(lessonPath)) continue;
+      throw new Error(
+        `"${note.filePath}" has no lesson: there's no lesson at ${lessonPath}. An exercise's folder sits in a folder with its lesson's path, like ${example}.`,
+      );
+    }
+
+    const folder = path.join(EXERCISES_DIR, dir);
+    const read = (name: string) => {
+      const code = path.join(folder, name);
+      if (!existsSync(code)) {
+        throw new Error(`"${folder}/" has no ${name}. Every exercise has the code the reader starts from in starter.py, an answer in solution.py and the checks in checks.py.`);
+      }
+      return readFileSync(code, 'utf8');
+    };
+    const [starter, solution, checks] = [read('starter.py'), read('solution.py'), read('checks.py')];
+    const exercisePath = exerciseUrl(dir);
+    const taken = byPath.get(exercisePath);
+    if (taken?.kind === 'exercise') {
+      throw new Error(`"${taken.note.filePath}" and "${note.filePath}" would both be published at ${exercisePath}. Rename one of their folders.`);
+    }
+
+    const exercise: Exercise = {
+      kind: 'exercise',
+      note,
+      lang: noteLang,
+      dir,
+      lesson,
+      path: exercisePath,
+      url: localizeUrl(exercisePath, lang),
+      title: note.data.title ?? leadingHeading(note.body) ?? prettify(dir.slice(dir.lastIndexOf('/') + 1)),
+      description: note.data.description,
+      number: 0,
+      starter,
+      solution,
+      checks,
+      files: readFiles(folder),
+      input: note.data.input ?? (READS_INPUT.test(starter) || READS_INPUT.test(solution) ? '' : undefined),
+    };
+    lesson.exercises.push(exercise);
+    byPath.set(exercisePath, exercise);
+  }
+
+  for (const node of byPath.values()) {
+    if (node.kind !== 'lesson') continue;
+    node.exercises.sort((a, b) => {
+      const [nameA, nameB] = [a.dir.slice(a.dir.lastIndexOf('/') + 1), b.dir.slice(b.dir.lastIndexOf('/') + 1)];
+      if (hasOrder(nameA) !== hasOrder(nameB)) return hasOrder(nameA) ? -1 : 1;
+      return nameCollator.compare(nameA, nameB);
+    });
+    node.exercises.forEach((exercise, i) => (exercise.number = i + 1));
+  }
+}
+
+/** The files in an exercise's files/ folder, by path inside it, in base64. */
+function readFiles(folder: string): Record<string, string> {
+  const root = path.join(folder, 'files');
+  if (!existsSync(root)) return {};
+  const files: Record<string, string> = {};
+  let bytes = 0;
+  for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const file = path.join(entry.parentPath, entry.name);
+    const data = readFileSync(file);
+    bytes += data.length;
+    files[path.relative(root, file).split(path.sep).join('/')] = data.toString('base64');
+  }
+  if (bytes > MAX_FILES_BYTES) {
+    throw new Error(`The files in "${root}/" come to ${Math.round(bytes / 1000)} kB. They're part of the exercise's page, so keep them under ${MAX_FILES_BYTES / 1000} kB.`);
+  }
+  return files;
+}
+
 /** The answer key the language versions of a lesson's exam questions share; throws if they don't. */
 function sameKey(versions: ExamNote[]): NonNullable<Quiz['key']> {
   const [first, ...others] = versions.map((note) => ({ note, key: readQuiz(note).key ?? [] }));
@@ -410,7 +560,7 @@ function readQuiz(note: TestNote | ExamNote): Quiz {
 }
 
 /** Collects each note's language versions under its path without a language code. */
-function groupTranslations<T extends Note | TestNote | ExamNote>(entries: T[]): Map<string, Map<Lang, T>> {
+function groupTranslations<T extends Note | TestNote | ExamNote | ExerciseNote>(entries: T[]): Map<string, Map<Lang, T>> {
   const groups = new Map<string, Map<Lang, T>>();
   for (const entry of entries) {
     const { file, lang } = splitLang(entryFile(entry));
@@ -468,6 +618,9 @@ function claimPath(byPath: Map<string, Node>, node: Chapter | Lesson) {
   if (node.path.startsWith(CERTIFICATES_PATH)) {
     throw new Error(`"${describe(node)}" would be published at ${node.path}, where the exams' certificates live. Rename it.`);
   }
+  if (node.path.startsWith(EXERCISES_PATH)) {
+    throw new Error(`"${describe(node)}" would be published at ${node.path}, where the exercises live. Rename it.`);
+  }
   const taken = byPath.get(node.path);
   if (taken) {
     throw new Error(
@@ -482,9 +635,9 @@ function readingMinutes(body = ''): number {
   return Math.max(1, Math.round(words / 200));
 }
 
-/** Path of a note inside notes/, a test inside tests/ or exam questions inside exams/, including any language code. */
-function entryFile(entry: Note | TestNote | ExamNote): string {
-  const dir = { notes: NOTES_DIR, tests: TESTS_DIR, exams: EXAMS_DIR }[entry.collection];
+/** Path of a note inside notes/, a test inside tests/, exam questions inside exams/ or a task inside exercises/, including any language code. */
+function entryFile(entry: Note | TestNote | ExamNote | ExerciseNote): string {
+  const dir = { notes: NOTES_DIR, tests: TESTS_DIR, exams: EXAMS_DIR, exercises: EXERCISES_DIR }[entry.collection];
   return (entry.filePath ?? '').slice(dir.length + 1);
 }
 
@@ -493,8 +646,8 @@ export function testGroupId(chapter: Chapter): string {
   return chapter.path.slice(1, -1).replaceAll('/', '-');
 }
 
-/** Link that opens the note or test in GitHub's web editor. */
-export function editUrl(repo: string, branch: string, note: Note | TestNote): string {
+/** Link that opens the note, test or exercise in GitHub's web editor. */
+export function editUrl(repo: string, branch: string, note: Note | TestNote | ExerciseNote): string {
   return `${repo}/edit/${branch}/${encodePath(note.filePath ?? '')}`;
 }
 
@@ -503,8 +656,8 @@ export function newLessonUrl(repo: string, branch: string, chapter: Chapter): st
   return `${repo}/new/${branch}/${encodePath([NOTES_DIR, chapter.dir].filter(Boolean).join('/'))}`;
 }
 
-/** Link to GitHub's "new file" page, named for the note's or test's translation into `lang`. */
-export function translateUrl(repo: string, branch: string, note: Note | TestNote, lang: Lang): string {
+/** Link to GitHub's "new file" page, named for the translation of the note, test or exercise's task into `lang`. */
+export function translateUrl(repo: string, branch: string, note: Note | TestNote | ExerciseNote, lang: Lang): string {
   const file = splitLang(note.filePath ?? '').file;
   const slash = file.lastIndexOf('/');
   const name = withLang(file.slice(slash + 1), lang);
