@@ -1,0 +1,14 @@
+print
+input
+if
+else
+for
+in
+def
+return
+list
+dict
+len
+range
+open
+with

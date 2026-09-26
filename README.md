@@ -16,7 +16,7 @@ notes/
 │   └── 02-markdown-cheatsheet.md
 ├── 02-python/
 │   └── 01-basics/           ← a chapter inside a chapter
-│       └── 01-running-python.md
+│       └── 01-conditions-and-functions.md
 ├── 04-foundations/
 │   └── 01-what-is-machine-learning.md
 └── vocabulary/              ← no numbers, so sorted by title
@@ -59,9 +59,9 @@ Exercises are Python tasks that readers solve in the page: they write code in an
 An exercise is a folder in [`exercises/`](exercises/), inside a folder with its lesson's path, the way tests sit at their lesson's path:
 
 ```text
-exercises/02-python/01-basics/01-running-python/  ← exercises on notes/02-python/01-basics/01-running-python.md
-└── 01-how-long-is-a-week/
-    ├── task.md       ← what to do, published at /exercises/python/basics/running-python/how-long-is-a-week/
+exercises/02-python/01-basics/01-conditions-and-functions/  ← exercises on notes/02-python/01-basics/01-conditions-and-functions.md
+└── 01-old-enough/
+    ├── task.md       ← what to do, published at /exercises/python/basics/conditions-and-functions/old-enough/
     ├── task.pl.md    ← the same in Polish
     ├── starter.py    ← the code the reader starts from
     ├── solution.py   ← our solution, shown once the reader's code passes
