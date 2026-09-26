@@ -25,7 +25,7 @@ notes/
 │   ├── README.md
 │   └── 01-basics/                   ← podrozdział
 │       ├── README.md
-│       └── 01-running-python.md
+│       └── 01-conditions-and-functions.md
 ├── 04-foundations/
 │   ├── README.md
 │   ├── 01-what-is-machine-learning.md
@@ -137,8 +137,8 @@ Przykłady kodu w lekcjach też można uruchamiać: naciśnij **Uruchom** pod pr
 Żeby napisać ćwiczenie, utwórz dla niego folder w `exercises/`, w folderze ze ścieżką jego lekcji, tak jak testy leżą pod ścieżką swojej lekcji:
 
 ```text
-exercises/02-python/01-basics/01-running-python/
-└── 01-how-long-is-a-week/
+exercises/02-python/01-basics/01-conditions-and-functions/
+└── 01-old-enough/
     ├── task.md       ← treść zadania, pisana jak lekcja
     ├── task.pl.md    ← jej polskie tłumaczenie
     ├── starter.py    ← kod, od którego zaczyna czytelnik

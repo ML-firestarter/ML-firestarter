@@ -25,7 +25,7 @@ notes/
 │   ├── README.md
 │   └── 01-basics/                   ← a sub-chapter
 │       ├── README.md
-│       └── 01-running-python.md
+│       └── 01-conditions-and-functions.md
 ├── 04-foundations/
 │   ├── README.md
 │   ├── 01-what-is-machine-learning.md
@@ -137,8 +137,8 @@ The code examples in lessons run too: press **Run** under an example, or **Edit*
 To write an exercise, make a folder for it in `exercises/`, inside a folder with its lesson's path, the way tests sit at their lesson's path:
 
 ```text
-exercises/02-python/01-basics/01-running-python/
-└── 01-how-long-is-a-week/
+exercises/02-python/01-basics/01-conditions-and-functions/
+└── 01-old-enough/
     ├── task.md       ← the task, written like a lesson
     ├── task.pl.md    ← its Polish translation
     ├── starter.py    ← the code the reader starts from
