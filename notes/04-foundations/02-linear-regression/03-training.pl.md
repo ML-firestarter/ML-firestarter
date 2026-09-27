@@ -182,7 +182,7 @@ Ustaw `learning_rate` na `0.02`: trening dociera na miejsce mniej więcej dwa ra
 
 ## Dlaczego nie rozwiązać tego wprost?
 
-Dla dwóch paragonów lekcja [Przewidywanie](01-predictions.pl.md#skąd-się-biorą-w-i-b) wyznaczyła $w$ i $b$ wprost, bez żadnych kroków. Regresja liniowa ma rozwiązanie wprost także dla dowolnej liczby paragonów. Pokazuje je część [Równanie normalne](#równanie-normalne) na końcu tej lekcji. Prawie żaden inny model go jednak nie ma: regresję logistyczną, sieci neuronowe i modele językowe da się trenować tylko krok po kroku. Spadek gradientu działa dla nich wszystkich i dlatego warto poznać go najpierw na najprostszym modelu.
+Dla dwóch paragonów lekcja [Przewidywanie](01-predictions.pl.md#skąd-się-biorą-w-i-b) wyznaczyła $w$ i $b$ wprost, bez żadnych kroków. Regresja liniowa ma rozwiązanie wprost także dla dowolnej liczby paragonów. Pokazuje je część [Równanie normalne](#równanie-normalne) na końcu tej lekcji. Prawie żaden inny model go jednak nie ma: [regresję logistyczną](../03-logistic-regression/), sieci neuronowe i modele językowe da się trenować tylko krok po kroku. Spadek gradientu działa dla nich wszystkich i dlatego warto poznać go najpierw na najprostszym modelu.
 
 ## Cała metoda na jednej stronie
 

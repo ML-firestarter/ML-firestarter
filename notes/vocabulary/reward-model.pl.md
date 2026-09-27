@@ -12,7 +12,7 @@ $$
 \mathcal{L} = -\log \sigma\big( r(x, y_w) - r(x, y_l) \big)
 $$
 
-gdzie $\sigma$ to funkcja sigmoidalna. Im większa różnica we właściwą stronę, tym mniejsza strata.
+gdzie $\sigma$ to [funkcja sigmoidalna](../04-foundations/03-logistic-regression/01-probabilities.pl.md#ściskanie-prostej). Im większa różnica we właściwą stronę, tym mniejsza strata.
 
 Po wytrenowaniu model nagrody może ocenić miliony odpowiedzi podczas [RLHF](rlhf.pl.md) bez udziału człowieka. Tylko jednak przybliża ludzki osąd, a [polityka](policy.pl.md) wykorzysta jego błędy, jeśli tylko zdoła; zob. [hakowanie nagrody](reward-hacking.pl.md).
 

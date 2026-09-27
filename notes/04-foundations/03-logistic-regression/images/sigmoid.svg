@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15">
+  <title>The sigmoid of z, an S that rises from almost 0 to almost 1, and goes through 0.5 at z = 0</title>
+  <g fill="none" stroke="#8a847d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 30V310H600" />
+    <path d="M74 40l6-10 6 10M590 304l10 6-10 6" />
+  </g>
+  <g stroke="#8a847d" stroke-width="1.5">
+    <path d="M80 310v5" />
+    <path d="M160 310v5" />
+    <path d="M240 310v5" />
+    <path d="M320 310v5" />
+    <path d="M400 310v5" />
+    <path d="M480 310v5" />
+    <path d="M560 310v5" />
+    <path d="M80 310h-5" />
+    <path d="M80 180h-5" />
+    <path d="M80 50h-5" />
+  </g>
+  <g fill="#8a847d" font-size="13">
+    <text x="80" y="331" text-anchor="middle">−6</text>
+    <text x="160" y="331" text-anchor="middle">−4</text>
+    <text x="240" y="331" text-anchor="middle">−2</text>
+    <text x="320" y="331" text-anchor="middle">0</text>
+    <text x="400" y="331" text-anchor="middle">2</text>
+    <text x="480" y="331" text-anchor="middle">4</text>
+    <text x="560" y="331" text-anchor="middle">6</text>
+    <text x="71" y="314.5" text-anchor="end">0</text>
+    <text x="71" y="184.5" text-anchor="end">0.5</text>
+    <text x="71" y="54.5" text-anchor="end">1</text>
+  </g>
+  <text x="590" y="340" fill="#8a847d" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="18">z</text>
+  <text x="92" y="40" fill="#8a847d" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="18">σ(z)</text>
+  <path d="M80 50H560" stroke="#8a847d" stroke-width="1.5" stroke-dasharray="4 4" />
+  <path d="M320 310V180H80" fill="none" stroke="#8a847d" stroke-width="1.5" stroke-dasharray="4 4" />
+  <path d="M80 309.4L83 309.3L86 309.3L89 309.2L92 309.1L95 309.1L98 309L101 308.9L104 308.8L107 308.7L110 308.6L113 308.5L116 308.4L119 308.3L122 308.2L125 308L128 307.9L131 307.7L134 307.5L137 307.3L140 307.1L143 306.9L146 306.7L149 306.4L152 306.2L155 305.9L158 305.5L161 305.2L164 304.8L167 304.4L170 304L173 303.6L176 303.1L179 302.6L182 302L185 301.4L188 300.8L191 300.1L194 299.3L197 298.5L200 297.7L203 296.8L206 295.8L209 294.7L212 293.6L215 292.4L218 291.2L221 289.8L224 288.4L227 286.8L230 285.2L233 283.5L236 281.6L239 279.7L242 277.6L245 275.4L248 273.1L251 270.7L254 268.1L257 265.4L260 262.6L263 259.6L266 256.5L269 253.2L272 249.8L275 246.3L278 242.6L281 238.8L284 234.8L287 230.8L290 226.6L293 222.3L296 217.9L299 213.4L302 208.8L305 204.1L308 199.4L311 194.6L314 189.7L317 184.9L320 180L323 175.1L326 170.3L329 165.4L332 160.6L335 155.9L338 151.2L341 146.6L344 142.1L347 137.7L350 133.4L353 129.2L356 125.2L359 121.2L362 117.4L365 113.7L368 110.2L371 106.8L374 103.5L377 100.4L380 97.4L383 94.6L386 91.9L389 89.3L392 86.9L395 84.6L398 82.4L401 80.3L404 78.4L407 76.5L410 74.8L413 73.2L416 71.6L419 70.2L422 68.8L425 67.6L428 66.4L431 65.3L434 64.2L437 63.2L440 62.3L443 61.5L446 60.7L449 59.9L452 59.2L455 58.6L458 58L461 57.4L464 56.9L467 56.4L470 56L473 55.6L476 55.2L479 54.8L482 54.5L485 54.1L488 53.8L491 53.6L494 53.3L497 53.1L500 52.9L503 52.7L506 52.5L509 52.3L512 52.1L515 52L518 51.8L521 51.7L524 51.6L527 51.5L530 51.4L533 51.3L536 51.2L539 51.1L542 51L545 50.9L548 50.9L551 50.8L554 50.7L557 50.7L560 50.6" fill="none" stroke="#2f6fdb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <g fill="#e8590c">
+    <circle cx="200" cy="297.7" r="6" />
+    <circle cx="240" cy="279" r="6" />
+    <circle cx="280" cy="240.1" r="6" />
+    <circle cx="320" cy="180" r="6" />
+    <circle cx="360" cy="119.9" r="6" />
+    <circle cx="400" cy="81" r="6" />
+    <circle cx="440" cy="62.3" r="6" />
+  </g>
+  <g fill="#8a847d">
+    <text x="334" y="202" font-size="14">σ(0) = 0.5</text>
+  </g>
+</svg>

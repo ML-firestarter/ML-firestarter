@@ -10,7 +10,7 @@ $$
 \mathcal{L}_\text{DPO} = -\log \sigma\left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_\text{ref}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_\text{ref}(y_l \mid x)} \right)
 $$
 
-Tutaj $x$ to prompt, $y_w$ i $y_l$ to odpowiedź preferowana i odrzucona, $\pi_\theta$ to trenowany model, $\pi_\text{ref}$ to zamrożona kopia, $\sigma$ to funkcja sigmoidalna, a $\beta$ określa, jak mocno model jest trzymany blisko modelu odniesienia, podobnie jak kara KL w RLHF.
+Tutaj $x$ to prompt, $y_w$ i $y_l$ to odpowiedź preferowana i odrzucona, $\pi_\theta$ to trenowany model, $\pi_\text{ref}$ to zamrożona kopia, $\sigma$ to [funkcja sigmoidalna](../04-foundations/03-logistic-regression/01-probabilities.pl.md#ściskanie-prostej), a $\beta$ określa, jak mocno model jest trzymany blisko modelu odniesienia, podobnie jak kara KL w RLHF.
 
 Artykuł o DPO (Rafailov i in., 2023) pokazał, że ta metoda optymalizuje ten sam cel co RLHF, a trenuje się ją jak zwykłe uczenie nadzorowane: prościej, taniej i stabilniej. Dlatego stała się popularnym wyborem, zwłaszcza w przypadku modeli otwartych.
 

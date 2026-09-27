@@ -12,7 +12,7 @@ $$
 \mathcal{L} = -\log \sigma\big( r(x, y_w) - r(x, y_l) \big)
 $$
 
-where $\sigma$ is the sigmoid function. The bigger the gap in the right direction, the smaller the loss.
+where $\sigma$ is the [sigmoid function](../04-foundations/03-logistic-regression/01-probabilities.md#squashing-the-line). The bigger the gap in the right direction, the smaller the loss.
 
 Once trained, it can score millions of responses during [RLHF](rlhf.md) with no person in the loop. But it only approximates human judgment, and the [policy](policy.md) will exploit its mistakes if it can; see [reward hacking](reward-hacking.md).
 

@@ -10,7 +10,7 @@ $$
 \mathcal{L}_\text{DPO} = -\log \sigma\left( \beta \log \frac{\pi_\theta(y_w \mid x)}{\pi_\text{ref}(y_w \mid x)} - \beta \log \frac{\pi_\theta(y_l \mid x)}{\pi_\text{ref}(y_l \mid x)} \right)
 $$
 
-Here $x$ is the prompt, $y_w$ and $y_l$ are the preferred and rejected responses, $\pi_\theta$ is the model being trained, $\pi_\text{ref}$ is the frozen copy, $\sigma$ is the sigmoid function, and $\beta$ sets how strongly the model is held close to the reference, like the KL penalty in RLHF.
+Here $x$ is the prompt, $y_w$ and $y_l$ are the preferred and rejected responses, $\pi_\theta$ is the model being trained, $\pi_\text{ref}$ is the frozen copy, $\sigma$ is the [sigmoid function](../04-foundations/03-logistic-regression/01-probabilities.md#squashing-the-line), and $\beta$ sets how strongly the model is held close to the reference, like the KL penalty in RLHF.
 
 The DPO paper (Rafailov et al., 2023) showed that this optimizes the same objective as RLHF, while training like ordinary supervised learning: simpler, cheaper and more stable. That made it a popular choice, especially for open models.
 

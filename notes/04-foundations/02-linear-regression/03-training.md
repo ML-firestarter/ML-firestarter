@@ -182,7 +182,7 @@ Try a learning rate of 0.02: it gets there about twice as fast. With 0.04, it di
 
 ## Why not solve it directly?
 
-For two receipts, [Making predictions](01-predictions.md#where-do-w-and-b-come-from) worked out $w$ and $b$ directly, without any steps. Linear regression has a direct solution for any number of receipts too, shown in [The normal equation](#the-normal-equation) at the end of this lesson. But almost no other model has one: logistic regression, neural networks and language models can only be trained step by step. Gradient descent works for all of them, which is why it's worth learning on the simplest model first.
+For two receipts, [Making predictions](01-predictions.md#where-do-w-and-b-come-from) worked out $w$ and $b$ directly, without any steps. Linear regression has a direct solution for any number of receipts too, shown in [The normal equation](#the-normal-equation) at the end of this lesson. But almost no other model has one: [logistic regression](../03-logistic-regression/), neural networks and language models can only be trained step by step. Gradient descent works for all of them, which is why it's worth learning on the simplest model first.
 
 ## The whole method on one page
 

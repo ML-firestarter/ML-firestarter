@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15">
+  <title>Sześć zamówień, na wysokości 1, jeśli je anulowano, i 0, jeśli nie, z krzywą reguły i przerywanymi odstępami, które są długie przy 6 i 10 minutach</title>
+  <g fill="none" stroke="#8a847d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 30V310H600" />
+    <path d="M74 40l6-10 6 10M590 304l10 6-10 6" />
+  </g>
+  <g stroke="#8a847d" stroke-width="1.5">
+    <path d="M80 310v5" />
+    <path d="M140 310v5" />
+    <path d="M200 310v5" />
+    <path d="M260 310v5" />
+    <path d="M320 310v5" />
+    <path d="M380 310v5" />
+    <path d="M440 310v5" />
+    <path d="M500 310v5" />
+    <path d="M560 310v5" />
+    <path d="M80 310h-5" />
+    <path d="M80 180h-5" />
+    <path d="M80 50h-5" />
+  </g>
+  <g fill="#8a847d" font-size="13">
+    <text x="80" y="331" text-anchor="middle">0</text>
+    <text x="140" y="331" text-anchor="middle">2</text>
+    <text x="200" y="331" text-anchor="middle">4</text>
+    <text x="260" y="331" text-anchor="middle">6</text>
+    <text x="320" y="331" text-anchor="middle">8</text>
+    <text x="380" y="331" text-anchor="middle">10</text>
+    <text x="440" y="331" text-anchor="middle">12</text>
+    <text x="500" y="331" text-anchor="middle">14</text>
+    <text x="560" y="331" text-anchor="middle">16</text>
+    <text x="71" y="314.5" text-anchor="end">0</text>
+    <text x="71" y="184.5" text-anchor="end">0,5</text>
+    <text x="71" y="54.5" text-anchor="end">1</text>
+  </g>
+  <g fill="#8a847d">
+    <text x="600" y="352" text-anchor="end">czas oczekiwania (min)</text>
+  </g>
+  <g stroke="#8a847d" stroke-width="1.5" stroke-dasharray="4 4">
+    <path d="M140 310V297.7" />
+    <path d="M200 310V279" />
+    <path d="M260 50V240.1" />
+    <path d="M380 310V119.9" />
+    <path d="M440 50V81" />
+    <path d="M500 50V62.3" />
+  </g>
+  <path d="M80 305.3L83 305.1L86 304.8L89 304.6L92 304.3L95 304L98 303.7L101 303.4L104 303.1L107 302.7L110 302.4L113 302L116 301.6L119 301.2L122 300.8L125 300.3L128 299.8L131 299.3L134 298.8L137 298.2L140 297.7L143 297.1L146 296.4L149 295.8L152 295.1L155 294.4L158 293.6L161 292.8L164 292L167 291.2L170 290.3L173 289.3L176 288.4L179 287.4L182 286.3L185 285.2L188 284.1L191 282.9L194 281.6L197 280.3L200 279L203 277.6L206 276.2L209 274.7L212 273.1L215 271.5L218 269.8L221 268.1L224 266.3L227 264.5L230 262.6L233 260.6L236 258.6L239 256.5L242 254.3L245 252.1L248 249.8L251 247.5L254 245.1L257 242.6L260 240.1L263 237.5L266 234.8L269 232.1L272 229.4L275 226.6L278 223.7L281 220.8L284 217.9L287 214.9L290 211.8L293 208.8L296 205.7L299 202.5L302 199.4L305 196.2L308 193L311 189.7L314 186.5L317 183.2L320 180L323 176.8L326 173.5L329 170.3L332 167L335 163.8L338 160.6L341 157.5L344 154.3L347 151.2L350 148.2L353 145.1L356 142.1L359 139.2L362 136.3L365 133.4L368 130.6L371 127.9L374 125.2L377 122.5L380 119.9L383 117.4L386 114.9L389 112.5L392 110.2L395 107.9L398 105.7L401 103.5L404 101.4L407 99.4L410 97.4L413 95.5L416 93.7L419 91.9L422 90.2L425 88.5L428 86.9L431 85.3L434 83.8L437 82.4L440 81L443 79.7L446 78.4L449 77.1L452 75.9L455 74.8L458 73.7L461 72.6L464 71.6L467 70.7L470 69.7L473 68.8L476 68L479 67.2L482 66.4L485 65.6L488 64.9L491 64.2L494 63.6L497 62.9L500 62.3L503 61.8L506 61.2L509 60.7L512 60.2L515 59.7L518 59.2L521 58.8L524 58.4L527 58L530 57.6L533 57.3L536 56.9L539 56.6L542 56.3L545 56L548 55.7L551 55.4L554 55.2L557 54.9L560 54.7" fill="none" stroke="#2f6fdb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <g fill="#e8590c">
+    <circle cx="140" cy="310" r="6" />
+    <circle cx="200" cy="310" r="6" />
+    <circle cx="260" cy="50" r="6" />
+    <circle cx="380" cy="310" r="6" />
+    <circle cx="440" cy="50" r="6" />
+    <circle cx="500" cy="50" r="6" />
+  </g>
+  <g fill="#8a847d">
+    <circle cx="440" cy="215" r="6" fill="#e8590c" />
+    <text x="458" y="220">zamówienie, y</text>
+    <path d="M430 240H450" stroke="#2f6fdb" stroke-width="3" stroke-linecap="round" />
+    <text x="458" y="245">reguła, p</text>
+    <path d="M440 256V274" stroke="#8a847d" stroke-width="1.5" stroke-dasharray="4 4" />
+    <text x="458" y="270">odstęp</text>
+  </g>
+</svg>
