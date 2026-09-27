@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15">
+  <title>Dwa neurony: h₁ = σ(−2x + 6) spada od prawie 1 do prawie 0 w okolicy 3 km, a h₂ = σ(2x − 22) rośnie od prawie 0 do prawie 1 w okolicy 11 km</title>
+  <g fill="none" stroke="#8a847d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 30V310H600" />
+    <path d="M74 40l6-10 6 10M590 304l10 6-10 6" />
+  </g>
+  <g stroke="#8a847d" stroke-width="1.5">
+    <path d="M80 310v5" />
+    <path d="M140 310v5" />
+    <path d="M200 310v5" />
+    <path d="M260 310v5" />
+    <path d="M320 310v5" />
+    <path d="M380 310v5" />
+    <path d="M440 310v5" />
+    <path d="M500 310v5" />
+    <path d="M560 310v5" />
+    <path d="M80 310h-5" />
+    <path d="M80 180h-5" />
+    <path d="M80 50h-5" />
+  </g>
+  <g fill="#8a847d" font-size="13">
+    <text x="80" y="331" text-anchor="middle">0</text>
+    <text x="140" y="331" text-anchor="middle">2</text>
+    <text x="200" y="331" text-anchor="middle">4</text>
+    <text x="260" y="331" text-anchor="middle">6</text>
+    <text x="320" y="331" text-anchor="middle">8</text>
+    <text x="380" y="331" text-anchor="middle">10</text>
+    <text x="440" y="331" text-anchor="middle">12</text>
+    <text x="500" y="331" text-anchor="middle">14</text>
+    <text x="560" y="331" text-anchor="middle">16</text>
+    <text x="71" y="314.5" text-anchor="end">0</text>
+    <text x="71" y="184.5" text-anchor="end">0,5</text>
+    <text x="71" y="54.5" text-anchor="end">1</text>
+  </g>
+  <g fill="#8a847d">
+    <text x="600" y="352" text-anchor="end">kurs (km)</text>
+  </g>
+  <path d="M170 310V180" fill="none" stroke="#8a847d" stroke-width="1.5" stroke-dasharray="4 4" />
+  <path d="M410 310V180" fill="none" stroke="#8a847d" stroke-width="1.5" stroke-dasharray="4 4" />
+  <path d="M80 180H560" stroke="#8a847d" stroke-width="1.5" stroke-dasharray="4 4" />
+  <path d="M80 50.6L83 50.8L86 51L89 51.2L92 51.4L95 51.7L98 52.1L101 52.6L104 53.2L107 53.8L110 54.7L113 55.7L116 56.9L119 58.4L122 60.2L125 62.3L128 64.9L131 68L134 71.6L137 75.9L140 81L143 86.9L146 93.7L149 101.4L152 110.2L155 119.9L158 130.6L161 142.1L164 154.3L167 167L170 180L173 193L176 205.7L179 217.9L182 229.4L185 240.1L188 249.8L191 258.6L194 266.3L197 273.1L200 279L203 284.1L206 288.4L209 292L212 295.1L215 297.7L218 299.8L221 301.6L224 303.1L227 304.3L230 305.3L233 306.2L236 306.8L239 307.4L242 307.9L245 308.3L248 308.6L251 308.8L254 309L257 309.2L260 309.4L263 309.5L266 309.6L269 309.6L272 309.7L275 309.8L278 309.8L281 309.8L284 309.9L287 309.9L290 309.9L293 309.9L296 309.9L299 310L302 310L305 310L308 310L311 310L314 310L317 310L320 310L323 310L326 310L329 310L332 310L335 310L338 310L341 310L344 310L347 310L350 310L353 310L356 310L359 310L362 310L365 310L368 310L371 310L374 310L377 310L380 310L383 310L386 310L389 310L392 310L395 310L398 310L401 310L404 310L407 310L410 310L413 310L416 310L419 310L422 310L425 310L428 310L431 310L434 310L437 310L440 310L443 310L446 310L449 310L452 310L455 310L458 310L461 310L464 310L467 310L470 310L473 310L476 310L479 310L482 310L485 310L488 310L491 310L494 310L497 310L500 310L503 310L506 310L509 310L512 310L515 310L518 310L521 310L524 310L527 310L530 310L533 310L536 310L539 310L542 310L545 310L548 310L551 310L554 310L557 310L560 310" fill="none" stroke="#2f6fdb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M80 310L83 310L86 310L89 310L92 310L95 310L98 310L101 310L104 310L107 310L110 310L113 310L116 310L119 310L122 310L125 310L128 310L131 310L134 310L137 310L140 310L143 310L146 310L149 310L152 310L155 310L158 310L161 310L164 310L167 310L170 310L173 310L176 310L179 310L182 310L185 310L188 310L191 310L194 310L197 310L200 310L203 310L206 310L209 310L212 310L215 310L218 310L221 310L224 310L227 310L230 310L233 310L236 310L239 310L242 310L245 310L248 310L251 310L254 310L257 310L260 310L263 310L266 310L269 310L272 310L275 310L278 310L281 310L284 309.9L287 309.9L290 309.9L293 309.9L296 309.9L299 309.8L302 309.8L305 309.8L308 309.7L311 309.6L314 309.6L317 309.5L320 309.4L323 309.2L326 309L329 308.8L332 308.6L335 308.3L338 307.9L341 307.4L344 306.8L347 306.2L350 305.3L353 304.3L356 303.1L359 301.6L362 299.8L365 297.7L368 295.1L371 292L374 288.4L377 284.1L380 279L383 273.1L386 266.3L389 258.6L392 249.8L395 240.1L398 229.4L401 217.9L404 205.7L407 193L410 180L413 167L416 154.3L419 142.1L422 130.6L425 119.9L428 110.2L431 101.4L434 93.7L437 86.9L440 81L443 75.9L446 71.6L449 68L452 64.9L455 62.3L458 60.2L461 58.4L464 56.9L467 55.7L470 54.7L473 53.8L476 53.2L479 52.6L482 52.1L485 51.7L488 51.4L491 51.2L494 51L497 50.8L500 50.6L503 50.5L506 50.4L509 50.4L512 50.3L515 50.2L518 50.2L521 50.2L524 50.1L527 50.1L530 50.1L533 50.1L536 50.1L539 50L542 50L545 50L548 50L551 50L554 50L557 50L560 50" fill="none" stroke="#e8590c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <g fill="#8a847d">
+    <path d="M170 75H190" stroke="#2f6fdb" stroke-width="3" stroke-linecap="round" />
+    <text x="198" y="80"><tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">h₁</tspan> = σ(−2<tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">x</tspan> + 6), krótki kurs</text>
+    <path d="M170 100H190" stroke="#e8590c" stroke-width="3" stroke-linecap="round" />
+    <text x="198" y="105"><tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">h₂</tspan> = σ(2<tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">x</tspan> − 22), długi kurs</text>
+  </g>
+</svg>

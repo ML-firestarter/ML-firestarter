@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15">
+  <title>The counted fractions of turned-down orders make a U, high for short and long rides and low in between, and the best logistic regression only rises gently, from 0.18 at 2 km to 0.48 at 14 km</title>
+  <g fill="none" stroke="#8a847d" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M80 30V310H600" />
+    <path d="M74 40l6-10 6 10M590 304l10 6-10 6" />
+  </g>
+  <g stroke="#8a847d" stroke-width="1.5">
+    <path d="M80 310v5" />
+    <path d="M140 310v5" />
+    <path d="M200 310v5" />
+    <path d="M260 310v5" />
+    <path d="M320 310v5" />
+    <path d="M380 310v5" />
+    <path d="M440 310v5" />
+    <path d="M500 310v5" />
+    <path d="M560 310v5" />
+    <path d="M80 310h-5" />
+    <path d="M80 180h-5" />
+    <path d="M80 50h-5" />
+  </g>
+  <g fill="#8a847d" font-size="13">
+    <text x="80" y="331" text-anchor="middle">0</text>
+    <text x="140" y="331" text-anchor="middle">2</text>
+    <text x="200" y="331" text-anchor="middle">4</text>
+    <text x="260" y="331" text-anchor="middle">6</text>
+    <text x="320" y="331" text-anchor="middle">8</text>
+    <text x="380" y="331" text-anchor="middle">10</text>
+    <text x="440" y="331" text-anchor="middle">12</text>
+    <text x="500" y="331" text-anchor="middle">14</text>
+    <text x="560" y="331" text-anchor="middle">16</text>
+    <text x="71" y="314.5" text-anchor="end">0</text>
+    <text x="71" y="184.5" text-anchor="end">0.5</text>
+    <text x="71" y="54.5" text-anchor="end">1</text>
+  </g>
+  <g fill="#8a847d">
+    <text x="600" y="352" text-anchor="end">ride (km)</text>
+    <text x="92" y="40">probability</text>
+  </g>
+  <path d="M80 272.7L83 272.3L86 271.9L89 271.5L92 271.1L95 270.7L98 270.3L101 269.8L104 269.4L107 269L110 268.6L113 268.1L116 267.7L119 267.3L122 266.8L125 266.4L128 265.9L131 265.5L134 265L137 264.6L140 264.1L143 263.6L146 263.2L149 262.7L152 262.2L155 261.7L158 261.3L161 260.8L164 260.3L167 259.8L170 259.3L173 258.8L176 258.3L179 257.8L182 257.3L185 256.7L188 256.2L191 255.7L194 255.2L197 254.6L200 254.1L203 253.5L206 253L209 252.5L212 251.9L215 251.3L218 250.8L221 250.2L224 249.7L227 249.1L230 248.5L233 247.9L236 247.3L239 246.8L242 246.2L245 245.6L248 245L251 244.4L254 243.8L257 243.2L260 242.6L263 241.9L266 241.3L269 240.7L272 240.1L275 239.4L278 238.8L281 238.2L284 237.5L287 236.9L290 236.2L293 235.6L296 234.9L299 234.3L302 233.6L305 233L308 232.3L311 231.6L314 230.9L317 230.3L320 229.6L323 228.9L326 228.2L329 227.5L332 226.8L335 226.1L338 225.4L341 224.7L344 224L347 223.3L350 222.6L353 221.9L356 221.2L359 220.5L362 219.7L365 219L368 218.3L371 217.6L374 216.8L377 216.1L380 215.4L383 214.6L386 213.9L389 213.1L392 212.4L395 211.6L398 210.9L401 210.1L404 209.4L407 208.6L410 207.8L413 207.1L416 206.3L419 205.6L422 204.8L425 204L428 203.2L431 202.5L434 201.7L437 200.9L440 200.1L443 199.4L446 198.6L449 197.8L452 197L455 196.2L458 195.4L461 194.6L464 193.9L467 193.1L470 192.3L473 191.5L476 190.7L479 189.9L482 189.1L485 188.3L488 187.5L491 186.7L494 185.9L497 185.1L500 184.3L503 183.5L506 182.7L509 181.9L512 181.1L515 180.3L518 179.5L521 178.7L524 178L527 177.2L530 176.4L533 175.6L536 174.8L539 174L542 173.2L545 172.4L548 171.6L551 170.8L554 170L557 169.2L560 168.4" fill="none" stroke="#2f6fdb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  <g fill="#e8590c">
+    <circle cx="140" cy="146.2" r="6" />
+    <circle cx="200" cy="291.8" r="6" />
+    <circle cx="260" cy="297" r="6" />
+    <circle cx="320" cy="297" r="6" />
+    <circle cx="380" cy="291.8" r="6" />
+    <circle cx="440" cy="146.2" r="6" />
+    <circle cx="500" cy="120.2" r="6" />
+  </g>
+  <g fill="#8a847d">
+    <circle cx="220" cy="75" r="6" fill="#e8590c" />
+    <text x="238" y="80">counted</text>
+    <path d="M210 100H230" stroke="#2f6fdb" stroke-width="3" stroke-linecap="round" />
+    <text x="238" y="105">best logistic regression</text>
+  </g>
+</svg>

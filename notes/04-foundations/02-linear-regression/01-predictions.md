@@ -43,12 +43,12 @@ $$
 
 Each letter stands for one part of the taxi rule:
 
-| Symbol    | For the taxi           | Its name                                                              |
-| --------- | ---------------------- | --------------------------------------------------------------------- |
-| $x$       | the distance, 5 km     | the **feature**: what the prediction is made from                     |
-| $w$       | the price per km, 3    | the **weight**: how much the prediction grows when $x$ grows by 1     |
-| $b$       | the starting fee, 8    | the **bias**: the prediction when $x$ is 0                            |
-| $\hat{y}$ | the predicted fare, 23 | the **prediction**                                                    |
+| Symbol    | For the taxi           | Its name                                                          |
+| --------- | ---------------------- | ----------------------------------------------------------------- |
+| $x$       | the distance, 5 km     | the **feature**: what the prediction is made from                 |
+| $w$       | the price per km, 3    | the **weight**: how much the prediction grows when $x$ grows by 1 |
+| $b$       | the starting fee, 8    | the **bias**: the prediction when $x$ is 0                        |
+| $\hat{y}$ | the predicted fare, 23 | the **prediction**                                                |
 
 Two letters side by side are multiplied, so $wx$ means $w$ times $x$. $\hat{y}$ is read "y-hat", and the hat marks a prediction. Plain $y$ is the real fare, the one printed on the receipt, and it's called the **label**. With the sticker's own rule, the two are always the same, but the next two lessons are all about what happens when they aren't.
 

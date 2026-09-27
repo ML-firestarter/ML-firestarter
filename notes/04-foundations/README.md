@@ -4,7 +4,7 @@ description: The ideas every model is built on, from data and loss to learning b
 
 # Foundations
 
-Before neural networks and transformers, get comfortable with the few ideas that every model shares:
+Before [neural networks](04-neural-networks/) and transformers, get comfortable with the few ideas that every model shares:
 
 - **Data**: examples described by features, usually with a label to predict.
 - **A model**: a function with adjustable parameters, like $\hat{y} = wx + b$.

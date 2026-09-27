@@ -43,12 +43,12 @@ $$
 
 Każda litera oznacza jedną część reguły taksówki:
 
-| Symbol    | Dla taksówki            | Nazwa                                                         |
-| --------- | ----------------------- | ------------------------------------------------------------- |
-| $x$       | odległość, 5 km         | **cecha**: to, na podstawie czego powstaje predykcja          |
-| $w$       | cena za km, 3           | **waga**: o ile rośnie predykcja, gdy $x$ rośnie o 1          |
-| $b$       | opłata początkowa, 8    | **wyraz wolny** (ang. bias): predykcja, gdy $x$ wynosi 0      |
-| $\hat{y}$ | przewidywana opłata, 23 | **predykcja**                                                 |
+| Symbol    | Dla taksówki            | Nazwa                                                    |
+| --------- | ----------------------- | -------------------------------------------------------- |
+| $x$       | odległość, 5 km         | **cecha**: to, na podstawie czego powstaje predykcja     |
+| $w$       | cena za km, 3           | **waga**: o ile rośnie predykcja, gdy $x$ rośnie o 1     |
+| $b$       | opłata początkowa, 8    | **wyraz wolny** (ang. bias): predykcja, gdy $x$ wynosi 0 |
+| $\hat{y}$ | przewidywana opłata, 23 | **predykcja**                                            |
 
 Dwie litery obok siebie się mnoży, więc $wx$ oznacza $w$ razy $x$. $\hat{y}$ czyta się „y z daszkiem”, a daszek oznacza predykcję. Samo $y$ to prawdziwa opłata, ta wydrukowana na paragonie, i nazywa się **etykietą**. Przy regule z naklejki obie są zawsze takie same, ale następne dwie lekcje są właśnie o tym, co się dzieje, gdy się różnią.
 

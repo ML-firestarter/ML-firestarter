@@ -151,7 +151,7 @@ $$
 
 Work out both slopes first, from the same $w$ and $b$, and only then change the parameters. If you change $w$ first, the slope for $b$ is worked out with the new $w$, and it's no longer the slope where you were standing.
 
-The two slopes together are called the **gradient**, and training by stepping against the gradient, over and over, is called **gradient descent**. Neural networks learn the same way, with millions of parameters instead of two. Here it is on the day receipts, starting from $w = 0$ and $b = 0$. Every 1,000 steps, it prints the step, the loss, $w$ and $b$:
+The two slopes together are called the **gradient**, and training by stepping against the gradient, over and over, is called **gradient descent**. [Neural networks](../04-neural-networks/) learn the same way, with millions of parameters instead of two. Here it is on the day receipts, starting from $w = 0$ and $b = 0$. Every 1,000 steps, it prints the step, the loss, $w$ and $b$:
 
 ```python run
 kms = [2, 4, 6, 8]
@@ -182,7 +182,7 @@ Try a learning rate of 0.02: it gets there about twice as fast. With 0.04, it di
 
 ## Why not solve it directly?
 
-For two receipts, [Making predictions](01-predictions.md#where-do-w-and-b-come-from) worked out $w$ and $b$ directly, without any steps. Linear regression has a direct solution for any number of receipts too, shown in [The normal equation](#the-normal-equation) at the end of this lesson. But almost no other model has one: [logistic regression](../03-logistic-regression/), neural networks and language models can only be trained step by step. Gradient descent works for all of them, which is why it's worth learning on the simplest model first.
+For two receipts, [Making predictions](01-predictions.md#where-do-w-and-b-come-from) worked out $w$ and $b$ directly, without any steps. Linear regression has a direct solution for any number of receipts too, shown in [The normal equation](#the-normal-equation) at the end of this lesson. But almost no other model has one: [logistic regression](../03-logistic-regression/), [neural networks](../04-neural-networks/) and language models can only be trained step by step. Gradient descent works for all of them, which is why it's worth learning on the simplest model first.
 
 ## The whole method on one page
 

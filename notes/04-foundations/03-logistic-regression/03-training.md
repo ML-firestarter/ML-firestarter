@@ -151,7 +151,7 @@ With the MSE, a learning rate that was too big made the training [diverge](../02
 
 ## Why not solve it directly?
 
-Linear regression has an exact solution, [the normal equation](../02-linear-regression/03-training.md#the-normal-equation), which finds the best $w$ and $b$ without any steps. Logistic regression has none. The best rule is where both slopes are 0, but every $p_i$ in them is the sigmoid of something with $w$ and $b$ in it, and no formula can solve those equations for $w$ and $b$. So logistic regression can only be trained step by step, like neural networks and language models. Gradient descent doesn't need a formula for the answer, only one for the slopes.
+Linear regression has an exact solution, [the normal equation](../02-linear-regression/03-training.md#the-normal-equation), which finds the best $w$ and $b$ without any steps. Logistic regression has none. The best rule is where both slopes are 0, but every $p_i$ in them is the sigmoid of something with $w$ and $b$ in it, and no formula can solve those equations for $w$ and $b$. So logistic regression can only be trained step by step, like [neural networks](../04-neural-networks/) and language models. Gradient descent doesn't need a formula for the answer, only one for the slopes.
 
 ## The whole method on one page
 

@@ -151,7 +151,7 @@ $$
 
 Najpierw policz oba nachylenia, z tych samych $w$ i $b$, a dopiero potem zmień parametry. Jeśli najpierw zmienisz $w$, nachylenie względem $b$ policzy się już z nowym $w$ i nie będzie nachyleniem w miejscu, w którym stoisz.
 
-Oba nachylenia razem nazywa się **gradientem**, a trening przez robienie kroków przeciwnie do gradientu, raz za razem, nazywa się **spadkiem gradientu** (ang. gradient descent). Sieci neuronowe uczą się tak samo, tylko z milionami parametrów zamiast dwóch. Oto spadek gradientu na paragonach dziennych, od $w = 0$ i $b = 0$. Co 1000 kroków kod wypisuje numer kroku, stratę, $w$ i $b$:
+Oba nachylenia razem nazywa się **gradientem**, a trening przez robienie kroków przeciwnie do gradientu, raz za razem, nazywa się **spadkiem gradientu** (ang. gradient descent). [Sieci neuronowe](../04-neural-networks/) uczą się tak samo, tylko z milionami parametrów zamiast dwóch. Oto spadek gradientu na paragonach dziennych, od $w = 0$ i $b = 0$. Co 1000 kroków kod wypisuje numer kroku, stratę, $w$ i $b$:
 
 ```python run
 kms = [2, 4, 6, 8]
@@ -182,7 +182,7 @@ Ustaw `learning_rate` na `0.02`: trening dociera na miejsce mniej więcej dwa ra
 
 ## Dlaczego nie rozwiązać tego wprost?
 
-Dla dwóch paragonów lekcja [Przewidywanie](01-predictions.pl.md#skąd-się-biorą-w-i-b) wyznaczyła $w$ i $b$ wprost, bez żadnych kroków. Regresja liniowa ma rozwiązanie wprost także dla dowolnej liczby paragonów. Pokazuje je część [Równanie normalne](#równanie-normalne) na końcu tej lekcji. Prawie żaden inny model go jednak nie ma: [regresję logistyczną](../03-logistic-regression/), sieci neuronowe i modele językowe da się trenować tylko krok po kroku. Spadek gradientu działa dla nich wszystkich i dlatego warto poznać go najpierw na najprostszym modelu.
+Dla dwóch paragonów lekcja [Przewidywanie](01-predictions.pl.md#skąd-się-biorą-w-i-b) wyznaczyła $w$ i $b$ wprost, bez żadnych kroków. Regresja liniowa ma rozwiązanie wprost także dla dowolnej liczby paragonów. Pokazuje je część [Równanie normalne](#równanie-normalne) na końcu tej lekcji. Prawie żaden inny model go jednak nie ma: [regresję logistyczną](../03-logistic-regression/), [sieci neuronowe](../04-neural-networks/) i modele językowe da się trenować tylko krok po kroku. Spadek gradientu działa dla nich wszystkich i dlatego warto poznać go najpierw na najprostszym modelu.
 
 ## Cała metoda na jednej stronie
 
