@@ -4,7 +4,7 @@ description: Przewiduj, czy zamówienie taksówki zostanie anulowane, zmierz, ja
 
 # Regresja logistyczna
 
-Regresja logistyczna odpowiada na pytania, na które odpowiedź brzmi „tak” albo „nie”: czy ten e-mail to spam, czy ten klient anuluje zamówienie, czy jutro będzie padać. To najprostszy model, który przydziela przykłady do kategorii, a neurony sieci neuronowej opierają się na tym samym pomyśle.
+Regresja logistyczna odpowiada na pytania, na które odpowiedź brzmi „tak” albo „nie”: czy ten e-mail to spam, czy ten klient anuluje zamówienie, czy jutro będzie padać. To najprostszy model, który przydziela przykłady do kategorii, a neurony [sieci neuronowej](../04-neural-networks/) opierają się na tym samym pomyśle.
 
 Nazwa pochodzi od dwóch części modelu. **Funkcja logistyczna**, częściej nazywana sigmoidą, ściska dowolną liczbę do prawdopodobieństwa między 0 a 1. **Regresja**, bo tak jak regresja liniowa model przewiduje liczbę: prawdopodobieństwo odpowiedzi „tak”. Dopiero próg zamienia prawdopodobieństwo w odpowiedź, tak albo nie, i to robi z modelu klasyfikator.
 

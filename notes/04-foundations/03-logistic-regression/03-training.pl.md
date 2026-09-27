@@ -139,7 +139,7 @@ Na wykresie reguła zaczyna płasko, od 0,5 dla każdego czasu oczekiwania, a po
 
 Tak jak wcześniej, współczynnik uczenia wybierasz ty. Wpisz w kodzie powyżej `0.01` i `0.2`:
 
-- Przy **0,01** kroki są 10 razy krótsze. Po 3000 krokach strata spada tylko do 0,494, z $w = 0{,}27$ i $b = -1{,}99$. W końcu trening dociera na miejsce, ale zajmuje to mniej więcej 10 razy więcej kroków.
+- Przy **0,01** kroki są 10 razy krótsze. Po 3000 kroków strata spada tylko do 0,494, z $w = 0{,}27$ i $b = -1{,}99$. W końcu trening dociera na miejsce, ale zajmuje to mniej więcej 10 razy więcej kroków.
 - Przy **0,2** strata wypisywana co 1000 kroków za każdym razem wynosi 0,567, z $w = 0{,}54$ i $b = -3{,}29$, jakby trening ustabilizował się na gorszej regule. Wcale się nie ustabilizował. Zmień `step % 1000 == 0` na `step >= 2995`, żeby wypisać ostatnich sześć kroków, a zobaczysz, że w każdym kroku skacze między dwiema regułami, jedną ze stratą 0,567, a drugą z 0,52. Każdy krok przeskakuje dno, a następny skacze z powrotem. Wypisywanie co 1000 kroków za każdym razem trafiało na tę samą z nich.
 
 ![Strata w pierwszych 40 krokach. Przy współczynniku uczenia 0,1 spada płynnie. Przy 0,2 skacze w górę i w dół, między około 0,56 a 1,66.](images/learning-rates.pl.svg)
@@ -151,7 +151,7 @@ Przy MSE za duży współczynnik uczenia sprawiał, że trening się [rozbiegał
 
 ## Dlaczego nie rozwiązać tego wprost?
 
-Regresja liniowa ma dokładne rozwiązanie, [równanie normalne](../02-linear-regression/03-training.pl.md#równanie-normalne), które znajduje najlepsze $w$ i $b$ bez żadnych kroków. Regresja logistyczna żadnego nie ma. Najlepsza reguła leży tam, gdzie oba nachylenia wynoszą 0, ale każde $p_i$ w nich to sigmoida czegoś, w czym są $w$ i $b$, i żaden wzór nie rozwiązuje tych równań względem $w$ i $b$. Dlatego regresję logistyczną da się trenować tylko krok po kroku, tak jak sieci neuronowe i modele językowe. Spadek gradientu nie potrzebuje wzoru na odpowiedź, tylko wzoru na nachylenia.
+Regresja liniowa ma dokładne rozwiązanie, [równanie normalne](../02-linear-regression/03-training.pl.md#równanie-normalne), które znajduje najlepsze $w$ i $b$ bez żadnych kroków. Regresja logistyczna żadnego nie ma. Najlepsza reguła leży tam, gdzie oba nachylenia wynoszą 0, ale każde $p_i$ w nich to sigmoida czegoś, w czym są $w$ i $b$, i żaden wzór nie rozwiązuje tych równań względem $w$ i $b$. Dlatego regresję logistyczną da się trenować tylko krok po kroku, tak jak [sieci neuronowe](../04-neural-networks/) i modele językowe. Spadek gradientu nie potrzebuje wzoru na odpowiedź, tylko wzoru na nachylenia.
 
 ## Cała metoda na jednej stronie
 

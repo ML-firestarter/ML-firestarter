@@ -4,7 +4,7 @@ description: Predict whether a taxi order will be cancelled, measure how wrong t
 
 # Logistic regression
 
-Logistic regression answers yes-or-no questions: is this email spam, will this customer cancel their order, will it rain tomorrow. It's the simplest model that sorts examples into categories, and the neurons of a neural network are built on the same idea.
+Logistic regression answers yes-or-no questions: is this email spam, will this customer cancel their order, will it rain tomorrow. It's the simplest model that sorts examples into categories, and the neurons of a [neural network](../04-neural-networks/) are built on the same idea.
 
 Its name comes from its two parts. The **logistic function**, more often called the sigmoid, squeezes any number into a probability between 0 and 1. **Regression**, because, like linear regression, the model predicts a number: the probability of a yes. A threshold then turns the probability into the answer, yes or no, and that makes the model a classifier.
 
