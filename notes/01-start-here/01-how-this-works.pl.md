@@ -29,9 +29,11 @@ notes/
 ├── 04-foundations/
 │   ├── README.md
 │   ├── 01-what-is-machine-learning.md
-│   ├── 02-linear-regression.md
-│   └── images/
-│       └── linear-regression.svg
+│   └── 02-linear-regression/
+│       ├── README.md
+│       ├── 01-predictions.md
+│       └── images/
+│           └── fare-line.svg
 └── vocabulary/                      ← bez numerów: kolejność według tytułów
     ├── README.md
     ├── agent.md
@@ -67,7 +69,7 @@ draft: true # ukrywa lekcję, dopóki nie usuniesz tego wiersza albo nie zmienis
 
 ## Linki i obrazy
 
-Do innej notatki linkuj przez ścieżkę jej pliku, tak jak na GitHubie, na przykład `[Regresja liniowa](../04-foundations/02-linear-regression.pl.md)`. Taki link działa i na GitHubie, i na tej stronie. Dopisz `#nazwa-sekcji`, żeby przejść do konkretnego nagłówka, jak tutaj: [równanie normalne](../04-foundations/02-linear-regression.pl.md#równanie-normalne).
+Do innej notatki linkuj przez ścieżkę jej pliku, tak jak na GitHubie, na przykład `[Przewidywanie](../04-foundations/02-linear-regression/01-predictions.pl.md)`. Taki link działa i na GitHubie, i na tej stronie. Dopisz `#nazwa-sekcji`, żeby przejść do konkretnego nagłówka, jak tutaj: [równanie normalne](../04-foundations/02-linear-regression/03-training.pl.md#równanie-normalne).
 
 Obrazy trzymaj obok notatek (dobrze sprawdza się folder `images`) i podawaj do nich ścieżkę względną: `![Wykres punktowy](images/scatter.png)`.
 
@@ -75,7 +77,7 @@ Obrazy trzymaj obok notatek (dobrze sprawdza się folder `images`) i podawaj do 
 
 Strona jest po angielsku i po polsku. Angielskie strony mają zwykłe adresy, jak `/vocabulary/sft/`, a polskie są pod `/pl/`, jak `/pl/vocabulary/sft/`. Przyciski **PL** i **EN** na górze przełączają na tę samą stronę w drugim języku.
 
-Żeby przetłumaczyć notatkę, zapisz tłumaczenie obok niej, z kodem języka przed `.md`: `sft.pl.md` to polska wersja `sft.md`. Przetłumacz też plik `README.md` każdego rozdziału, bo z niego pochodzi tytuł rozdziału. Obrazy z tekstem mogą mieć własną przetłumaczoną kopię, jak `images/linear-regression.pl.svg` w polskiej lekcji o regresji liniowej.
+Żeby przetłumaczyć notatkę, zapisz tłumaczenie obok niej, z kodem języka przed `.md`: `sft.pl.md` to polska wersja `sft.md`. Przetłumacz też plik `README.md` każdego rozdziału, bo z niego pochodzi tytuł rozdziału. Obrazy z tekstem mogą mieć własną przetłumaczoną kopię, jak `images/fare-line.pl.svg` w polskich lekcjach o regresji liniowej.
 
 - Strona, której jeszcze nie przetłumaczono, i tak pojawia się w polskiej wersji, tyle że po angielsku, z linkiem do dodania tłumaczenia na GitHubie.
 - Na stronie link do `sft.md` i link do `sft.pl.md` prowadzą w to samo miejsce, czyli do strony w języku czytelnika. Mimo to w polskich notatkach linkuj do polskich plików, żeby linki działały też na GitHubie.

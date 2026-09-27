@@ -2,7 +2,7 @@
 
 ## Which of these files in `notes/` is *not* a lesson?
 
-- [ ] `04-foundations/02-linear-regression.md`
+- [ ] `04-foundations/02-linear-regression/01-predictions.md`
 - [ ] `vocabulary/agent.md`
 - [x] `04-foundations/README.md`
 - [ ] `01-start-here/02-markdown-cheatsheet.md`

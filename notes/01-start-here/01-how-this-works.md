@@ -29,9 +29,11 @@ notes/
 ├── 04-foundations/
 │   ├── README.md
 │   ├── 01-what-is-machine-learning.md
-│   ├── 02-linear-regression.md
-│   └── images/
-│       └── linear-regression.svg
+│   └── 02-linear-regression/
+│       ├── README.md
+│       ├── 01-predictions.md
+│       └── images/
+│           └── fare-line.svg
 └── vocabulary/                      ← no numbers: sorted by title
     ├── README.md
     ├── agent.md
@@ -67,7 +69,7 @@ draft: true # hides the lesson until you remove this line or set it to false
 
 ## Links and images
 
-Link to another note by its file path, just as you would on GitHub, for example `[Linear regression](../04-foundations/02-linear-regression.md)`. The link works on GitHub and on this site. Add `#section-name` to jump to a heading, like [the normal equation](../04-foundations/02-linear-regression.md#the-normal-equation).
+Link to another note by its file path, just as you would on GitHub, for example `[Making predictions](../04-foundations/02-linear-regression/01-predictions.md)`. The link works on GitHub and on this site. Add `#section-name` to jump to a heading, like [the normal equation](../04-foundations/02-linear-regression/03-training.md#the-normal-equation).
 
 Keep images next to your notes (an `images` folder works well) and use a relative path: `![A scatter plot](images/scatter.png)`.
 
@@ -75,7 +77,7 @@ Keep images next to your notes (an `images` folder works well) and use a relativ
 
 The site comes in English and Polish. English pages are at the usual addresses, like `/vocabulary/sft/`, and Polish ones under `/pl/`, like `/pl/vocabulary/sft/`. The **PL** and **EN** buttons at the top switch to the same page in the other language.
 
-To translate a note, save the translation next to it with the language code before `.md`: `sft.pl.md` is the Polish version of `sft.md`. Translate each chapter's `README.md` too, because the chapter's title comes from it. Pictures with text in them can have a translated copy of their own, like the `images/linear-regression.pl.svg` used by the Polish linear regression lesson.
+To translate a note, save the translation next to it with the language code before `.md`: `sft.pl.md` is the Polish version of `sft.md`. Translate each chapter's `README.md` too, because the chapter's title comes from it. Pictures with text in them can have a translated copy of their own, like the `images/fare-line.pl.svg` used by the Polish linear regression lessons.
 
 - A page that isn't translated yet still appears in the Polish version, in English, with a link for adding the translation on GitHub.
 - On the site, a link to `sft.md` and a link to `sft.pl.md` both open the page in the reader's language. Link Polish notes to Polish files anyway, so the links work on GitHub too.

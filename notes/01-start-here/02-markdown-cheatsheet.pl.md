@@ -122,6 +122,6 @@ Metoda spadku gradientu pochodzi od Cauchy’ego.[^cauchy]
 
 - Do lekcji linkuj przez ścieżkę jej pliku: [Czym jest uczenie maszynowe?](../04-foundations/01-what-is-machine-learning.pl.md)
 - Do rozdziału linkuj przez jego folder: [Podstawy](../04-foundations/)
-- Obraz dodasz za pomocą `![Co przedstawia](images/plot.png)`. Przykład znajdziesz w lekcji [Regresja liniowa](../04-foundations/02-linear-regression.pl.md).
+- Obraz dodasz za pomocą `![Co przedstawia](images/plot.png)`. Przykład znajdziesz w lekcji [Przewidywanie](../04-foundations/02-linear-regression/01-predictions.pl.md).
 
 [^cauchy]: Augustin-Louis Cauchy, „Méthode générale pour la résolution des systèmes d’équations simultanées”, 1847.

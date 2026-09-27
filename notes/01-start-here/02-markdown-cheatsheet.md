@@ -122,6 +122,6 @@ Gradient descent goes back to Cauchy.[^cauchy]
 
 - Link to a lesson by its file path: [What is machine learning?](../04-foundations/01-what-is-machine-learning.md)
 - Link to a chapter by its folder: [Foundations](../04-foundations/)
-- Add an image with `![What it shows](images/plot.png)`. There's an example in [Linear regression](../04-foundations/02-linear-regression.md).
+- Add an image with `![What it shows](images/plot.png)`. There's an example in [Making predictions](../04-foundations/02-linear-regression/01-predictions.md).
 
 [^cauchy]: Augustin-Louis Cauchy, "Méthode générale pour la résolution des systèmes d'équations simultanées", 1847.
