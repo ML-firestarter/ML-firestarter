@@ -86,10 +86,10 @@ export interface Test {
   note: TestNote;
   /** Language of `note`; not the course's language when the test isn't translated yet. */
   lang: Lang;
-  /** Path inside tests/ without a language code, e.g. `04-foundations/02-linear-regression.md`. */
+  /** Path inside tests/ without a language code, e.g. `04-foundations/02-linear-regression/01-predictions.md`. */
   file: string;
   lesson: Lesson;
-  /** Language-neutral URL, e.g. `/tests/foundations/linear-regression/`. */
+  /** Language-neutral URL, e.g. `/tests/foundations/linear-regression/predictions/`. */
   path: string;
   url: string;
   /** The lesson's title. */
