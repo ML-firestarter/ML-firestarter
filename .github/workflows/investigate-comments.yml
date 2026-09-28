@@ -113,6 +113,8 @@ jobs:
       issues: read
     env:
       HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
+      # Claude Opus 5.5 unless the COPILOT_AGENT_MODEL repository variable names another, like auto.
+      AGENT_MODEL: ${{ vars.COPILOT_AGENT_MODEL || 'claude-opus-5.5' }}
     outputs:
       problem: ${{ steps.read.outputs.problem || steps.answer.outputs.problem }}
       outcome: ${{ steps.agent.outcome }}
@@ -209,16 +211,20 @@ jobs:
           # tools to run commands, change files or open pages, and the rules deny them besides.
           # The runner's temporary files, with the comment, are out of its reach too, and the
           # tokens in its environment (ai-inference gets the workflow's as INPUT_TOKEN) are kept
-          # out of what it says. It stops at AGENT_CREDITS AI credits. ai-inference leaves the
-          # CLI's errors out of the log, so they're kept for the step that hands over the answer.
+          # out of what it says. It reasons at high effort, except on auto, which picks the model
+          # and for which the CLI refuses an effort, and it stops at AGENT_CREDITS AI credits.
+          # ai-inference leaves the CLI's errors out of the log, so they're kept for the step that
+          # hands over the answer.
           cat > "$RUNNER_TEMP/copilot-agent" <<'EOF'
           #!/usr/bin/env bash
+          effort=(--reasoning-effort=high)
+          [ "$AGENT_MODEL" = auto ] && effort=()
           copilot \
             -C "$GITHUB_WORKSPACE" \
             --available-tools=view,glob,grep,rg \
             --allow-all-tools --deny-tool=shell,write,url,memory \
             --secret-env-vars=COPILOT_GITHUB_TOKEN,INPUT_TOKEN \
-            --reasoning-effort=high --max-ai-credits="$AGENT_CREDITS" \
+            "${effort[@]}" --max-ai-credits="$AGENT_CREDITS" \
             --usage-output-file="$RUNNER_TEMP/agent/usage.json" \
             --disable-builtin-mcps --no-custom-instructions --no-auto-update --disallow-temp-dir "$@" \
             2> "$RUNNER_TEMP/copilot-errors.log"
@@ -240,7 +246,7 @@ jobs:
           file_input: |
             comment: ${{ runner.temp }}/agent/comment.md
             discussion: ${{ runner.temp }}/agent/discussion.md
-          model: ${{ vars.COPILOT_AGENT_MODEL || 'claude-opus-5.5' }}
+          model: ${{ env.AGENT_MODEL }}
           copilot-cli-path: ${{ runner.temp }}/copilot-agent
         env:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
