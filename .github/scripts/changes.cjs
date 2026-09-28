@@ -26,7 +26,7 @@ const AGENT = 'ml-workout:agent';
 /** Who writes the proposals and opens the pull requests. */
 const WORKFLOWS = 'github-actions[bot]';
 
-/** The comment agent's workflow, which the triage and the look for 👀 start. */
+/** The comment agent's workflow, which the triage and the agent label start. */
 const AGENT_WORKFLOW = 'investigate-comments.yml';
 
 /** How GitHub tells that the author of an issue or a comment is a maintainer. */
@@ -39,7 +39,7 @@ const LABELS = [
   { name: 'off-topic', color: 'd4c5f9', description: 'Comment closed by the triage: not feedback on the notes' },
   { name: 'proposal', color: '0e8a16', description: 'A change from the comment is up for a vote' },
   { name: 'quick-fix', color: 'bfdadc', description: 'New wording or a typo, which Copilot fixes in place' },
-  { name: 'agent', color: '5319e7', description: "Copilot's comment agent looks into this comment" },
+  { name: 'agent', color: '5319e7', description: "Copilot's comment agent looks into this comment; a maintainer adds it to start the agent" },
 ];
 
 /** Proposals a reader can ask for on their comment; maintainers can ask for more. */
@@ -439,7 +439,7 @@ function proposalBody(proposal, files, votes, broken = []) {
     broken.length > 0 &&
       `> [!WARNING]\n> The change links to files that aren't in the repository: ${broken.map(({ file, href }) => `${plain(href)} in \`${file}\``).join(', ')}. Correct the links before merging.`,
     proposal.remarks && `**${proposal.agent ? "The comment agent's" : "Copilot's"} remarks:** ${plain(proposal.remarks)}`,
-    `Vote for this change by reacting to this comment with 👍. ${needed} it becomes a pull request, for the maintainer to check and merge. When more than one proposal gets that far, the pull request has the one with the most votes, until it's merged or closed. The votes are counted every 15 minutes. A maintainer can put this proposal on the pull request right away by commenting \`/accept ${proposal.number}\`, and then the votes no longer change it. ${again}`,
+    `Vote for this change by reacting to this comment with 👍. ${needed} it becomes a pull request, for the maintainer to check and merge. When more than one proposal gets that far, the pull request has the one with the most votes, until it's merged or closed. The votes are counted every few hours. A maintainer can put this proposal on the pull request right away by commenting \`/accept ${proposal.number}\`, and then the votes no longer change it. ${again}`,
     marker(PROPOSAL, proposal),
   ]
     .filter(Boolean)
@@ -576,19 +576,19 @@ function agentRunsIn(comments) {
 
 /** Who had the comment agent look into a comment, and how, for its comment on the issue. */
 function askedFor({ trigger, by, request }) {
-  if (trigger === 'eyes') return `, as ${plain(by)} asked with 👀`;
+  if (trigger === 'label') return `, as ${plain(by)} asked with the \`agent\` label`;
   if (trigger === 'propose') return `, as ${plain(by)} [asked](#issuecomment-${request})`;
   if (trigger === 'manual') return `, as ${plain(by)} asked`;
   return '';
 }
 
 /** How a maintainer has the comment agent look into a comment again. */
-const AGAIN = 'A maintainer can start the agent again by commenting `/propose` and what to change, or with a new 👀 on the issue.';
+const AGAIN = 'A maintainer can start the agent again by commenting `/propose` and what to change, or by taking the `agent` label off the issue and adding it back.';
 
 /**
  * Has the comment agent look into the comment of issue `issue_number`, on the branch this run is
  * on. A comment of its own says so, and later has its answer. `trigger` is what started it: a
- * maintainer's comment `opened`, their `eyes`, their /propose, whose comment is `request`, or a
+ * maintainer's comment `opened`, their `label`, their /propose, whose comment is `request`, or a
  * `manual` run; `by` is who and `at` when. Gives the problem when GitHub doesn't start it.
  */
 async function startAgent(github, context, { issue_number, trigger, by, at, request }) {

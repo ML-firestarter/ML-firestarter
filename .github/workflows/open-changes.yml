@@ -11,8 +11,8 @@
 # commit someone else puts on the branch stops both, and once the pull request is closed, only the
 # proposals and the /accepts written after it count. The description's hidden marker holds what
 # the site needs to show the change on the note's pages until it's merged (changeFrom in
-# src/lib/comments.ts). GitHub has no event for reactions, so the votes are counted every 15
-# minutes; run the workflow by hand to count them right away.
+# src/lib/comments.ts). GitHub has no event for reactions, so the votes are counted on a schedule,
+# which GitHub runs only every few hours; run the workflow by hand to count them right away.
 name: Open voted changes
 
 on:

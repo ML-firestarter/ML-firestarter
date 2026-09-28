@@ -9,9 +9,9 @@
 # comment /propose and what to change, even while the pull request is open, and Copilot writes
 # another proposal that follows the discussion and the votes. Every other comment Copilot keeps is
 # for the comment agent (investigate-comments.yml), which reads the notes before it answers: it
-# starts on a maintainer's comment right away, and on a reader's once a maintainer reacts to the
-# issue with 👀 or comments /propose. Without the COPILOT_GITHUB_TOKEN secret, or when Copilot's
-# answer is unclear, a comment is kept for review and nothing is proposed.
+# starts on a maintainer's comment right away, and on a reader's once a maintainer adds the agent
+# label to the issue or comments /propose. Without the COPILOT_GITHUB_TOKEN secret, or when
+# Copilot's answer is unclear, a comment is kept for review and nothing is proposed.
 name: Triage comments
 
 on:
@@ -295,7 +295,7 @@ jobs:
               // maintainer's comment.
               const { user, created_at } = context.payload.issue;
               if (!(await changes.isMaintainer(github, context.repo, user.login))) {
-                core.notice('The comment agent looks into this comment once a maintainer reacts to the issue with 👀 or comments /propose.');
+                core.notice('The comment agent looks into this comment once a maintainer adds the agent label to the issue or comments /propose.');
                 return;
               }
               const started = await changes.startAgent(github, context, { issue_number, trigger: 'opened', by: user.login, at: created_at });

@@ -5,25 +5,27 @@
 # The change it writes, which can reach other notes and add new ones, is proposed there for a vote
 # like Copilot's (open-changes.yml). Each run costs AI credits, so only maintainers start it: the
 # triage does on a maintainer's comment and on a maintainer's /propose, and this workflow does when
-# a maintainer reacts to a comment's issue with 👀, which it looks for every 5 minutes, as GitHub
-# has no event for reactions. A 👀 counts once; a new one starts the agent again. To start it by
+# a maintainer adds the agent label to a comment's issue. Taking the label off and adding it back
+# once the agent has answered starts it again, and anyone else's label is taken off. To start it by
 # hand, run the workflow with the issue's number. The COPILOT_AGENT_MODEL repository variable picks
 # the model, Claude Opus 5.5 unless it names another, and COPILOT_AGENT_CREDITS caps the AI credits
 # a run can spend, 300 unless it says otherwise.
 name: Comment agent
 run-name: >-
-  ${{ inputs.status && format('Comment agent on #{0}', inputs.issue) || inputs.issue &&
-  format('Start the comment agent on #{0}', inputs.issue) || 'Look for 👀 on comments' }}
+  ${{ inputs.status && format('Comment agent on #{0}', inputs.issue) ||
+  (inputs.issue || github.event.label.name == 'agent') && format('Start the comment agent on #{0}',
+  inputs.issue || github.event.issue.number) || format('The {0} label on #{1}', github.event.label.name,
+  github.event.issue.number) }}
 
 on:
-  # Off the quarter hours, when GitHub is busiest and delays or drops scheduled runs.
-  schedule:
-    - cron: '4-59/5 * * * *'
+  # Labels have an event, where reactions don't, so a maintainer's label starts the agent at once.
+  issues:
+    types: [labeled]
   workflow_dispatch:
     inputs:
       issue:
         description: The number of the comment's issue for the agent to look into
-        required: false
+        required: true
         type: string
       status:
         description: Leave this empty. It's for the workflows that start the agent.
@@ -33,14 +35,17 @@ on:
 permissions: {}
 
 jobs:
-  # Starts the agent on the comments a maintainer reacted to with 👀, or on the one named.
+  # Starts the agent on the comment whose issue a maintainer added the agent label to, or on the
+  # one named.
   start:
-    if: ${{ !inputs.status }}
+    if: >-
+      github.event_name == 'workflow_dispatch' && !inputs.status || github.event.label.name == 'agent' &&
+      github.event.sender.type != 'Bot' && contains(github.event.issue.body, '<!-- ml-workout:comment ')
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # One look for 👀 at a time, so that none starts the agent twice.
+    # One start at a time on a comment, so that it doesn't start the agent twice.
     concurrency:
-      group: ${{ inputs.issue && format('comment-agent-start-{0}', inputs.issue) || 'comment-agent-look' }}
+      group: comment-agent-start-${{ inputs.issue || github.event.issue.number }}
     permissions:
       # To start the agent.
       actions: write
@@ -58,74 +63,43 @@ jobs:
       - name: Start the comment agent
         uses: actions/github-script@v9
         env:
-          ISSUE: ${{ inputs.issue }}
+          ISSUE: ${{ inputs.issue || github.event.issue.number }}
         with:
           script: |
             const changes = require('./.github/scripts/changes.cjs');
             const { owner, repo } = context.repo;
-            if (process.env.HAS_COPILOT_TOKEN !== 'true') {
-              core.notice("There is no COPILOT_GITHUB_TOKEN secret, so the comment agent can't run.");
-              return;
-            }
-            let labelled = false;
-            async function start(options) {
-              if (!labelled) await changes.ensureLabels(github, context.repo);
-              labelled = true;
-              const started = await changes.startAgent(github, context, options);
-              if (started.problem) core.warning(`The comment agent didn't start on #${options.issue_number}: ${started.problem}`);
-              else core.notice(`The comment agent looks into #${options.issue_number}.`);
-              return started;
-            }
-
-            // A run by hand, for the issue it names.
             const named = process.env.ISSUE?.trim();
-            if (named) {
-              if (!/^\d+$/.test(named)) return core.setFailed('Give the number of an issue, like 18.');
-              const issue_number = Number(named);
-              const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
-              if (issue.pull_request || issue.state !== 'open' || !changes.commentFrom(issue.body)) {
-                return core.setFailed(`#${issue_number} isn't an open issue with a comment from the site.`);
+            if (!/^\d+$/.test(named)) return core.setFailed('Give the number of an issue, like 18.');
+            const issue_number = Number(named);
+            // Only maintainers can run a workflow by hand, and the label is theirs too: it says the
+            // agent looks into the comment.
+            const labelled = context.eventName === 'issues';
+            const by = labelled ? context.payload.sender.login : context.actor;
+            if (labelled && !(await changes.isMaintainer(github, context.repo, by))) {
+              try {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name: 'agent' });
+              } catch (error) {
+                // 404: it's off already.
+                if (error.status !== 404) throw error;
               }
-              const started = await start({ issue_number, trigger: 'manual', by: context.actor, at: new Date() });
-              if (started.problem) core.setFailed(`The comment agent didn't start: ${started.problem}`);
+              core.notice(`Only maintainers start the comment agent, so the agent label ${by} added to #${issue_number} is taken off.`);
               return;
             }
-
-            // The newest 👀 of a maintainer on each open comment's issue starts the agent, unless it
-            // started since. Only a 👀 from the last day counts, so an old one that a run somehow
-            // missed doesn't start it out of the blue.
-            const since = Date.now() - 24 * 60 * 60 * 1000;
-            const maintainers = new Map();
-            async function isMaintainer(login) {
-              if (!maintainers.has(login)) maintainers.set(login, await changes.isMaintainer(github, context.repo, login));
-              return maintainers.get(login);
+            if (process.env.HAS_COPILOT_TOKEN !== 'true') return core.setFailed("There is no COPILOT_GITHUB_TOKEN secret, so the comment agent can't run.");
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+            if (issue.pull_request || issue.state !== 'open' || !changes.commentFrom(issue.body)) {
+              return core.setFailed(`#${issue_number} isn't an open issue with a comment from the site.`);
             }
-            const issues = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', labels: 'text-comment', per_page: 100 });
-            for (const issue of issues) {
-              // Pull requests are issues too, for GitHub; and an issue counts its reactions.
-              if (issue.pull_request || !(issue.reactions?.eyes > 0)) continue;
-              try {
-                const reactions = await github.paginate(github.rest.reactions.listForIssue, { owner, repo, issue_number: issue.number, content: 'eyes', per_page: 100 });
-                let newest;
-                for (const reaction of reactions) {
-                  if (!reaction.user || reaction.user.type === 'Bot' || Date.parse(reaction.created_at) < since) continue;
-                  if (newest && Date.parse(reaction.created_at) <= Date.parse(newest.created_at)) continue;
-                  if (await isMaintainer(reaction.user.login)) newest = reaction;
-                }
-                if (!newest || !changes.commentFrom(issue.body)) continue;
-                const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: issue.number, per_page: 100 });
-                const runs = changes.agentRunsIn(comments);
-                if (runs.some(({ data }) => Date.parse(data.at) >= Date.parse(newest.created_at))) continue;
-                // One run at a time on a comment: a 👀 while the agent is at it starts it again
-                // once it's done, so it knows its answer. A run still at it after an hour has
-                // stopped without saying so.
-                if (runs.some(({ comment, data }) => data.state === 'working' && Date.now() - Date.parse(comment.created_at) < 60 * 60 * 1000)) continue;
-                await start({ issue_number: issue.number, trigger: 'eyes', by: newest.user.login, at: newest.created_at });
-              } catch (error) {
-                // The other issues still count.
-                core.warning(`Couldn't look for 👀 on #${issue.number}: ${error.message}`);
-              }
+            // One run at a time on a comment, so that each knows the answers before it. A run still
+            // at it after an hour has stopped without saying so.
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+            if (changes.agentRunsIn(comments).some(({ comment, data }) => data.state === 'working' && Date.now() - Date.parse(comment.created_at) < 60 * 60 * 1000)) {
+              return core.setFailed(`The comment agent is looking into #${issue_number} already. Start it again once it has answered.`);
             }
+            await changes.ensureLabels(github, context.repo);
+            const started = await changes.startAgent(github, context, { issue_number, trigger: labelled ? 'label' : 'manual', by, at: new Date() });
+            if (started.problem) return core.setFailed(`The comment agent didn't start: ${started.problem}`);
+            core.notice(`The comment agent looks into #${issue_number}.`);
 
   # The agent reads the notes and answers. It only reads: whatever the comment and the discussion
   # say, it can't run commands, change files or open pages, and its job can't write to the
