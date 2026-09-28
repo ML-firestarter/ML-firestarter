@@ -53,7 +53,6 @@ jobs:
       issues: write
     env:
       HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
-      ACTIONS_STEP_DEBUG: true
     steps:
       - name: Check out the scripts
         uses: actions/checkout@v7
@@ -114,7 +113,6 @@ jobs:
       issues: read
     env:
       HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
-      ACTIONS_STEP_DEBUG: true
     outputs:
       problem: ${{ steps.read.outputs.problem || steps.answer.outputs.problem }}
       outcome: ${{ steps.agent.outcome }}
@@ -248,7 +246,6 @@ jobs:
           COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
           # AI credits are $0.01 each.
           AGENT_CREDITS: ${{ vars.COPILOT_AGENT_CREDITS || '300' }}
-          ACTIONS_STEP_DEBUG: true
 
       - name: Hand over the answer
         id: answer
@@ -308,7 +305,6 @@ jobs:
           OUTCOME: ${{ needs.investigate.outputs.outcome }}
           ANSWER: ${{ needs.investigate.outputs.answer }}
           VOTES: ${{ vars.CHANGE_VOTES }}
-          ACTIONS_STEP_DEBUG: true
         with:
           script: |
             const changes = require('./.github/scripts/changes.cjs');
@@ -331,7 +327,7 @@ jobs:
             const asked = changes.askedFor(run.data);
             async function failed(why) {
               core.warning(`The comment agent couldn't look into #${issue_number}, as ${why}.`);
-              const body = `**Copilot's comment agent** couldn't look into this comment${asked}, as ${why}. ${changes.AGAIN}`;
+              const body = `**Copilot's comment agent** tried to look into this comment${asked}, but couldn't: ${why}. ${changes.AGAIN}`;
               await github.rest.issues.updateComment({ owner, repo, comment_id: run.comment.id, body: `${body}\n\n${changes.marker(changes.AGENT, { ...run.data, state: 'failed' })}` });
             }
             if (PROBLEM) return failed(PROBLEM);

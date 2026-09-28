@@ -608,7 +608,7 @@ async function startAgent(github, context, { issue_number, trigger, by, at, requ
     });
     return {};
   } catch (error) {
-    const failed = `**Copilot's comment agent** couldn't look into this comment, as GitHub didn't start it; [this run](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}) says why. ${AGAIN}`;
+    const failed = `**Copilot's comment agent** tried to look into this comment${askedFor(run)}, but couldn't: GitHub didn't start it; [this run](${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}) says why. ${AGAIN}`;
     await github.rest.issues.updateComment({ owner, repo, comment_id: status.id, body: `${failed}\n\n${marker(AGENT, { ...run, state: 'failed' })}` });
     return { problem: error.message };
   }
