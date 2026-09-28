@@ -1,0 +1,417 @@
+# The comment agent: a stronger model that looks into a reader's comment that needs more than new
+# wording or a fixed typo (triage-comments.yml sends those to Copilot), such as a mistake in the
+# facts, math or code, a question, or a request for a link or a new entry. It reads the notes, with
+# tools that only read and search the repository, and answers the reader on the comment's issue.
+# The change it writes, which can reach other notes and add new ones, is proposed there for a vote
+# like Copilot's (open-changes.yml). Each run costs AI credits, so only maintainers start it: the
+# triage does on a maintainer's comment and on a maintainer's /propose, and this workflow does when
+# a maintainer reacts to a comment's issue with 👀, which it looks for every 5 minutes, as GitHub
+# has no event for reactions. A 👀 counts once; a new one starts the agent again. To start it by
+# hand, run the workflow with the issue's number. The COPILOT_AGENT_MODEL repository variable picks
+# the model, Claude Opus 5.5 unless it names another, and COPILOT_AGENT_CREDITS caps the AI credits
+# a run can spend, 300 unless it says otherwise.
+name: Comment agent
+run-name: >-
+  ${{ inputs.status && format('Comment agent on #{0}', inputs.issue) || inputs.issue &&
+  format('Start the comment agent on #{0}', inputs.issue) || 'Look for 👀 on comments' }}
+
+on:
+  # Off the quarter hours, when GitHub is busiest and delays or drops scheduled runs.
+  schedule:
+    - cron: '4-59/5 * * * *'
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: The number of the comment's issue for the agent to look into
+        required: false
+        type: string
+      status:
+        description: Leave this empty. It's for the workflows that start the agent.
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  # Starts the agent on the comments a maintainer reacted to with 👀, or on the one named.
+  start:
+    if: ${{ !inputs.status }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # One look for 👀 at a time, so that none starts the agent twice.
+    concurrency:
+      group: ${{ inputs.issue && format('comment-agent-start-{0}', inputs.issue) || 'comment-agent-look' }}
+    permissions:
+      # To start the agent.
+      actions: write
+      contents: read
+      issues: write
+    env:
+      HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
+    steps:
+      - name: Check out the scripts
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Start the comment agent
+        uses: actions/github-script@v9
+        env:
+          ISSUE: ${{ inputs.issue }}
+        with:
+          script: |
+            const changes = require('./.github/scripts/changes.cjs');
+            const { owner, repo } = context.repo;
+            if (process.env.HAS_COPILOT_TOKEN !== 'true') {
+              core.notice("There is no COPILOT_GITHUB_TOKEN secret, so the comment agent can't run.");
+              return;
+            }
+            let labelled = false;
+            async function start(options) {
+              if (!labelled) await changes.ensureLabels(github, context.repo);
+              labelled = true;
+              const started = await changes.startAgent(github, context, options);
+              if (started.problem) core.warning(`The comment agent didn't start on #${options.issue_number}: ${started.problem}`);
+              else core.notice(`The comment agent looks into #${options.issue_number}.`);
+              return started;
+            }
+
+            // A run by hand, for the issue it names.
+            const named = process.env.ISSUE?.trim();
+            if (named) {
+              if (!/^\d+$/.test(named)) return core.setFailed('Give the number of an issue, like 18.');
+              const issue_number = Number(named);
+              const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+              if (issue.pull_request || issue.state !== 'open' || !changes.commentFrom(issue.body)) {
+                return core.setFailed(`#${issue_number} isn't an open issue with a comment from the site.`);
+              }
+              const started = await start({ issue_number, trigger: 'manual', by: context.actor, at: new Date() });
+              if (started.problem) core.setFailed(`The comment agent didn't start: ${started.problem}`);
+              return;
+            }
+
+            // The newest 👀 of a maintainer on each open comment's issue starts the agent, unless it
+            // started since. Only a 👀 from the last day counts, so an old one that a run somehow
+            // missed doesn't start it out of the blue.
+            const since = Date.now() - 24 * 60 * 60 * 1000;
+            const maintainers = new Map();
+            async function isMaintainer(login) {
+              if (!maintainers.has(login)) maintainers.set(login, await changes.isMaintainer(github, context.repo, login));
+              return maintainers.get(login);
+            }
+            const issues = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', labels: 'text-comment', per_page: 100 });
+            for (const issue of issues) {
+              // Pull requests are issues too, for GitHub; and an issue counts its reactions.
+              if (issue.pull_request || !(issue.reactions?.eyes > 0)) continue;
+              try {
+                const reactions = await github.paginate(github.rest.reactions.listForIssue, { owner, repo, issue_number: issue.number, content: 'eyes', per_page: 100 });
+                let newest;
+                for (const reaction of reactions) {
+                  if (!reaction.user || reaction.user.type === 'Bot' || Date.parse(reaction.created_at) < since) continue;
+                  if (newest && Date.parse(reaction.created_at) <= Date.parse(newest.created_at)) continue;
+                  if (await isMaintainer(reaction.user.login)) newest = reaction;
+                }
+                if (!newest || !changes.commentFrom(issue.body)) continue;
+                const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: issue.number, per_page: 100 });
+                const runs = changes.agentRunsIn(comments);
+                if (runs.some(({ data }) => Date.parse(data.at) >= Date.parse(newest.created_at))) continue;
+                // One run at a time on a comment: a 👀 while the agent is at it starts it again
+                // once it's done, so it knows its answer. A run still at it after an hour has
+                // stopped without saying so.
+                if (runs.some(({ comment, data }) => data.state === 'working' && Date.now() - Date.parse(comment.created_at) < 60 * 60 * 1000)) continue;
+                await start({ issue_number: issue.number, trigger: 'eyes', by: newest.user.login, at: newest.created_at });
+              } catch (error) {
+                // The other issues still count.
+                core.warning(`Couldn't look for 👀 on #${issue.number}: ${error.message}`);
+              }
+            }
+
+  # The agent reads the notes and answers. It only reads: whatever the comment and the discussion
+  # say, it can't run commands, change files or open pages, and its job can't write to the
+  # repository or the issue. The next job checks its answer and posts it.
+  investigate:
+    if: ${{ inputs.status }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: read
+    env:
+      HAS_COPILOT_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN != '' }}
+    outputs:
+      problem: ${{ steps.read.outputs.problem || steps.answer.outputs.problem }}
+      outcome: ${{ steps.agent.outcome }}
+      answer: ${{ steps.answer.outputs.answer }}
+    steps:
+      # The notes, the tests and the exercises, for the agent to read.
+      - name: Check out the notes
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            .github/prompts
+            .github/scripts
+            notes
+            tests
+            exercises
+          persist-credentials: false
+
+      # The issue and the comments are read from the API, never pasted into scripts, so their text
+      # can't run as code.
+      - name: Read the comment
+        id: read
+        uses: actions/github-script@v9
+        env:
+          ISSUE: ${{ inputs.issue }}
+          STATUS: ${{ inputs.status }}
+        with:
+          script: |
+            const fs = require('node:fs/promises');
+            const path = require('node:path');
+            const changes = require('./.github/scripts/changes.cjs');
+            const { clip, inert, LANGUAGES } = changes;
+            const { owner, repo } = context.repo;
+            const { ISSUE, STATUS } = process.env;
+            if (!/^\d+$/.test(ISSUE) || !/^\d+$/.test(STATUS)) return core.setFailed("The run needs the number of a comment's issue and the id of the agent's comment on it.");
+            // What keeps the agent from looking into the comment, which the next job posts.
+            const refuse = (problem) => {
+              core.warning(`The comment agent doesn't look into the comment, as ${problem}.`);
+              core.setOutput('problem', problem);
+            };
+            if (process.env.HAS_COPILOT_TOKEN !== 'true') return refuse('the repository has no COPILOT_GITHUB_TOKEN secret');
+
+            const issue_number = Number(ISSUE);
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+            const data = changes.commentFrom(issue.body);
+            if (issue.pull_request || !data) return refuse("the issue isn't a comment from the site");
+            if (issue.state !== 'open') return refuse('the issue is closed');
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number, per_page: 100 });
+            // Deleting the agent's comment calls the run off.
+            const run = changes.agentRunsIn(comments).find(({ comment }) => String(comment.id) === STATUS)?.data;
+            if (!run) return refuse('its comment is no longer on the issue');
+            // What a maintainer asked for with /propose, if that's how it started: `/propose`, then
+            // what to change.
+            const asking = run.request === undefined ? undefined : comments.find((comment) => comment.id === run.request);
+            const text = asking && /^\/propose\b([\s\S]*)$/i.exec(asking.body ?? '')?.[1];
+            const request = text === undefined ? undefined : { comment: asking, text, maintainer: true };
+
+            // Copilot's CLI gets the prompt as an argument, which Linux caps at 128 KiB. Nothing in
+            // the texts can end the tags the prompt puts around them.
+            const reader = issue.user?.login ?? 'ghost';
+            const { read, paths } = changes.versionsOf(data.file);
+            const versions = [];
+            for (const [lang, file] of Object.entries(paths)) {
+              const found = await fs.stat(path.join(process.env.GITHUB_WORKSPACE, file)).then((stat) => stat.isFile(), () => false);
+              if (found) versions.push(`${LANGUAGES[lang]}, ${file}`);
+            }
+            const about = [
+              `The reader, ${reader}, commented on the ${LANGUAGES[read]} version of the note ${data.file}.`,
+              (await changes.isMaintainer(github, context.repo, reader)) && "They're a maintainer of the notes.",
+              versions.length > 0 ? `The note's versions: ${versions.join('; ')}.` : "The note isn't in the repository anymore.",
+            ].filter(Boolean).join(' ');
+            const comment = [
+              about,
+              `<passage>\n${inert(data.exact)}\n</passage>`,
+              `<comment>\n${inert(data.comment) || '(none)'}\n</comment>`,
+              data.suggestion !== undefined && `<suggestion>\n${inert(data.suggestion)}\n</suggestion>`,
+            ].filter(Boolean).join('\n\n');
+            const agent = path.join(process.env.RUNNER_TEMP, 'agent');
+            await fs.mkdir(agent, { recursive: true });
+            await fs.writeFile(path.join(agent, 'comment.md'), clip(comment, 12_000));
+            await fs.writeFile(path.join(agent, 'discussion.md'), changes.discussionOf(comments, { reader, request, agent: true }));
+            core.setOutput('ready', 'true');
+
+      - name: Set up Node
+        if: steps.read.outputs.ready == 'true'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install Copilot CLI
+        if: steps.read.outputs.ready == 'true'
+        run: |
+          npm install --global @github/copilot
+          # The agent reads and searches the files of the workspace, and nothing else: it has no
+          # tools to run commands, change files or open pages, and the rules deny them besides.
+          # The runner's temporary files, with the comment, are out of its reach too, and the
+          # tokens in its environment (ai-inference gets the workflow's as INPUT_TOKEN) are kept
+          # out of what it says. It stops at AGENT_CREDITS AI credits. ai-inference leaves the
+          # CLI's errors out of the log, so they're kept for the step that hands over the answer.
+          cat > "$RUNNER_TEMP/copilot-agent" <<'EOF'
+          #!/usr/bin/env bash
+          copilot \
+            -C "$GITHUB_WORKSPACE" \
+            --available-tools=view,glob,grep,rg \
+            --allow-all-tools --deny-tool=shell,write,url,memory \
+            --secret-env-vars=COPILOT_GITHUB_TOKEN,INPUT_TOKEN \
+            --reasoning-effort=high --max-ai-credits="$AGENT_CREDITS" \
+            --usage-output-file="$RUNNER_TEMP/agent/usage.json" \
+            --disable-builtin-mcps --no-custom-instructions --no-auto-update --disallow-temp-dir "$@" \
+            2> "$RUNNER_TEMP/copilot-errors.log"
+          status=$?
+          cat "$RUNNER_TEMP/copilot-errors.log" >&2
+          exit "$status"
+          EOF
+          chmod +x "$RUNNER_TEMP/copilot-agent"
+
+      - name: Ask the comment agent
+        id: agent
+        if: steps.read.outputs.ready == 'true'
+        # Without an answer, the next job says so on the issue.
+        continue-on-error: true
+        timeout-minutes: 20
+        uses: actions/ai-inference@v3
+        with:
+          prompt-file: .github/prompts/investigate-comment.prompt.yml
+          file_input: |
+            comment: ${{ runner.temp }}/agent/comment.md
+            discussion: ${{ runner.temp }}/agent/discussion.md
+          model: ${{ vars.COPILOT_AGENT_MODEL || 'claude-opus-5.5' }}
+          copilot-cli-path: ${{ runner.temp }}/copilot-agent
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          # AI credits are $0.01 each.
+          AGENT_CREDITS: ${{ vars.COPILOT_AGENT_CREDITS || '300' }}
+
+      - name: Hand over the answer
+        id: answer
+        if: steps.read.outputs.ready == 'true'
+        uses: actions/github-script@v9
+        env:
+          OUTCOME: ${{ steps.agent.outcome }}
+          RESPONSE_FILE: ${{ steps.agent.outputs.response-file }}
+        with:
+          script: |
+            const fs = require('node:fs/promises');
+            const path = require('node:path');
+            const agent = path.join(process.env.RUNNER_TEMP, 'agent');
+            const response = process.env.RESPONSE_FILE ? await fs.readFile(process.env.RESPONSE_FILE, 'utf8').catch(() => '') : '';
+            // Line by line behind a bar, so nothing in it passes for a command to the runner.
+            core.startGroup("The comment agent's answer");
+            for (const line of response.split('\n')) core.info(`│ ${line}`);
+            core.endGroup();
+            const usage = await fs.readFile(path.join(agent, 'usage.json'), 'utf8').catch(() => '');
+            if (usage) core.info(`What the run used: ${usage.replace(/\s+/g, ' ').slice(0, 2000)}`);
+
+            if (process.env.OUTCOME !== 'success') {
+              // The CLI's error, which ai-inference leaves out of the log. Copilot is only sent
+              // what's public already, and GitHub masks the token, so it can be shown here.
+              const log = await fs.readFile(path.join(process.env.RUNNER_TEMP, 'copilot-errors.log'), 'utf8').catch(() => '');
+              const error = log.replace(/\x1b\[[\d;]*[a-z]/gi, '').replace(/\s+/g, ' ').trim();
+              core.warning(`The comment agent didn't answer. ${error ? `The Copilot CLI said: ${error.length <= 1000 ? error : `${error.slice(0, 999)}…`}` : 'The "Ask the comment agent" step shows why.'}`);
+              return;
+            }
+            // A job's outputs, and the next job's environment, hold only so much.
+            if (Buffer.byteLength(response) > 100_000) return core.setOutput('problem', 'its answer was too long');
+            core.setOutput('answer', response);
+
+  # Checks the agent's answer, and posts it on the issue with its change for a vote.
+  respond:
+    needs: investigate
+    if: ${{ always() && inputs.status }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Check out the scripts
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Post the answer
+        uses: actions/github-script@v9
+        env:
+          ISSUE: ${{ inputs.issue }}
+          STATUS: ${{ inputs.status }}
+          RESULT: ${{ needs.investigate.result }}
+          PROBLEM: ${{ needs.investigate.outputs.problem }}
+          OUTCOME: ${{ needs.investigate.outputs.outcome }}
+          ANSWER: ${{ needs.investigate.outputs.answer }}
+          VOTES: ${{ vars.CHANGE_VOTES }}
+        with:
+          script: |
+            const changes = require('./.github/scripts/changes.cjs');
+            const { owner, repo } = context.repo;
+            const { ISSUE, STATUS, RESULT, PROBLEM, OUTCOME, ANSWER } = process.env;
+            if (!/^\d+$/.test(ISSUE) || !/^\d+$/.test(STATUS)) return core.setFailed("The run needs the number of a comment's issue and the id of the agent's comment on it.");
+            const issue_number = Number(ISSUE);
+            const logs = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            // The agent's comment, which says it's at work. Once it's deleted, the answer is only
+            // in the log.
+            let status;
+            try {
+              ({ data: status } = await github.rest.issues.getComment({ owner, repo, comment_id: Number(STATUS) }));
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            const [run] = status?.issue_url.endsWith(`/issues/${issue_number}`) ? changes.agentRunsIn([status]) : [];
+            if (!run) return core.warning("The comment agent's comment is no longer on the issue, so its answer isn't posted.");
+            const asked = changes.askedFor(run.data);
+            async function failed(why) {
+              core.warning(`The comment agent couldn't look into #${issue_number}, as ${why}.`);
+              const body = `**Copilot's comment agent** couldn't look into this comment${asked}, as ${why}. ${changes.AGAIN}`;
+              await github.rest.issues.updateComment({ owner, repo, comment_id: run.comment.id, body: `${body}\n\n${changes.marker(changes.AGENT, { ...run.data, state: 'failed' })}` });
+            }
+            if (PROBLEM) return failed(PROBLEM);
+            if (RESULT !== 'success') return failed(`its run stopped; [the run](${logs}) says why`);
+            if (OUTCOME !== 'success') return failed(`it didn't answer; [the run](${logs}) says why`);
+
+            const answer = changes.parseAgentAnswer(ANSWER ?? '');
+            const { reply, edits, created, remarks } = answer;
+            if ([reply, remarks].some((text) => changes.TOKEN.test(text))) return failed('its answer had something like a GitHub token in it');
+            if (!reply) return failed(`its answer wasn't in the form asked for; [the run](${logs}) shows it`);
+            const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number });
+            const data = changes.commentFrom(issue.body);
+            if (!data) return failed("the issue isn't a comment from the site anymore");
+
+            // The change as a proposal, once it's checked against the notes as they are now: its
+            // number and comment, or why it can't be proposed.
+            async function prepare() {
+              const problem = changes.problemWithAgent(answer);
+              if (problem) return { problem };
+              const { data: head } = await github.rest.repos.getBranch({ owner, repo, branch: context.payload.repository.default_branch });
+              const { data: tree } = await github.rest.git.getTree({ owner, repo, tree_sha: head.commit.sha, recursive: 'true' });
+              if (tree.truncated) return { problem: 'the repository has too many files to check it against' };
+              const entries = new Map(tree.tree.map((entry) => [entry.path, entry.type]));
+              const placed = changes.problemWithPlace(created, entries);
+              if (placed) return { problem: placed };
+              const planned = [...created, ...edits].map(({ path, lang, find, replace }) => ({ path, lang, find, replace }));
+              const applied = await changes.applyEdits(github, context.repo, head.commit.sha, planned);
+              if (applied.problem) return { problem: applied.problem };
+
+              const { name, read, paths } = changes.versionsOf(data.file);
+              const versions = Object.fromEntries(Object.entries(paths).filter(([, file]) => entries.get(file) === 'blob'));
+              const number = await changes.nextProposal(github, context.repo, issue_number);
+              const proposal = { v: 1, number, agent: true, name, read, versions, file: data.file, path: data.path, lang: data.lang, comment: data.comment.slice(0, 3000), remarks, edits: planned };
+              const body = changes.proposalBody(proposal, applied.files, changes.votesNeeded(process.env.VOTES), changes.brokenLinks(applied.files, entries));
+              if (body.length > changes.MAX_BODY) return { problem: 'it is too long to show here' };
+              return { number, body };
+            }
+            const change = edits.length + created.length > 0 ? await prepare() : undefined;
+            if (change?.problem) core.warning(`The comment agent's change can't be proposed, because ${change.problem}.`);
+
+            // A new comment, where an edited one wouldn't, tells the reader the answer is here.
+            const text = [
+              `**Copilot's comment agent** looked into this comment${asked}.`,
+              changes.safeReply(reply, `${context.serverUrl}/${owner}/${repo}`),
+              !change
+                ? 'It proposes no change.'
+                : change.problem
+                  ? `Its change can't be proposed, because ${change.problem}; [the run](${logs}) shows it.`
+                  : `Its change is proposal ${change.number}, below, up for a vote.`,
+              (!change || change.problem) && remarks && `**Its remarks:** ${changes.plain(remarks)}`,
+              `<sub>${changes.AGAIN}</sub>`,
+            ].filter(Boolean).join('\n\n');
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: `${text}\n\n${changes.marker(changes.AGENT, { ...run.data, state: 'done' })}` });
+            await github.rest.issues.deleteComment({ owner, repo, comment_id: run.comment.id });
+            if (change?.body) {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body: change.body });
+              await github.rest.issues.addLabels({ owner, repo, issue_number, labels: ['proposal'] });
+              core.notice(`The comment agent answered on #${issue_number}, with proposal ${change.number}.`);
+            } else {
+              core.notice(`The comment agent answered on #${issue_number}.`);
+            }

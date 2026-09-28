@@ -1,8 +1,9 @@
 # Opens a pull request for the change people voted for, and keeps it on the one with the most
-# votes. The triage (triage-comments.yml) proposes changes on the issues of readers' comments, and
-# people vote for them by reacting with 👍. A proposal gets the votes with 3 of them, unless the
-# CHANGE_VOTES repository variable says otherwise, or with one from a maintainer, and the first to
-# get them becomes a pull request from the comment-<issue number> branch, credited to the reader.
+# votes. The triage (triage-comments.yml) and the comment agent (investigate-comments.yml) propose
+# changes on the issues of readers' comments, and people vote for them by reacting with 👍. A
+# proposal gets the votes with 3 of them, unless the CHANGE_VOTES repository variable says
+# otherwise, or with one from a maintainer, and the first to get them becomes a pull request from
+# the comment-<issue number> branch, credited to the reader.
 # The votes go on while it's open: when another proposal with the votes has more of them, its
 # change replaces the one on the branch and in the description. A maintainer can instead comment
 # /accept and a proposal's number, or just /accept for the newest one, to put it on the pull
@@ -109,7 +110,7 @@ jobs:
               const proposal = number === undefined ? before.at(-1) : before.find(({ data }) => data.number === Number(number));
               if (!proposal) return { problem: number === undefined ? "There's no proposal on this issue to accept yet." : `There's no proposal ${Number(number)} on this issue.` };
               const { number: n, status } = proposal.data;
-              if (status === 'stale') return { problem: `Proposal ${n} no longer fits the note, which changed since Copilot wrote it. Comment \`/propose\` to have Copilot write it again.` };
+              if (status === 'stale') return { problem: `Proposal ${n} no longer fits the notes, which changed since it was written. Comment \`/propose\` for a new one.` };
               if (closedPull && proposal.comment.created_at <= closedPull.closed_at) {
                 return { problem: `Proposal ${n} is from before pull request #${closedPull.number} was closed, so it can't be accepted anymore. Comment \`/propose\` for a new one.` };
               }
@@ -215,17 +216,22 @@ jobs:
               const branch = `comment-${issue_number}`;
               const { data: head } = await github.rest.repos.getBranch({ owner, repo, branch: base });
               const applied = await changes.applyEdits(github, context.repo, head.commit.sha, proposal.edits);
+              // Whose proposal it is: Copilot's, or the comment agent's.
+              const whose = proposal.agent ? "The comment agent's" : "Copilot's";
               if (applied.problem) {
                 const got = by ? 'was accepted' : 'got the votes';
-                const note = "This proposal no longer fits the note, which changed since Copilot wrote it, so it can't become a pull request.";
+                const again = proposal.agent
+                  ? 'A maintainer can comment `/propose` to have the comment agent write it again.'
+                  : 'The reader or a maintainer can comment `/propose` to have Copilot write it again.';
+                const note = "This proposal no longer fits the notes, which changed since it was written, so it can't become a pull request.";
                 await github.rest.issues.updateComment({ owner, repo, comment_id: comment.id, body: changes.settledBody(comment.body, proposal, 'stale', note) });
                 await github.rest.issues.createComment({
                   owner,
                   repo,
                   issue_number,
-                  body: `Proposal ${proposal.number} ${got}, but it no longer fits the note, which changed since Copilot wrote it: ${applied.problem}. The reader or a maintainer can comment \`/propose\` to have Copilot write it again.`,
+                  body: `Proposal ${proposal.number} ${got}, but it no longer fits the notes, which changed since it was written: ${applied.problem}. ${again}`,
                 });
-                core.notice(`Proposal ${proposal.number} on #${issue_number} ${got} but no longer fits the note: ${applied.problem}.`);
+                core.notice(`Proposal ${proposal.number} on #${issue_number} ${got} but no longer fits the notes: ${applied.problem}.`);
                 return false;
               }
 
@@ -244,20 +250,20 @@ jobs:
                 parents: [head.commit.sha],
                 message: [
                   title,
-                  `Copilot's proposal ${proposal.number} for the reader's comment, ${by ? `accepted by ${by}` : 'voted in'} on #${issue_number}, in every language version of the note. Closes #${issue_number}.`,
+                  `${whose} proposal ${proposal.number} for the reader's comment, ${by ? `accepted by ${by}` : 'voted in'} on #${issue_number}${proposal.agent ? '' : ', in every language version of the note'}. Closes #${issue_number}.`,
                   // The proposal's number tells the next count which change the branch has.
                   [`Proposal: ${proposal.number}`, reader && `Co-authored-by: ${reader.login} <${reader.id}+${reader.login}@users.noreply.github.com>`].filter(Boolean).join('\n'),
                 ].join('\n\n'),
               });
 
               const text = [
-                `The change asked for in #${issue_number}: Copilot's proposal ${proposal.number}, ${by ? `accepted by ${changes.plain(by)}` : `voted in by ${voters.map((login) => changes.plain(login)).join(', ')}`}.`,
+                `The change asked for in #${issue_number}: ${whose.toLowerCase()} proposal ${proposal.number}, ${by ? `accepted by ${changes.plain(by)}` : `voted in by ${voters.map((login) => changes.plain(login)).join(', ')}`}.`,
                 changes.versionList(proposal, applied.files),
-                proposal.remarks && `**Copilot's remarks:** ${changes.plain(proposal.remarks)}`,
+                proposal.remarks && `**${whose} remarks:** ${changes.plain(proposal.remarks)}`,
                 by
                   ? `A maintainer accepted this proposal on #${issue_number}, so the votes there no longer change this pull request; another \`/accept\` there does, and a commit of your own on the \`${branch}\` branch stops that.`
                   : `While this pull request is open, the votes on #${issue_number} go on: when another proposal with the votes has more of them, its change replaces this one. Commenting \`/accept\` and a proposal's number there settles it, and a commit of your own on the \`${branch}\` branch stops it.`,
-                `Until this pull request is merged or closed, signed-in readers see its change on the note's pages, with the reader's comment. Copilot wrote the change from a reader's comment, so check the wording and the translation before merging. Merging closes #${issue_number}.`,
+                `Until this pull request is merged or closed, signed-in readers see its change on the note's pages, with the reader's comment. ${proposal.agent ? "The comment agent wrote the change from a reader's comment, so check the facts, the wording, the links and the translation before merging." : "Copilot wrote the change from a reader's comment, so check the wording and the translation before merging."} Merging closes #${issue_number}.`,
               ].filter(Boolean).join('\n\n');
               // What the site shows.
               const data = {
