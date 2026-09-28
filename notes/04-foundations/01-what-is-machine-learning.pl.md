@@ -38,7 +38,7 @@ Więcej pojęć, takich jak [SFT](../vocabulary/sft.pl.md) i [RL](../vocabulary/
 
 ## Dane treningowe, walidacyjne i testowe
 
-Model, który zapamiętał dane treningowe, może wyglądać na idealny, a mimo to zawodzić na nowych danych. Nazywa się to **nadmiernym dopasowaniem** (ang. overfitting). Żeby je wychwycić, podziel dane na trzy części:
+Model, który zapamiętał dane treningowe, może wyglądać na idealny, a mimo to zawodzić na nowych danych. Nazywa się to [**nadmiernym dopasowaniem**](../vocabulary/overfitting.pl.md) (ang. overfitting). Żeby je wychwycić, podziel dane na trzy części:
 
 1. **Zbiór treningowy** służy do dopasowania parametrów.
 2. **Zbiór walidacyjny** służy do porównywania modeli i dobierania ustawień, takich jak współczynnik uczenia.

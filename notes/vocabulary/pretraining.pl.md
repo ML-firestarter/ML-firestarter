@@ -12,4 +12,4 @@ W przypadku dużych modeli to najdroższy etap: tygodnie albo miesiące pracy ty
 
 **Przykład:** zdanie „Kot siedzi na macie” daje naraz kilka przykładów treningowych: przewidzieć „siedzi” po „Kot”, „na” po „Kot siedzi” i tak dalej (przy założeniu, że każde słowo to jeden token).
 
-**Powiązane:** [Model bazowy](base-model.pl.md) · [Token](token.pl.md) · [Post-training](post-training.pl.md)
+**Powiązane:** [Model bazowy](base-model.pl.md) · [Token](token.pl.md) · [Post-training](post-training.pl.md) · [Nadmierne dopasowanie](overfitting.pl.md)
