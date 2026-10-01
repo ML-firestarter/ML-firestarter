@@ -26,3 +26,6 @@ exams/
 
 # logs
 npm-debug.log*
+
+# Python bytecode
+__pycache__/
