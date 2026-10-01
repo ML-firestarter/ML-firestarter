@@ -159,6 +159,17 @@ CHECKS = [
 
 To make a Python example in a lesson runnable, write `python run` after the backticks that open its code block. The [README](https://github.com/ML-firestarter/ML-firestarter#writing-exercises) has the details, including `npm run check:exercises`, which makes sure every solution passes its checks.
 
+## PyTorch in the page
+
+PyTorch itself can't run in a browser, so lessons and exercises that start with `import torch` get a small PyTorch that this site carries along. It's written with NumPy, with what the lessons use: tensors, autograd, `torch.nn`, `torch.optim`, `torch.utils.data` and `torchmetrics`. It prints tensors the way PyTorch does, fails with the messages PyTorch fails with, and after `torch.manual_seed(42)`, makes the random numbers that PyTorch makes, so the numbers in a lesson are the ones you'd get on your computer, give or take the last digit of a decimal. The differences:
+
+- There's no graphics card. `torch.cuda.is_available()` is `False`, and asking for `device="cuda"` fails, as it does on a computer without one.
+- NumPy's whole numbers have 32 bits in the browser, and usually 64 on a computer, so `torch.tensor(np.array([1, 2, 3]))` is an `int32` tensor here. Say `dtype=torch.int64` when it matters.
+- It's a small library, built for the lessons. A few things the real PyTorch has, such as convolutions, aren't in it yet, and `torch.save` writes a file of its own, not one that PyTorch can read.
+- It's slower than the real one, so the lessons keep their data small.
+
+Everything else works the same, so to go further, install PyTorch on your computer with `pip install torch`, and run the same code there.
+
 ## Tracking progress
 
 Press **Mark lesson as done** at the end of a lesson. After you take a test, your best score shows in the **Tests** tab and at the end of the lesson. The exercises you've passed get a tick in the lesson's list of exercises, and the sidebar counts them. Progress, scores and your exercises are shared between the languages and stored in this browser only, so they don't sync between devices.
