@@ -10,7 +10,7 @@
  *
  * To make a new case, add it to a file in scripts/torch/cases/ and write what real PyTorch prints
  * for it into golden/, which takes a computer with PyTorch: `python scripts/torch/harness.py generate`.
- * Pull requests that change the library run this too (.github/workflows/check-torch.yml).
+ * Pull requests that change the library run this too (.github/workflows/check-exercises.yml).
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -33,6 +33,12 @@ const pyodide = await loadPyodide({ indexURL: pyodideDir, packageBaseUrl: packag
 const site = pyodide.globals.get('dict')();
 pyodide.runPython(readFileSync(path.join(ROOT, 'src/scripts/harness.py'), 'utf8'), { globals: site, filename: 'harness.py' });
 await libraryProvider(pyodide, site.get('provide'))('import torch');
+try {
+  pyodide.runPython('import numpy');
+} catch (error) {
+  console.error(`NumPy didn't load, which takes the network: ${String(error).split('\n').at(-1)}`);
+  process.exit(1);
+}
 
 const tools = pyodide.globals.get('dict')();
 pyodide.runPython(readFileSync(path.join(ROOT, 'scripts/torch/harness.py'), 'utf8'), { globals: tools, filename: 'harness.py' });

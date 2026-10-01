@@ -1,6 +1,8 @@
 # Checks the exercises whenever they, or the code that runs them, change: each exercise's solution
 # has to pass all its checks, and the code it starts from mustn't (scripts/check-exercises.mjs).
-# Problems show on the pull request, next to the files they're in.
+# The PyTorch the site gives to code that imports it (src/python) is checked too: the cases in
+# scripts/torch/ are run with it, and what they print has to be what the real PyTorch printed
+# (scripts/check-torch.mjs). Problems show on the pull request, next to the files they're in.
 name: Check exercises
 
 on:
@@ -8,7 +10,9 @@ on:
     paths:
       - 'exercises/**'
       - 'scripts/check-exercises.mjs'
+      - 'scripts/check-torch.mjs'
       - 'scripts/libraries.mjs'
+      - 'scripts/torch/**'
       - 'src/python/**'
       - 'src/scripts/harness.py'
       - 'package.json'
@@ -19,7 +23,9 @@ on:
     paths:
       - 'exercises/**'
       - 'scripts/check-exercises.mjs'
+      - 'scripts/check-torch.mjs'
       - 'scripts/libraries.mjs'
+      - 'scripts/torch/**'
       - 'src/python/**'
       - 'src/scripts/harness.py'
       - 'package.json'
@@ -51,3 +57,25 @@ jobs:
 
       - name: Run the exercises' checks
         run: npm run check:exercises
+
+  torch:
+    name: Check PyTorch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the library and its cases
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Pyodide and the rest
+        run: npm ci
+
+      - name: Run the PyTorch cases
+        run: npm run check:torch
