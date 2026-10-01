@@ -88,7 +88,9 @@ CHECKS = [
 
 `task.md` is written like a lesson. Its frontmatter can have `title`, `description`, `input` for what the page's **Input** box holds at first, and `draft: true` to hide the exercise. The **Input** box is there when the exercise sets `input` or its code calls `input()`. Numbered folders (`01-`, `02-`, …) set the exercises' order, and the lesson lists them after its text.
 
-Readers' code, and which exercises they've passed, are saved in their browser, like lesson progress. Checks that run in the browser can be fooled, so exercises count toward a reader's progress but not toward exams or certificates.
+Readers' code, and which exercises they've passed, are saved in their browser, like lesson progress. An exercise's checks are in the page with the values they expect, so they can be fooled, and exercises count toward a reader's progress but not toward exams or certificates. An exam's [tasks](#writing-exam-tasks) are what ask readers for code that counts: the page runs it, but the values it should give stay with the site.
+
+A chapter can end with a workbook: a lesson whose exercises mix what the chapter taught, like `notes/02-python/05-workbook.md` with the exercises in `exercises/02-python/05-workbook/`. It's an ordinary lesson and ordinary exercises, and numbering the lesson's file after the others puts it at the end of the chapter.
 
 `npm run check:exercises` runs each exercise's checks on its `solution.py`, which has to pass them all, and on its `starter.py`, which mustn't, in the same Pyodide as the site. Pull requests that change exercises run it too ([`check-exercises.yml`](.github/workflows/check-exercises.yml)), and show any problems next to the files. A missing lesson or file fails the build.
 
@@ -144,9 +146,9 @@ To try comments locally, copy `.env.example` to `.env` and fill it in.
 
 Each chapter can end with an exam on all of its lessons. Unlike the tests, which check the answers in the browser and show which ones are right, the exams are graded by the site, which keeps the results and never shows the right answers. Readers sign in with GitHub to take one.
 
-- An attempt has 10 questions (`exams.questions` in `src/site.config.ts`), drawn from the chapter's lessons in turn. The reader has 24 hours to hand it in and can leave and come back until then: their answers are kept in the browser.
-- An exam is passed at 80% (`passScore`, as for the tests), and then it's done. After an attempt that doesn't pass, the reader can start another 24 hours later (`exams.wait`).
-- Once an attempt is handed in, the reader sees their score and the lessons to read again. A pass earns a [certificate](#certificates), which the reader can publish.
+- An attempt has up to 10 questions (`exams.questions` in `src/site.config.ts`), drawn from the chapter's lessons in turn, and every practical [task](#writing-exam-tasks) the chapter has, in which readers write code in the page. The Python chapter's exam is six tasks, from the easiest to the hardest. The reader has 24 hours to hand it in and can leave and come back until then: their answers, and the code they've written, are kept in the browser.
+- Questions and tasks count the same toward the score. An exam is passed at 80% of them (`passScore`, as for the tests: five tasks out of six), and then it's done. After an attempt that doesn't pass, the reader can start another 24 hours later (`exams.wait`), with the code they wrote still in the editors.
+- Once an attempt is handed in, the reader sees their score and the lessons to read again: those of the questions they answered wrong and of the tasks they didn't solve. A pass earns a [certificate](#certificates), which the reader can publish.
 - The **Tests** tab lists each chapter's exam after its tests, and the chapter's page links to it.
 
 ### Writing exam questions
@@ -161,24 +163,59 @@ The questions aren't in this repository but in the private [ML-firestarter-exams
 
 Mistakes fail the build with an explanation that never says which answers are right.
 
+### Writing exam tasks
+
+A task asks readers to write Python in the page. Its card has an editor, a **Run** button and an **Input** box, as an exercise's page does, but no **Check** button: what the code does is looked at only when the attempt is handed in. Tasks are in the private repository too, in a `tasks/` folder in the chapter's folder, a folder to a task. Every attempt gives all of a chapter's tasks, in the order of their folders:
+
+```text
+02-python/tasks/01-triangles/   ← a task of the exam on notes/02-python/, with the id python-triangles
+├── task.md       ← what to do
+├── task.pl.md    ← the same in Polish
+├── starter.py    ← the code the reader starts from
+├── solution.py   ← our solution, which never leaves the private repository
+├── cases.py      ← makes the task's instances
+├── pool.json     ← the instances, and what solution.py does on them: `npm run exam-tasks` writes it
+├── wrong/*.py    ← solutions that each have one plausible mistake
+└── files/        ← optional: files the reader's code can open, like open("votes.txt")
+```
+
+`task.md` is written like an exercise's. Its frontmatter has `lessons`, the lessons the task draws on as paths inside `notes/`, which the exam links to readers who don't solve it, and can have `title`, `input` for what the **Input** box holds at first, and `draft: true` to leave the task out. The **Input** box is there when the task sets `input` or its starter calls `input()`. A translation's `lessons` and `input` are the original's. As a task shows no checks, its text has to say everything the cases rely on: the names and parameters of the functions, a table of example calls with what they return, and for a program, what it reads and prints, exactly.
+
+`cases.py` defines `make(rng, index)`, which returns an instance of the task, `{"cases": [...], "files": {...}}`. The cases are expressions as in an exercise's `checks.py`, written as text, like `triangle_kind(3, 4, 5)` or `program('3', '4 5')`, and `files` are the files they read, as text by name. An instance has up to 40 cases of up to 400 characters, and up to 20,000 characters of files. `rng` is a `random.Random` made for the instance, so that instances differ and `npm run exam-tasks` makes the same ones every time. `INSTANCES` is how many to make (8 unless it says, and at least 6) and `RAISES` lists the kinds of error the right code may raise, like `RAISES = ["ValueError"]`: any other error from `solution.py` is a mistake in the task.
+
+An attempt gets one instance of each task. The cases come without answers: what each did on the reader's code is compared with what it did on `solution.py`. That's a piece of text:
+
+- the value of the expression, written the same for equal values: `3.0` is `3`, other numbers are rounded to nine significant digits, `True` isn't `1`, dictionaries and sets come in order, lists and tuples keep theirs and aren't alike, and anything else is only its type;
+- for `program(…)`, what the program printed, with spaces at the ends of lines and blank lines at the end not counting. Unlike an exercise's checks, it leaves out the lines typed in, so that code that reads everything before it prints and code that prints between reads give the same. A prompt in `input("…")` is printed, so a task says whether the program has prompts, and asks for none unless it needs them;
+- `raised ValueError`, the kind of error the expression raised, or `too much output`.
+
+Each text is cut at 1,000 characters, so keep a case's result shorter for all of it to count. Each case has 10 seconds.
+
+`npm run exam-tasks` writes each task's `pool.json` from its `cases.py` and `solution.py`: the instances, and what `solution.py` did on each. Commit it with the task, as the site's build needs it and never runs `cases.py` or `solution.py`. `npm run check:exam-tasks` checks that the pool is what they make now, and that:
+
+- `solution.py` runs on every instance, and uses only what the lessons teach: a task asks for what the Basics lessons covered, so its solution is written with that alone. `LINT` in [`scripts/exam-tasks.mjs`](scripts/exam-tasks.mjs) lists the builtins, methods and statements the lessons use, and a mistake names the line and what it used;
+- `starter.py` and the solutions in `wrong/` pass no instance, and there are some: each of those has one plausible mistake, like `<` for `<=`, and the cases have to catch it. When one passes, add a case that catches it to `cases.py`.
+
+Both take a part of a task's name to work on only some tasks, like `npm run exam-tasks -- triangles`. They run Python in the same Pyodide as the site. Changing a task changes the exam's version, so attempts started before have to be started again, but the code readers wrote stays in their editors.
+
 ### How the answers stay secret
 
-The exam page holds the questions of every lesson of the chapter, hidden until an attempt draws some of them, with nothing that tells the right answers. It also holds the exam's answer key, encrypted with `EXAM_SECRET`, which only the site's API has. Starting an attempt sends the key to the API, which draws the questions and gives the page the attempt, encrypted the same way. Handing in sends it back with the answers: the API checks them, keeps the result, and only then tells the reader their score. So:
+The exam page holds the questions of every lesson of the chapter, hidden until an attempt draws some of them, and the text and starting code of its tasks, with nothing that tells the right answers. It also holds the exam's answer key, encrypted with `EXAM_SECRET`, which only the site's API has. Starting an attempt sends the key to the API, which draws the questions and an instance of each task, and gives the page the attempt, encrypted the same way, with the cases of the instances it drew. Handing in sends the attempt back with the answers and with what the reader's code did on each case: the API checks the answers, compares what the code did with what the right code does, keeps the result, and only then tells the reader their score. So:
 
-- The right answers are only ever in the private repository: not in the published pages, the site's code, the build logs or Netlify's build cache.
-- An attempt can be handed in only once, and starting it again draws the same questions, so readers can't try answers out or look for easier questions.
-- The results are kept by the site's bot, a GitHub App of its own, in the private [ML-firestarter-results](https://github.com/ML-firestarter/ML-firestarter-results) repository (`exams.results`). Each reader has a file there, `readers/<GitHub id>.json`, with the date, score and version of the questions of each of their attempts, and whether it passed, and their certificates, signed, with whether they're published; their answers aren't kept.
+- The right answers, and what the right code does on the tasks' cases, are only ever in the private repository: not in the published pages, the site's code, the build logs or Netlify's build cache. Of a task, the build downloads its text, starting code, pool and files, never its solution or the code that makes its instances, and the key holds only a digest of what the right code does on each instance, which only `EXAM_SECRET` can make.
+- An attempt can be handed in only once, and starting it again draws the same questions and instances, so readers can't try answers out or look for easier ones. Each reader has an order of their own for a task's instances, and each attempt takes the next one, so an instance doesn't come back before the others have been used.
+- The results are kept by the site's bot, a GitHub App of its own, in the private [ML-firestarter-results](https://github.com/ML-firestarter/ML-firestarter-results) repository (`exams.results`). Each reader has a file there, `readers/<GitHub id>.json`, with the date, score and version of the questions and tasks of each of their attempts, and whether it passed, and their certificates, signed, with whether they're published; their answers and code aren't kept.
 
-A few things still show. Checkboxes tell that a question has several right answers, as in tests, and the lessons to read again tell which questions were answered wrong when only one question of a lesson was drawn. All readers share the bot's rate limit, 5,000 requests an hour, and each attempt or certificate takes a few.
+A few things still show. Checkboxes tell that a question has several right answers, as in tests, and the lessons to read again tell which questions were answered wrong when only one question of a lesson was drawn, and which tasks weren't solved. A task's cases show more: the instance an attempt drew is in the page, as the reader's code runs on it in their browser, so readers see what each case asks of their code and what their code gives, but not what it should give. The site's servers run none of the reader's code, so they can't tell that what a hand-in says the code did is true: someone who knows what the right code gives on each case, from solving the task some other way or from somebody else, can hand that in. Exams aren't proctored, and questions can be asked around just the same. If that ever matters, a sandbox on a server can run the reader's code on the same cases, and the API compare what it did in the same way. All readers share the bot's rate limit, 5,000 requests an hour, and each attempt or certificate takes a few.
 
 ### Certificates
 
-Passing a chapter's exam earns a certificate, which the site signs with its Ed25519 key, `CERTIFICATE_KEY`, as a JWS. It says who passed, with their GitHub id, login and name, the chapter and the lessons its exam asked about, when and how well they passed, the version of the questions, and when it was issued. It's kept with the reader's results, and publishing it is up to them, on the exam's page: the site's bot then writes it to the public [ML-firestarter-certificates](https://github.com/ML-firestarter/ML-firestarter-certificates) repository (`exams.certificates`) as `certificates/<id>.json`, and it has a page of its own, like `/certificates/3f9a1c0e7b2d4a55/`, in each language. The page shows who it was issued to, with their GitHub name and picture, the chapter and its lessons, and when and how well they passed.
+Passing a chapter's exam earns a certificate, which the site signs with its Ed25519 key, `CERTIFICATE_KEY`, as a JWS. It says who passed, with their GitHub id, login and name, the chapter and the lessons its exam asked about or set tasks on, when and how well they passed, the version of the questions and tasks, and when it was issued. It's kept with the reader's results, and publishing it is up to them, on the exam's page: the site's bot then writes it to the public [ML-firestarter-certificates](https://github.com/ML-firestarter/ML-firestarter-certificates) repository (`exams.certificates`) as `certificates/<id>.json`, and it has a page of its own, like `/certificates/3f9a1c0e7b2d4a55/`, in each language. The page shows who it was issued to, with their GitHub name and picture, the chapter and its lessons, and when and how well they passed: the questions answered right, the tasks solved, or both.
 
 - The certificate's page reads it straight from the repository and checks its signature in the browser, with the public key the site publishes at `/certificates/keys.json`. One whose signature doesn't check out, because it was changed or signed with another key, isn't shown as a certificate. Anyone can check one the same way: its file holds it as a JWS, `jws`, next to a copy to read, `certificate`, which doesn't count.
 - The repository keeps a record too: GitHub marks the bot's commits as verified, so a certificate's history shows that the site's bot published it.
 - Readers can unpublish their certificate on the exam's page, which deletes its file. It stays in the repository's history, and in their results, so they can publish it again. Taking a certificate back isn't possible yet: deleting its file takes its page down, but its reader can publish it again.
-- Each reader gets one certificate for each exam they pass. It names the chapter and its lessons, and its reader, as they were when it was issued, and doesn't change when they do. It holds nothing about the questions or their answers.
+- Each reader gets one certificate for each exam they pass. It names the chapter and its lessons, and its reader, as they were when it was issued, and doesn't change when they do. It holds nothing about the questions, the tasks or their answers.
 - On the certificate's page, the reader it was issued to gets a badge for the README of their GitHub profile, as Markdown to copy, linked to the page, and a link that adds the certificate to their LinkedIn profile. Each top-level chapter has a badge in each language, like `/certificates/badges/foundations.svg`.
 - Without `CERTIFICATE_KEY`, the exams give no certificates. Readers who pass while it isn't set get theirs signed when they publish it, once it is. Changing the key makes the certificates signed with the old one fail their check, so keep it, and keep it secret.
 
@@ -186,7 +223,7 @@ Passing a chapter's exam earns a certificate, which the site signs with its Ed25
 
 Exams need signing in, so set up [comments](#setting-up-comments) first (steps 1 to 3). Then:
 
-1. Use the organization's three repositories: two private ones, `ML-firestarter-exams` for the questions and `ML-firestarter-results`, initially empty, for the results, and the public [ML-firestarter-certificates](https://github.com/ML-firestarter/ML-firestarter-certificates) for the certificates, with a README saying what they are. To name them otherwise, change `exams` in `src/site.config.ts`.
+1. Use the organization's three repositories: two private ones, `ML-firestarter-exams` for the questions and tasks and `ML-firestarter-results`, initially empty, for the results, and the public [ML-firestarter-certificates](https://github.com/ML-firestarter/ML-firestarter-certificates) for the certificates, with a README saying what they are. To name them otherwise, change `exams` in `src/site.config.ts`.
 2. Create the bot, a second GitHub App, in the organization's settings under **Developer settings → GitHub Apps → New GitHub App**:
    - **Homepage URL**: the site's address. It needs no callback URL.
    - **Webhook**: turn off **Active**.
@@ -202,7 +239,7 @@ Exams need signing in, so set up [comments](#setting-up-comments) first (steps 1
 
    Deploy previews run the code of pull requests, which anyone can open, so they mustn't get these settings: with them, that code could read the questions the build downloads, answers and all, open the answer keys or sign certificates of its own. Without them, deploy previews are built without exams. Mark `EXAM_SECRET`, `BOT_APP_PRIVATE_KEY` and `CERTIFICATE_KEY` as secret values, too, so that Netlify hides them.
 
-The next production build downloads the questions, and its log says how many files it found. `exams/` is left as it is in other builds, including local ones: to try the exams locally, clone the questions repository into it with `git clone https://github.com/ML-firestarter/ML-firestarter-exams exams` and add the settings to `.env`. Builds with `exams/` need `EXAM_SECRET`, and render its questions afresh every time, so a new `EXAM_SECRET` applies at once. `npm run dev` keeps results in the same results repository as the site and publishes certificates to the same certificates repository, so give it a `CERTIFICATE_KEY` of its own: the site doesn't accept the certificates it signs.
+The next production build downloads the questions and the files tasks need, and its log says how many files it found. `exams/` is left as it is in other builds, including local ones: to try the exams locally, clone the questions repository into it with `git clone https://github.com/ML-firestarter/ML-firestarter-exams exams` and add the settings to `.env`. Builds with `exams/` need `EXAM_SECRET`, and render its questions afresh every time, so a new `EXAM_SECRET` applies at once. `npm run dev` keeps results in the same results repository as the site and publishes certificates to the same certificates repository, so give it a `CERTIFICATE_KEY` of its own: the site doesn't accept the certificates it signs.
 
 ## Running it locally
 
@@ -214,6 +251,8 @@ npm run dev     # http://localhost:4321, reloads as you edit notes
 npm run build   # production build into dist/
 npm run check   # type-check the site code
 npm run check:exercises   # run every exercise's checks on its solution and starter
+npm run exam-tasks        # make the exam tasks' pools, in exams/ (see Writing exam tasks)
+npm run check:exam-tasks  # check the exam tasks, their pools and their solutions
 ```
 
 `npm run dev` also serves the API behind signing in, comments, exams and certificates, with the settings from `.env` (see [Comments](#comments) and [Exams](#exams)), and shows certificates' pages as Netlify does.
@@ -229,14 +268,14 @@ Pyodide isn't part of the deploy, which it would make 13 MB bigger: readers' bro
 Built with [Astro](https://astro.build). The code is in `src/`:
 
 - `lib/i18n.ts` lists the languages and holds the interface text in each of them.
-- `lib/course.ts` turns the notes into chapters and lessons, one course per language, picks each note's translation, gives each lesson its test and exercises and each chapter its exam.
+- `lib/course.ts` turns the notes into chapters and lessons, one course per language, picks each note's translation, gives each lesson its test and exercises and each chapter its exam, with the exam's tasks.
 - `lib/paths.ts` turns file paths into titles and addresses.
 - `lib/markdown.ts` handles math, callouts, footnotes, the leading heading, links between notes and runnable examples, and turns tests and exam questions into question forms.
 - `lib/comments.ts` describes readers' comments, the issues that hold them and the pull requests with the changes they lead to, `lib/exams.ts` the exams' attempts and results, and `lib/certificates.ts` the certificates. `lib/badge.ts` draws the certificates' badges.
 - `pages/` holds the home, chapter, lesson, test, exercise, exam, certificate and 404 pages, the tests overview, the badges and the certificates' public keys, and `pages/[lang]/` the home and 404 pages of the other languages. `components/` holds the parts the pages are built from, and `styles/global.css` the styling.
-- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them. `scripts/account.ts` shows who's signed in, and `scripts/comments.ts` handles selecting passages, the comment form and the highlighted changes. `scripts/exam.ts` takes an exam and gets its certificate, `scripts/exams.ts` shows the reader's results wherever an exam is linked, and `scripts/certificate.ts` shows a certificate.
-- `scripts/exercise.ts` runs and checks the code on an exercise's page, and `scripts/runnable.ts` runs the lessons' examples; `scripts/running.ts` holds what they share. `scripts/editor.ts` is the code editor, [CodeMirror](https://codemirror.net), and `scripts/exercises.ts` saves which exercises the reader has passed and shows them. `scripts/python.ts` runs Python in a Web Worker, `scripts/python.worker.ts`, which loads Pyodide and `scripts/harness.py`, the Python that runs the reader's code and the checks. [`scripts/check-exercises.mjs`](scripts/check-exercises.mjs), outside `src/`, runs the harness under Node for `npm run check:exercises`.
-- `server/api.ts` is the API for signing in with GitHub, for comments and for the exams and their certificates, with `server/session.ts` keeping readers signed in with encrypted cookies and `server/github.ts` talking to GitHub, as the reader or as the site's bot. Netlify runs it as a function ([`netlify/functions/api.ts`](netlify/functions/api.ts)), and `server/dev.ts` serves it in `npm run dev`. `server/exams.ts` seals the answer keys into the exam pages, draws and grades the attempts and keeps the results, `server/certificates.ts` signs the certificates and publishes and unpublishes them, and `server/exam-questions.ts` downloads the exam questions for production builds.
+- `scripts/app.ts` handles lesson progress (saved in the browser), the dark theme and the mobile menu. `scripts/quiz.ts` checks a test's answers, and `scripts/scores.ts` saves the scores in the browser and shows them. `scripts/account.ts` shows who's signed in, and `scripts/comments.ts` handles selecting passages, the comment form and the highlighted changes. `scripts/exam.ts` takes an exam and gets its certificate, `scripts/exam-tasks.ts` runs the code of the exam's tasks and keeps the reader's drafts, `scripts/exams.ts` shows the reader's results wherever an exam is linked, and `scripts/certificate.ts` shows a certificate.
+- `scripts/exercise.ts` runs and checks the code on an exercise's page, and `scripts/runnable.ts` runs the lessons' examples; `scripts/running.ts` holds what they share. `scripts/editor.ts` is the code editor, [CodeMirror](https://codemirror.net), and `scripts/exercises.ts` saves which exercises the reader has passed and shows them. `scripts/python.ts` runs Python in a Web Worker, `scripts/python.worker.ts`, which loads Pyodide and `scripts/harness.py`, the Python that runs the reader's code and the checks, or the cases of an exam task. [`scripts/check-exercises.mjs`](scripts/check-exercises.mjs) and [`scripts/exam-tasks.mjs`](scripts/exam-tasks.mjs), outside `src/`, run the harness under Node for `npm run check:exercises` and `npm run exam-tasks`.
+- `server/api.ts` is the API for signing in with GitHub, for comments and for the exams and their certificates, with `server/session.ts` keeping readers signed in with encrypted cookies and `server/github.ts` talking to GitHub, as the reader or as the site's bot. Netlify runs it as a function ([`netlify/functions/api.ts`](netlify/functions/api.ts)), and `server/dev.ts` serves it in `npm run dev`. `server/exams.ts` seals the answer keys into the exam pages, draws and grades the attempts, their questions and their tasks, and keeps the results, `server/certificates.ts` signs the certificates and publishes and unpublishes them, and `server/exam-questions.ts` downloads the exam questions and the files of the tasks for production builds.
 - `site.config.ts` holds the site title, the tagline in each language, the GitHub repository, the tests' pass mark, the sections that take comments and the exams' settings.
 
 To add a language, add its code to `LANGS` in `lib/i18n.ts` and run `npm run check`, which lists the text still missing for it. Then add a certificate rule and a "page not found" rule for it to `netlify.toml`, like the ones for `/pl/`.

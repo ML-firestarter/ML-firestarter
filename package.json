@@ -12,6 +12,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "check:exercises": "node scripts/check-exercises.mjs",
+    "exam-tasks": "node scripts/exam-tasks.mjs",
+    "check:exam-tasks": "node scripts/exam-tasks.mjs --check",
     "astro": "astro"
   },
   "dependencies": {

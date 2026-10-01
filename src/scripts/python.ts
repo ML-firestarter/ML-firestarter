@@ -49,10 +49,24 @@ export interface CheckReport {
   broken?: string;
 }
 
-/** Messages to the worker. `files` is JSON with each of the exercise's files, in base64, by name. */
+/** An exam task's cases, run on the reader's code (harness.py's `observe`). */
+export interface Observation {
+  /** What each case did, as text the API compares with what it should give: one for each case that ran. */
+  observations: string[];
+  /** The traceback of the error that stopped the code before the cases could run. */
+  error?: string;
+  /** Whether the code printed too much before the cases could run. */
+  tooMuch?: boolean;
+}
+
+/**
+ * Messages to the worker. `files` is JSON with each of the exercise's files, in base64, by name;
+ * `cases` is JSON with an exam task's cases, a list of expressions.
+ */
 export type Request =
   | { type: 'run'; id: number; code: string; input: string; files: string }
-  | { type: 'check'; id: number; code: string; checks: string; files: string };
+  | { type: 'check'; id: number; code: string; checks: string; files: string }
+  | { type: 'observe'; id: number; code: string; cases: string; files: string };
 
 /** Messages from the worker. */
 export type Reply =
@@ -60,7 +74,7 @@ export type Reply =
   | { type: 'failed'; message: string }
   | { type: 'output'; id: number; kind: Kind; text: string }
   | { type: 'progress'; id: number; number: number }
-  | { type: 'done'; id: number; result: RunResult | CheckReport }
+  | { type: 'done'; id: number; result: RunResult | CheckReport | Observation }
   | { type: 'crash'; id: number; message: string };
 
 /** How a piece of code ended. */
@@ -68,7 +82,7 @@ export type Outcome<T> =
   | { status: 'finished'; result: T }
   /** Stopped by stop(), or by other code starting. */
   | { status: 'stopped' }
-  /** Check `number` ran for longer than CHECK_SECONDS. */
+  /** Check or case `number` ran for longer than CHECK_SECONDS. */
   | { status: 'timed-out'; number: number }
   /** Python couldn't be loaded, like when the reader is offline. */
   | { status: 'unavailable' }
@@ -79,7 +93,7 @@ interface Handlers {
   /** Called when the code has to wait for Python to load. */
   onLoading?(): void;
   onOutput?(kind: Kind, text: string): void;
-  /** Called as each check starts, with its number, counted from 1. */
+  /** Called as each check or case starts, with its number, counted from 1. */
   onProgress?(number: number): void;
 }
 
@@ -87,10 +101,10 @@ interface Job extends Handlers {
   request: Request;
   /** Whether the worker has it. */
   sent: boolean;
-  finish(outcome: Outcome<RunResult | CheckReport>): void;
+  finish(outcome: Outcome<RunResult | CheckReport | Observation>): void;
 }
 
-/** How long each check can take. */
+/** How long each check, or each case of an exam task, can take. */
 export const CHECK_SECONDS = 10;
 
 let worker: Worker | undefined;
@@ -111,6 +125,11 @@ export function check(code: string, checks: string, files: string, handlers: Han
   return start({ type: 'check', id: ++lastId, code, checks, files }, handlers) as Promise<Outcome<CheckReport>>;
 }
 
+/** Runs an exam task's cases, a list of expressions as JSON, on the reader's code, and says what each did. */
+export function observe(code: string, cases: string, files: string, handlers: Handlers = {}): Promise<Outcome<Observation>> {
+  return start({ type: 'observe', id: ++lastId, code, cases, files }, handlers) as Promise<Outcome<Observation>>;
+}
+
 /** Stops the code that's running, if any. */
 export function stop() {
   if (!job) return;
@@ -125,7 +144,7 @@ export function warmUp() {
   load();
 }
 
-function start(request: Request, handlers: Handlers): Promise<Outcome<RunResult | CheckReport>> {
+function start(request: Request, handlers: Handlers): Promise<Outcome<RunResult | CheckReport | Observation>> {
   stop();
   return new Promise((resolve) => {
     const current: Job = { request, sent: false, finish: resolve, ...handlers };
@@ -190,7 +209,7 @@ function receive(reply: Exclude<Reply, { type: 'ready' | 'failed' }>) {
   }
 }
 
-function finish(outcome: Outcome<RunResult | CheckReport>) {
+function finish(outcome: Outcome<RunResult | CheckReport | Observation>) {
   const current = job;
   job = undefined;
   clearTimeout(timer);

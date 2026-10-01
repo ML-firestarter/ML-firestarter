@@ -4,8 +4,10 @@
  * alphabetically by title. A note's translations sit next to it: `sft.pl.md` is the
  * Polish version of `sft.md`, and pages without a translation show the original.
  * Tests live in tests/, each at the same path as the lesson it tests. Exam questions live in
- * exams/ the same way, and each top-level chapter with some gets an exam that draws from them.
- * Exercises live in exercises/, each in a folder of its own inside a folder with its lesson's path.
+ * exams/ the same way, and each top-level chapter with some gets an exam that draws from them;
+ * a chapter's folder in exams/ can also hold practical tasks in a `tasks/` folder, which the
+ * chapter's exam gives in full. Exercises live in exercises/, each in a folder of its own inside
+ * a folder with its lesson's path.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -23,6 +25,8 @@ import {
   TESTS_DIR,
   TESTS_PATH,
   examQuestionId,
+  examTaskFile,
+  examTaskId,
   examUrl,
   exerciseUrl,
   hasOrder,
@@ -38,6 +42,7 @@ import {
 type Note = CollectionEntry<'notes'>;
 type TestNote = CollectionEntry<'tests'>;
 type ExamNote = CollectionEntry<'exams'>;
+type ExamTaskNote = CollectionEntry<'examTasks'>;
 type ExerciseNote = CollectionEntry<'exercises'>;
 
 export interface Lesson {
@@ -110,9 +115,13 @@ export interface Exam {
   title: string;
   /** The chapter's lessons that have exam questions, in reading order. */
   parts: ExamPart[];
-  /** Number of questions in all, which attempts draw from. */
+  /** The chapter's practical tasks, in the order of their folders; every attempt gives all of them. */
+  tasks: ExamTask[];
+  /** The lessons the exam asks about or has tasks on, in reading order. */
+  lessons: Lesson[];
+  /** Number of questions in all, which attempts draw from; tasks aren't counted. */
   questions: number;
-  /** Number of questions in an attempt: `exams.questions` in site.config.ts, or all of them when there are fewer. */
+  /** Number of questions in an attempt: `exams.questions` in site.config.ts, or all of them when there are fewer. Tasks aren't counted. */
   drawn: number;
 }
 
@@ -155,6 +164,41 @@ export interface ExamPart {
   versions: ExamNote[];
   /** Each question's id and right answers, the same in every language. */
   key: { id: string; right: number[] }[];
+}
+
+/** A practical task of an exam: the reader writes Python, and the site checks it by running cases on the code. */
+export interface ExamTask {
+  /** Like `python-triangles`, the same in every language. */
+  id: string;
+  /** The task's folder inside exams/, like `02-python/tasks/01-triangles`. */
+  dir: string;
+  /** The task.md in the course's language, or the original when it isn't translated yet. */
+  note: ExamTaskNote;
+  /** Language of `note`. */
+  lang: Lang;
+  title: string;
+  /** The lessons it draws on, in reading order, to read again after a mistake. */
+  lessons: Lesson[];
+  /** The code the reader starts from: starter.py. */
+  starter: string;
+  /** Files the code can open when the reader runs it, from the task's files/ folder, by path inside it, in base64. */
+  files: Record<string, string>;
+  /** What the input box holds at first; undefined when the code doesn't read input(), and there's no box. */
+  input?: string;
+  /** The instances attempts draw from: their cases, the files they read, and what the right code does with them (pool.json). */
+  pool: PoolInstance[];
+  /** Everything that makes up the task, in every language, as the exam's version has to change with each of it. */
+  sources: { path: string; text: string }[];
+}
+
+/** One instance of an exam task, from its pool.json. */
+export interface PoolInstance {
+  /** Python expressions to evaluate in the reader's code, like `triangle_kind(3, 4, 5)`, or `program('3', '4')` to run it as a program. */
+  cases: string[];
+  /** The files the cases read, by name, as text. */
+  files: Record<string, string>;
+  /** What the right code does with each case, as `observe` in scripts/harness.py writes it: the right answers, which never leave the server. */
+  expected: string[];
 }
 
 export interface Course {
@@ -334,10 +378,10 @@ async function addTests(
 }
 
 /**
- * Gives each top-level chapter whose lessons have questions in exams/ its exam. The questions
- * are written like tests, and one answer key grades every language, so translations have to
- * ask the same questions with the same answers, in the same order. Mistakes fail the build;
- * the build's messages never say which answers are right.
+ * Gives each top-level chapter whose lessons have questions in exams/, or that has practical
+ * tasks there, its exam. The questions are written like tests, and one answer key grades every
+ * language, so translations have to ask the same questions with the same answers, in the same
+ * order. Mistakes fail the build; the build's messages never say which answers are right.
  */
 async function addExams(
   lang: Lang,
@@ -388,11 +432,13 @@ async function addExams(
     parts.set(lesson, { lesson, note, lang: noteLang, versions: all, key });
   }
 
+  const tasks = await readExamTasks(lang, byPath, drafts);
   const exams: Exam[] = [];
   for (const chapter of root.children) {
     if (chapter.kind !== 'chapter') continue;
     const chapterParts = chapter.lessons.flatMap((lesson) => parts.get(lesson) ?? []);
-    if (chapterParts.length === 0) continue;
+    const chapterTasks = tasks.get(chapter) ?? [];
+    if (chapterParts.length === 0 && chapterTasks.length === 0) continue;
     const path = examUrl(chapter.path);
     const questions = chapterParts.reduce((sum, part) => sum + part.key.length, 0);
     chapter.exam = {
@@ -402,6 +448,8 @@ async function addExams(
       url: localizeUrl(path, lang),
       title: chapter.title,
       parts: chapterParts,
+      tasks: chapterTasks,
+      lessons: chapter.lessons.filter((lesson) => parts.has(lesson) || chapterTasks.some((task) => task.lessons.includes(lesson))),
       questions,
       drawn: Math.min(site.exams.questions, questions),
     };
@@ -409,6 +457,143 @@ async function addExams(
     exams.push(chapter.exam);
   }
   return exams;
+}
+
+/** The most cases an instance of an exam task can have, and the longest a case can be, in characters. */
+const MAX_TASK_CASES = 40;
+const MAX_CASE_LENGTH = 400;
+
+/** How much text the files of one instance of an exam task can hold in all, in characters. */
+const MAX_INSTANCE_FILES = 20_000;
+
+/**
+ * The practical tasks in the `tasks/` folder of each top-level chapter's folder in exams/, by
+ * chapter: a folder for each task, with its task.md and translations, the code the reader
+ * starts from in starter.py, the instances attempts draw from in pool.json (`npm run
+ * exam-tasks` makes it) and any files the reader's code can open in files/. Mistakes fail the
+ * build; `npm run check:exam-tasks` runs the tasks' reference solutions on them.
+ */
+async function readExamTasks(
+  lang: Lang,
+  byPath: Map<string, Node>,
+  /** Paths of lessons hidden with `draft: true`, which tasks can't draw on. */
+  drafts: Set<string>,
+): Promise<Map<Chapter, ExamTask[]>> {
+  const entries = await getCollection('examTasks', (entry) => !entry.data.draft);
+  const tasks = new Map<Chapter, ExamTask[]>();
+  const ids = new Map<string, ExamTaskNote>();
+  const example = `"${EXAMS_DIR}/02-python/tasks/01-triangles/task.md"`;
+
+  for (const [file, versions] of groupTranslations(entries)) {
+    const noteLang = pickLang(versions, lang);
+    const note = versions.get(noteLang)!;
+    const where = examTaskFile(file)!;
+    if (where.file !== 'task.md') {
+      throw new Error(`"${note.filePath}" isn't named task.md, or task.pl.md for a translation. A task's folder has one task.md, with its translations next to it.`);
+    }
+    const original = versions.get(DEFAULT_LANG);
+    if (!original) {
+      throw new Error(`"${note.filePath}" is a translation of a task that has no task.md in ${DEFAULT_LANG}. Write the original first, like ${example}.`);
+    }
+    const chapter = byPath.get(noteUrl(where.chapter));
+    if (chapter?.kind !== 'chapter' || chapter.parents.length !== 0) {
+      throw new Error(
+        `"${note.filePath}" has no chapter: there's no folder ${NOTES_DIR}/${where.chapter}/. A task's folder sits in a folder named like its chapter's, in a tasks/ folder, like ${example}.`,
+      );
+    }
+
+    const lessons: Lesson[] = [];
+    for (const lessonFile of original.data.lessons ?? []) {
+      const lessonPath = noteUrl(lessonFile);
+      const lesson = byPath.get(lessonPath);
+      if (lesson?.kind !== 'lesson') {
+        if (drafts.has(lessonPath)) continue;
+        throw new Error(`"${original.filePath}" draws on "${lessonFile}", but there's no lesson at ${lessonPath}. List the lessons as paths inside ${NOTES_DIR}/, like "${NOTES_DIR}/${chapter.dir}/…".`);
+      }
+      if (lesson.parents[0] !== chapter) {
+        throw new Error(`"${original.filePath}" draws on "${lesson.note.filePath}", which isn't in the chapter's folder. A task can only draw on lessons of its own chapter.`);
+      }
+      if (!lessons.includes(lesson)) lessons.push(lesson);
+    }
+    if (lessons.length === 0) {
+      throw new Error(`"${original.filePath}" doesn't say which lessons it draws on. List them under "lessons:" in its front matter, as paths inside ${NOTES_DIR}/: the exam links them to readers who get the task wrong.`);
+    }
+    lessons.sort((a, b) => chapter.lessons.indexOf(a) - chapter.lessons.indexOf(b));
+
+    const folder = path.join(EXAMS_DIR, where.chapter, 'tasks', where.name);
+    const read = (name: string) => {
+      const code = path.join(folder, name);
+      if (!existsSync(code)) {
+        throw new Error(`"${folder}/" has no ${name}. Every task has the code the reader starts from in starter.py and the instances attempts draw from in pool.json, which "npm run exam-tasks" makes.`);
+      }
+      return readFileSync(code, 'utf8');
+    };
+    const [starter, poolText] = [read('starter.py'), read('pool.json')];
+    const files = readFiles(folder);
+
+    const id = examTaskId(where.chapter, where.name);
+    const other = ids.get(id);
+    if (other) throw new Error(`"${other.filePath}" and "${note.filePath}" would give their tasks the same id, "${id}". Rename one of their folders.`);
+    ids.set(id, note);
+
+    const task: ExamTask = {
+      id,
+      dir: path.posix.join(where.chapter, 'tasks', where.name),
+      note,
+      lang: noteLang,
+      title: note.data.title ?? leadingHeading(note.body) ?? prettify(where.name),
+      lessons,
+      starter,
+      files,
+      input: original.data.input ?? (READS_INPUT.test(starter) ? '' : undefined),
+      pool: readPool(poolText, folder),
+      sources: [
+        ...[DEFAULT_LANG, ...LANGS.filter((code) => code !== DEFAULT_LANG)].flatMap((code) => versions.get(code) ?? []).map((version) => ({ path: version.filePath ?? version.id, text: version.body ?? '' })),
+        { path: `${folder}/starter.py`, text: starter },
+        { path: `${folder}/pool.json`, text: poolText },
+        ...Object.entries(files).map(([name, data]) => ({ path: `${folder}/files/${name}`, text: data })),
+      ],
+    };
+    tasks.set(chapter, [...(tasks.get(chapter) ?? []), task]);
+  }
+
+  for (const list of tasks.values()) {
+    list.sort((a, b) => {
+      const [nameA, nameB] = [a.dir.slice(a.dir.lastIndexOf('/') + 1), b.dir.slice(b.dir.lastIndexOf('/') + 1)];
+      if (hasOrder(nameA) !== hasOrder(nameB)) return hasOrder(nameA) ? -1 : 1;
+      return nameCollator.compare(nameA, nameB);
+    });
+  }
+  return tasks;
+}
+
+/** The instances in a task's pool.json; throws if the file isn't what `npm run exam-tasks` writes. Its messages never quote what the right code gives. */
+function readPool(text: string, folder: string): PoolInstance[] {
+  const fail = (problem: string): never => {
+    throw new Error(`"${folder}/pool.json" ${problem}. Run "npm run exam-tasks" to make it again.`);
+  };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return fail("isn't JSON");
+  }
+  const isStrings = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
+  const instances = (parsed as { instances?: unknown } | null)?.instances;
+  if (!Array.isArray(instances) || instances.length === 0) return fail('has no instances');
+  return instances.map((instance: Partial<PoolInstance> | null, i) => {
+    const { cases, files = {}, expected } = instance ?? {};
+    if (!isStrings(cases) || !isStrings(expected)) return fail(`has instance ${i + 1} without a list of cases and a list of what they give`);
+    if (cases.length === 0 || cases.length > MAX_TASK_CASES) return fail(`has instance ${i + 1} with ${cases.length} cases, where one has 1 to ${MAX_TASK_CASES}`);
+    if (expected.length !== cases.length) return fail(`has instance ${i + 1} with ${cases.length} cases and ${expected.length} results`);
+    if (cases.some((item) => item.length > MAX_CASE_LENGTH || !item.trim())) return fail(`has a case in instance ${i + 1} that's empty or longer than ${MAX_CASE_LENGTH} characters`);
+    const isFiles = typeof files === 'object' && files !== null && !Array.isArray(files) && Object.values(files).every((item) => typeof item === 'string');
+    if (!isFiles) return fail(`has instance ${i + 1} whose files aren't text by name`);
+    if (Object.values(files).reduce((sum, item) => sum + item.length, 0) > MAX_INSTANCE_FILES) {
+      return fail(`has instance ${i + 1} with more than ${MAX_INSTANCE_FILES} characters of files`);
+    }
+    return { cases, files, expected };
+  });
 }
 
 /** Code that reads what's typed in, so its exercise's page gets an input box. */
@@ -560,7 +745,7 @@ function readQuiz(note: TestNote | ExamNote): Quiz {
 }
 
 /** Collects each note's language versions under its path without a language code. */
-function groupTranslations<T extends Note | TestNote | ExamNote | ExerciseNote>(entries: T[]): Map<string, Map<Lang, T>> {
+function groupTranslations<T extends Note | TestNote | ExamNote | ExamTaskNote | ExerciseNote>(entries: T[]): Map<string, Map<Lang, T>> {
   const groups = new Map<string, Map<Lang, T>>();
   for (const entry of entries) {
     const { file, lang } = splitLang(entryFile(entry));
@@ -635,9 +820,9 @@ function readingMinutes(body = ''): number {
   return Math.max(1, Math.round(words / 200));
 }
 
-/** Path of a note inside notes/, a test inside tests/, exam questions inside exams/ or a task inside exercises/, including any language code. */
-function entryFile(entry: Note | TestNote | ExamNote | ExerciseNote): string {
-  const dir = { notes: NOTES_DIR, tests: TESTS_DIR, exams: EXAMS_DIR, exercises: EXERCISES_DIR }[entry.collection];
+/** Path of a note inside notes/, a test inside tests/, exam questions or an exam task inside exams/ or an exercise's task inside exercises/, including any language code. */
+function entryFile(entry: Note | TestNote | ExamNote | ExamTaskNote | ExerciseNote): string {
+  const dir = { notes: NOTES_DIR, tests: TESTS_DIR, exams: EXAMS_DIR, examTasks: EXAMS_DIR, exercises: EXERCISES_DIR }[entry.collection];
   return (entry.filePath ?? '').slice(dir.length + 1);
 }
 

@@ -41,6 +41,22 @@ export function examQuestionId(lessonPath: string, number: number): string {
 }
 
 /**
+ * Where a practical exam task's file is, from its path inside exams/. A chapter's folder holds its
+ * tasks in `tasks/`, each in a folder of its own, next to the files with the questions on lessons:
+ * `02-python/tasks/01-triangles/task.pl.md` → `{ chapter: '02-python', name: '01-triangles', file: 'task.pl.md' }`.
+ * Undefined for any other path.
+ */
+export function examTaskFile(file: string): { chapter: string; name: string; file: string } | undefined {
+  const match = /^([^/]+)\/tasks\/([^/]+)\/(.+)$/.exec(file);
+  return match ? { chapter: match[1], name: match[2], file: match[3] } : undefined;
+}
+
+/** Id of an exam task, the same in every language: `02-python` and `01-triangles` → `python-triangles` */
+export function examTaskId(chapter: string, name: string): string {
+  return `${segmentSlug(chapter)}-${segmentSlug(name)}`;
+}
+
+/**
  * Folder, relative to the project root, that holds the exercises: each is a folder of its own,
  * inside a folder with its lesson's path. `exercises/python/01-running-python/01-week/` is an
  * exercise on `notes/python/01-running-python.md`.

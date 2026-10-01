@@ -19,6 +19,9 @@ export const EXAMS_KEY = 'ml-firestarter:exams';
 /** Exam attempts in progress and their answers, kept in localStorage until they're handed in (scripts/exam.ts). */
 export const EXAM_ATTEMPTS_KEY = 'ml-firestarter:exam-attempts';
 
+/** The code the reader wrote for exam tasks, kept in localStorage until they pass, so it carries over to their next attempt (scripts/exam-tasks.ts). */
+export const EXAM_CODE_KEY = 'ml-firestarter:exam-code';
+
 export function readReader(): Reader | undefined {
   const match = /(?:^|;\s*)mlw_user=([^;]+)/.exec(document.cookie);
   if (!match) return undefined;
@@ -71,6 +74,7 @@ async function signOut() {
     sessionStorage.removeItem(COMMENTS_KEY);
     sessionStorage.removeItem(EXAMS_KEY);
     localStorage.removeItem(EXAM_ATTEMPTS_KEY);
+    localStorage.removeItem(EXAM_CODE_KEY);
   } catch {
     // Nothing kept.
   }

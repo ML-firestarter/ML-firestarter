@@ -1,0 +1,107 @@
+---
+/**
+ * A practical task of an exam (scripts/exam-tasks.ts): what to do, an editor with the code the
+ * reader starts from, an input box when the code reads input(), and a button that runs the code.
+ * It sits in the exam page's form (ExamView.astro) and shows once an attempt has started. A task
+ * has no checks to run: handing the attempt in has the reader's browser run the attempt's test
+ * cases on the code, and the site's API compare what happened with what the right code does.
+ */
+import { Code } from 'astro:components';
+import { render } from 'astro:content';
+import type { ExamTask } from '../lib/course.ts';
+import { langAttr, ui, type Lang } from '../lib/i18n.ts';
+import Icon from './Icon.astro';
+import Phrase from './Phrase.astro';
+
+interface Props {
+  lang: Lang;
+  task: ExamTask;
+  /** Its place among the exam's tasks, counted from 1, and how many there are. */
+  number: number;
+  total: number;
+}
+
+const { lang, task, number, total } = Astro.props;
+const t = ui[lang];
+const e = t.exercises;
+/** Set when the task isn't translated yet and shows the original. */
+const contentLang = langAttr(task.lang, lang);
+const { Content } = await render(task.note);
+const id = `exam-${task.id}`;
+/** For the script; `<` is escaped so the JSON can't end the script element. */
+const data = JSON.stringify({ id: task.id, starter: task.starter, files: JSON.stringify(task.files), input: task.input }).replace(/</g, '\\u003c');
+/** The lessons' code colours (astro.config.mjs). */
+const themes = { light: 'github-light', dark: 'github-dark' } as const;
+---
+
+<section class="exam-task" aria-labelledby={`${id}-title`} data-task={task.id}>
+  <header class="task-header">
+    <p class="task-number">{t.exams.taskOf(number, total)}</p>
+    <h2 id={`${id}-title`} lang={contentLang}>{task.title}</h2>
+  </header>
+
+  <div class="prose" lang={contentLang}>
+    <Content />
+  </div>
+
+  <div class="workbench">
+    <div class="code-box">
+      <div class="box-bar">
+        <span class="box-title">{e.editor}</span>
+        <button class="text-button" type="button" title={e.resetHint} data-reset>
+          <Icon name="refresh" />
+          <span>{e.reset}</span>
+        </button>
+      </div>
+      {/* The script puts the editor here, with the code the reader wrote last time, if any. */}
+      <div class="editor" data-editor>
+        <Code code={task.starter} lang="python" themes={themes} />
+      </div>
+    </div>
+
+    {
+      task.input !== undefined && (
+        <div class="code-box">
+          <div class="box-bar">
+            <label class="box-title" for={`${id}-input`}>
+              {e.input}
+            </label>
+            <span class="box-hint" id={`${id}-input-hint`}>
+              {e.inputHint}
+            </span>
+          </div>
+          <textarea
+            class="input-field"
+            id={`${id}-input`}
+            rows="3"
+            spellcheck="false"
+            autocomplete="off"
+            autocapitalize="off"
+            aria-describedby={`${id}-input-hint`}
+            data-input
+          >{task.input}</textarea>
+        </div>
+      )
+    }
+
+    <div class="workbench-actions">
+      <button class="button" type="button" data-run>
+        <Icon name="play" class="when-idle" />
+        <Icon name="stop" class="when-busy" />
+        <span data-label>{e.run}</span>
+      </button>
+      <p class="shortcut"><Phrase text={e.shortcut}><kbd data-shortcut>Ctrl+Enter</kbd></Phrase></p>
+    </div>
+
+    <p class="run-status" role="status" data-status hidden></p>
+
+    <section class="code-box" aria-labelledby={`${id}-output`} data-output-box hidden>
+      <div class="box-bar">
+        <h3 class="box-title" id={`${id}-output`}>{e.output}</h3>
+      </div>
+      <pre class="output" tabindex="0" data-output></pre>
+    </section>
+  </div>
+
+  <script is:inline type="application/json" data-task-data set:html={data}></script>
+</section>

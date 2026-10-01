@@ -23,12 +23,12 @@ async function load() {
   const pyodide = await loadPyodide({ indexURL: INDEX_URL });
   const globals = pyodide.globals.get('dict')();
   pyodide.runPython(harness, { globals, filename: 'harness.py' });
-  return { pyodide, run: globals.get('run') as Harness, check: globals.get('check') as Harness };
+  return { pyodide, run: globals.get('run') as Harness, check: globals.get('check') as Harness, observe: globals.get('observe') as Harness };
 }
 
 self.addEventListener('message', async ({ data: request }: MessageEvent<Request>) => {
   const { id } = request;
-  const { pyodide, run, check } = await python;
+  const { pyodide, run, check, observe } = await python;
   try {
     // Code that imports a package Pyodide has, like NumPy, gets it first, and so do checks.
     const quiet = { messageCallback: () => {}, errorCallback: () => {} };
@@ -37,7 +37,11 @@ self.addEventListener('message', async ({ data: request }: MessageEvent<Request>
     const send = (kind: string, text: string) =>
       reply(kind === 'check' ? { type: 'progress', id, number: Number(text) } : { type: 'output', id, kind: kind as 'out' | 'in' | 'err', text });
     const result =
-      request.type === 'run' ? run(request.code, request.input, request.files, send) : check(request.code, request.checks, request.files, send);
+      request.type === 'run'
+        ? run(request.code, request.input, request.files, send)
+        : request.type === 'check'
+          ? check(request.code, request.checks, request.files, send)
+          : observe(request.code, request.cases, request.files, send);
     reply({ type: 'done', id, result: JSON.parse(result) });
   } catch (error) {
     // Python itself failed, like when it runs out of memory; the page starts a new worker.
