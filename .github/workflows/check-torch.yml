@@ -1,0 +1,53 @@
+# Checks the PyTorch the site gives to code that imports it (src/python) whenever it, or what checks it,
+# changes: the cases in scripts/torch/ are run with it in Pyodide, and what they print has to be what the
+# real PyTorch printed (scripts/check-torch.mjs). Problems show on the pull request, next to the files.
+name: Check PyTorch
+
+on:
+  pull_request:
+    paths:
+      - 'src/python/**'
+      - 'scripts/torch/**'
+      - 'scripts/check-torch.mjs'
+      - 'scripts/libraries.mjs'
+      - 'src/scripts/harness.py'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/check-torch.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/python/**'
+      - 'scripts/torch/**'
+      - 'scripts/check-torch.mjs'
+      - 'scripts/libraries.mjs'
+      - 'src/scripts/harness.py'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/check-torch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the library and its cases
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install Pyodide and the rest
+        run: npm ci
+
+      - name: Run the cases
+        run: npm run check:torch

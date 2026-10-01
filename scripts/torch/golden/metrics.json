@@ -1,0 +1,22 @@
+{
+ "metrics/accuracy multiclass": {
+  "out": "tensor(0.3000)\ntensor(0.2800)\ntensor(0.1750) torch.float32\nreset ok\ntensor(0.1750)\ntensor(0.1528)\n",
+  "error": null
+ },
+ "metrics/accuracy binary": {
+  "out": "tensor(0.4000) tensor(0.4000) tensor(0.4000) tensor(0.4000)\n",
+  "error": null
+ },
+ "metrics/mse": {
+  "out": "tensor(1.0999) tensor(1.6504) tensor(1.4025)\ntensor(1.9669) tensor(1.2083) tensor(-0.4358)\ntensor(1.9669)\n",
+  "error": null
+ },
+ "metrics/precision recall multiclass": {
+  "out": "micro tensor(0.2400) tensor(0.2400) tensor(0.2400)\nmacro tensor(0.2367) tensor(0.2297) tensor(0.2320)\nweighted tensor(0.2529) tensor(0.2400) tensor(0.2454)\n",
+  "error": null
+ },
+ "metrics/trainer style": {
+  "out": "tensor(0.2656) 0.265625\n",
+  "error": null
+ }
+}

@@ -13,6 +13,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
+import { libraryProvider, packageBaseUrl } from './libraries.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const EXERCISES_DIR = path.join(ROOT, 'exercises');
@@ -205,17 +206,21 @@ function pyodideDir() {
 /** The worker thread: loads Pyodide and the harness, then runs the checks it's sent. */
 async function serve() {
   const { loadPyodide } = await import('pyodide');
-  const pyodide = await loadPyodide({ indexURL: pyodideDir() });
+  const { version } = JSON.parse(readFileSync(path.join(pyodideDir(), 'package.json'), 'utf8'));
+  // Packages Pyodide comes with, like NumPy, are loaded from its jsDelivr folder when an exercise imports them.
+  const pyodide = await loadPyodide({ indexURL: pyodideDir(), packageBaseUrl: packageBaseUrl(version) });
   const globals = pyodide.globals.get('dict')();
   const harness = readFileSync(path.join(ROOT, 'src/scripts/harness.py'), 'utf8');
   pyodide.runPython(harness, { globals, filename: 'harness.py' });
   const check = globals.get('check');
   const quiet = { messageCallback: () => {}, errorCallback: () => {} };
+  const provide = libraryProvider(pyodide, globals.get('provide'));
 
   parentPort.on('message', async ({ id, code, checks, files }) => {
     try {
       await pyodide.loadPackagesFromImports(code, quiet);
       await pyodide.loadPackagesFromImports(checks, quiet);
+      await provide(code, checks);
       const send = (kind, text) => {
         if (kind === 'check') parentPort.postMessage({ id, type: 'progress', number: Number(text) });
       };

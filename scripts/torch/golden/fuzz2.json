@@ -1,0 +1,242 @@
+{
+ "fuzz2/dtype0009": {
+  "out": "tensor([4.0000, 5.0000, 6.0000, 1.0000, 2.5000, 3.0000]) torch.float32\ntensor([False, False, False]) torch.bool\ntensor([ 1.0000,  6.2500, 27.0000]) torch.float32\ntensor([1.0000, 2.5000, 3.0000]) torch.float32\nERR NotImplementedError \"bitwise_or_cpu\" not implemented for 'Double'\nERR RuntimeError ZeroDivisionError\n",
+  "error": null
+ },
+ "fuzz2/dtype0035": {
+  "out": "tensor([-0.6934,  0.4055,  0.9165], dtype=torch.float16) torch.float16\ntensor([ 1.0000, -0.5000, -1.0000]) torch.float32\ntensor([False, False, False]) torch.bool\nERR TypeError unsupported operand type(s) for @: 'float' and 'Tensor'\nERR TypeError maximum(): argument 'other' (position 2) must be Tensor, not int\ntensor([[1, 2, 3],\n        [1, 0, 1]], dtype=torch.int32) torch.int32\n",
+  "error": null
+ },
+ "fuzz2/dtype0053": {
+  "out": "tensor(1) torch.int64\ntensor(1.0408, dtype=torch.float64) torch.float64\ntensor(2) torch.int64\ntensor(1.) torch.float32\ntensor([1, 3, 6]) torch.int64\ntensor([[0, 0, 0]]) torch.int64\n",
+  "error": null
+ },
+ "fuzz2/dtype0079": {
+  "out": "tensor([0, 1, 0], dtype=torch.int32) torch.int32\ntensor([4, 5, 6], dtype=torch.int16) torch.int16\ntensor([[1.0000, 0.5000, 0.3333]]) torch.float32\ntensor([[1., 2., 3.]]) torch.float32\ntensor(False) torch.bool\ntensor(6) torch.int64\n",
+  "error": null
+ },
+ "fuzz2/dtype0084": {
+  "out": "tensor([[True, True, True]]) torch.bool\ntensor(1.) torch.float32\ntensor([4, 5, 6], dtype=torch.int16) torch.int16\ntensor([[6., 7., 8.]]) torch.float32\ntensor([0, 0, 0], dtype=torch.int16) torch.int16\nERR NotImplementedError \"bitwise_xor_cpu\" not implemented for 'Float'\n",
+  "error": null
+ },
+ "fuzz2/dtype0092": {
+  "out": "tensor([True, True, True]) torch.bool\nERR NotImplementedError \"bitwise_and_cpu\" not implemented for 'Half'\ntensor([0.5000, 1.0000, 1.5000]) torch.float32\ntensor(120) torch.int64\nERR RuntimeError stack expects each tensor to be equal size, but got [1, 3] at entry 0 and [] at entry 1\ntensor(3) torch.int64\n",
+  "error": null
+ },
+ "fuzz2/dtype0108": {
+  "out": "tensor([ 8,  9, 10], dtype=torch.int16) torch.int16\ntensor([[1, 2, 3]]) torch.int64\ntensor([0.0000, 0.5000, 2.0000], dtype=torch.float16) torch.float16\nERR RuntimeError ZeroDivisionError\ntensor([False, False, False]) torch.bool\ntensor(0.5000) torch.float32\n",
+  "error": null
+ },
+ "fuzz2/dtype0117": {
+  "out": "tensor([3, 2, 3], dtype=torch.int32) torch.int32\nERR RuntimeError std and var only support floating point and complex dtypes\ntensor(2.5000, dtype=torch.float64) torch.float64\ntensor([4., 5., 6.]) torch.float32\ntensor([[1, 2, 3]]) torch.int64\ntensor([252, 251, 250], dtype=torch.uint8) torch.uint8\n",
+  "error": null
+ },
+ "fuzz2/dtype0132": {
+  "out": "ERR NotImplementedError \"bitwise_or_cpu\" not implemented for 'Double'\ntensor([1., 0., 0.], dtype=torch.float64) torch.float64\ntensor([-1, -2, -3]) torch.int64\ntensor(16.2500) torch.float32\ntensor([2., inf, 2.]) torch.float32\ntensor([[1.0000, 0.5000, 0.3333]]) torch.float32\n",
+  "error": null
+ },
+ "fuzz2/dtype0137": {
+  "out": "tensor(4.5000) torch.float32\nERR TypeError expected Tensor as element 0 in argument 0, but got int\nERR RuntimeError zero-dimensional tensor (at position 1) cannot be concatenated\ntorch.return_types.sort(\nvalues=tensor([[1, 2, 3]]),\nindices=tensor([[0, 1, 2]])) \ntensor([[1, 2, 3]]) torch.int64\ntensor([2.5000, 2.5000, 3.0000]) torch.float32\n",
+  "error": null
+ },
+ "fuzz2/dtype0138": {
+  "out": "tensor([4, 5, 6], dtype=torch.int16) torch.int16\ntensor([[3., 6., 9.]]) torch.float32\ntensor([[0, 3, 2]]) torch.int64\ntensor([4, 5, 6]) torch.int64\ntensor([5, 7, 9]) torch.int64\ntensor([ 1.6484,  4.4805, 12.1797], dtype=torch.float16) torch.float16\n",
+  "error": null
+ },
+ "fuzz2/dtype0139": {
+  "out": "tensor(2., dtype=torch.float64) torch.float64\ntensor([ 0.5000,  2.7557, 15.6250]) torch.float32\nERR RuntimeError stack expects each tensor to be equal size, but got [3] at entry 0 and [] at entry 1\nERR RuntimeError both arguments to matmul need to be at least 1D, but they are 2D and 0D\nERR NotImplementedError \"bitwise_and_cpu\" not implemented for 'Float'\nERR TypeError expected Tensor as element 0 in argument 0, but got int\n",
+  "error": null
+ },
+ "fuzz2/dtype0163": {
+  "out": "tensor([[1., 4., 9.]]) torch.float32\ntensor([2.5000, 2.0000, 3.0000]) torch.float32\ntensor([1., 1., 1.], dtype=torch.float16) torch.float16\ntensor(6.) torch.float32\ntensor([1, 1, 1], dtype=torch.int32) torch.int32\ntensor([ True, False, False]) torch.bool\n",
+  "error": null
+ },
+ "fuzz2/dtype0187": {
+  "out": "tensor([4., 5., 6.]) torch.float32\ntensor([4., 5., 6.], dtype=torch.float64) torch.float64\nERR NotImplementedError \"bitwise_and_cpu\" not implemented for 'Half'\ntensor([[2.5000, 5.0000, 7.5000]]) torch.float32\ntorch.return_types.sort(\nvalues=tensor([4, 5, 6], dtype=torch.int8),\nindices=tensor([0, 1, 2])) \ntensor([4.5000, 5.5000, 6.5000], dtype=torch.float16) torch.float16\n",
+  "error": null
+ },
+ "fuzz2/dtype0201": {
+  "out": "ERR TypeError maximum(): argument 'input' (position 1) must be Tensor, not bool\ntensor([[1., 1., 1.]]) torch.float32\ntensor([[False, False, False]]) torch.bool\ntensor([4, 5, 6], dtype=torch.uint8) torch.uint8\nERR NotImplementedError \"bitwise_and_cpu\" not implemented for 'Float'\ntensor(2.5000, dtype=torch.float64) torch.float64\n",
+  "error": null
+ },
+ "fuzz2/dtype0203": {
+  "out": "tensor([1., 1., 1.], dtype=torch.float64) torch.float64\ntensor(True) torch.bool\ntensor(0.5000) torch.float32\ntensor(True) torch.bool\ntensor([1, 0, 1], dtype=torch.int16) torch.int16\ntensor([ 39.0625,  97.6562, 244.1406], dtype=torch.float64) torch.float64\n",
+  "error": null
+ },
+ "fuzz2/dtype0209": {
+  "out": "tensor([-2, -3, -4]) torch.int64\nERR TypeError expected Tensor as element 0 in argument 0, but got float\ntensor([-3, -6, -9], dtype=torch.int32) torch.int32\ntensor([1.5000, 3.7500, 4.5000]) torch.float32\ntensor([[-1, -2, -3]]) torch.int64\ntorch.return_types.sort(\nvalues=tensor(2),\nindices=tensor(0)) \n",
+  "error": null
+ },
+ "fuzz2/dtype0236": {
+  "out": "ERR RuntimeError zero-dimensional tensor (at position 1) cannot be concatenated\ntensor([4., 5., 6.], dtype=torch.float64) torch.float64\ntensor([-1,  0,  1]) torch.int64\ntensor([2, 2, 2], dtype=torch.int8) torch.int8\ntensor([[3, 6, 9]]) torch.int64\ntensor([1, 2, 3]) torch.int64\n",
+  "error": null
+ },
+ "fuzz2/dtype0241": {
+  "out": "ERR NotImplementedError \"bitwise_and_cpu\" not implemented for 'Float'\nERR RuntimeError stack expects each tensor to be equal size, but got [] at entry 0 and [3] at entry 1\nERR NotImplementedError Boolean inputs not supported for relu\ntensor([[  1.,  32., 729.]]) torch.float32\ntensor(3.7500, dtype=torch.float64) torch.float64\ntensor([3, 4, 7]) torch.int64\n",
+  "error": null
+ },
+ "fuzz2/dtype0243": {
+  "out": "ERR RuntimeError mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Long\nERR NotImplementedError \"bitwise_and_cpu\" not implemented for 'Float'\ntorch.return_types.topk(\nvalues=tensor([6, 5], dtype=torch.uint8),\nindices=tensor([2, 1])) \ntensor([2.0000, 4.5000, 6.0000], dtype=torch.float64) torch.float64\ntensor([[4.0000, 5.0000, 6.0000],\n        [1.0000, 2.5000, 3.0000]], dtype=torch.float64) torch.float64\ntensor([5.0000, 6.5000, 7.0000], dtype=torch.float64) torch.float64\n",
+  "error": null
+ },
+ "fuzz2/index0028": {
+  "out": "ERR IndexError too many indices for tensor of dimension 1\nERR IndexError too many indices for tensor of dimension 1\nERR RuntimeError expand(torch.FloatTensor{[2]}, size=[]): the number of sizes provided (0) must be greater or equal to the number of dimensions in the tensor (1)\n[7.0, 7.0, 7.0, 7.0, 7.0]\nERR IndexError too many indices for tensor of dimension 1\n",
+  "error": null
+ },
+ "fuzz2/index0036": {
+  "out": "[0.0, -1.0, 2.0, 3.0, 4.0]\nERR IndexError too many indices for tensor of dimension 1\n[7.0, 1.0, 2.0, 3.0, 4.0]\nERR IndexError too many indices for tensor of dimension 1\ntorch.Size([]) 1.0\n",
+  "error": null
+ },
+ "fuzz2/index0055": {
+  "out": "torch.Size([3, 3, 4]) [[[12.0, 13.0, 14.0, 15.0], [16.0, 17.0, 18.0, 19.0], [20.0, 21.0, 22.0, 23.0]], [[12.0, 13.0, 14.0, 15.0], [16.0, 17.0, 18.0, 19.0], [20.0, 21.0, 22.0, 23.0]], [[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]]\n[[[5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0]], [[12.0, 13.0, 14.0, 15.0], [16.0, 17.0, 18.0, 19.0], [20.0, 21.0, 22.0, 23.0]]]\nERR RuntimeError The expanded size of the tensor (4) must match the existing size (2) at non-singleton dimension 2.  Target sizes: [1, 2, 4].  Tensor sizes: [2]\nERR IndexError index -3 is out of bounds for dimension 0 with size 2\nERR TypeError new(): invalid data type 'str'\n",
+  "error": null
+ },
+ "fuzz2/index0077": {
+  "out": "ERR IndexError too many indices for tensor of dimension 2\ntorch.Size([2, 1, 4]) [[[0.0, 1.0, 2.0, 3.0]], [[4.0, 5.0, 6.0, 7.0]]]\n[[0.0, 7.0, 7.0, 3.0], [4.0, 7.0, 7.0, 7.0], [8.0, 7.0, 7.0, 11.0]]\ntorch.Size([1, 4]) [[4.0, 5.0, 6.0, 7.0]]\n[[-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, -1.0, -1.0], [8.0, 9.0, 10.0, 11.0]]\n",
+  "error": null
+ },
+ "fuzz2/index0112": {
+  "out": "[[-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, -1.0, -1.0]]\ntorch.Size([1, 2]) [[6.0, 4.0]]\nERR IndexError too many indices for tensor of dimension 2\n[[5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0]]\ntorch.Size([3, 4, 1]) [[[0.0], [1.0], [2.0], [3.0]], [[4.0], [5.0], [6.0], [7.0]], [[8.0], [9.0], [10.0], [11.0]]]\n",
+  "error": null
+ },
+ "fuzz2/index0114": {
+  "out": "ERR TypeError new(): invalid data type 'str'\nERR IndexError index 3 is out of bounds for dimension 0 with size 3\ntorch.Size([1, 1, 4]) [[[8.0, 9.0, 10.0, 11.0]]]\ntorch.Size([3, 4]) [[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]\n[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]\n",
+  "error": null
+ },
+ "fuzz2/index0123": {
+  "out": "torch.Size([1, 3, 4]) [[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]]\nERR IndexError index 3 is out of bounds for dimension 0 with size 3\ntorch.Size([1, 3, 4]) [[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]]\ntorch.Size([4]) [4.0, 5.0, 6.0, 7.0]\nERR IndexError only integers, slices (`:`), ellipsis (`...`), None and long or byte Variables are valid indices (got float)\n",
+  "error": null
+ },
+ "fuzz2/index0127": {
+  "out": "ERR ValueError step must be greater than zero\ntorch.Size([0, 3, 4]) []\n[[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]], [[12.0, 13.0, 14.0, 15.0], [16.0, 17.0, 18.0, 19.0], [20.0, 21.0, 22.0, 23.0]]]\nERR IndexError too many indices for tensor of dimension 3\nERR IndexError tensors used as indices must be long, int, byte or bool tensors\n",
+  "error": null
+ },
+ "fuzz2/index0133": {
+  "out": "torch.Size([4, 0, 1]) [[], [], [], []]\nERR IndexError index 1 is out of bounds for dimension 1 with size 1\nERR ValueError step must be greater than zero\ntorch.Size([2, 1, 3]) [[[9.0, 10.0, 11.0]], [[9.0, 10.0, 11.0]]]\ntorch.Size([1, 0, 3]) [[]]\n",
+  "error": null
+ },
+ "fuzz2/index0153": {
+  "out": "ERR RuntimeError shape mismatch: value tensor of shape [2] cannot be broadcast to indexing result of shape [1, 1, 1, 3]\ntorch.Size([3, 4]) [[1.0, 1.0, 2.0, 1.0], [4.0, 4.0, 5.0, 4.0], [7.0, 7.0, 8.0, 7.0]]\ntorch.Size([4, 1, 3]) [[[0.0, 1.0, 2.0]], [[3.0, 4.0, 5.0]], [[6.0, 7.0, 8.0]], [[9.0, 10.0, 11.0]]]\ntorch.Size([1, 1, 4, 1, 3]) [[[[[0.0, 1.0, 2.0]], [[3.0, 4.0, 5.0]], [[6.0, 7.0, 8.0]], [[9.0, 10.0, 11.0]]]]]\ntorch.Size([1, 1, 3]) [[[0.0, 1.0, 2.0]]]\n",
+  "error": null
+ },
+ "fuzz2/index0166": {
+  "out": "torch.Size([4, 1, 3]) [[[0.0, 1.0, 2.0]], [[3.0, 4.0, 5.0]], [[6.0, 7.0, 8.0]], [[9.0, 10.0, 11.0]]]\ntorch.Size([1, 3]) [[0.0, 1.0, 2.0]]\ntorch.Size([1, 3]) [[9.0, 10.0, 11.0]]\nERR IndexError index 1 is out of bounds for dimension 1 with size 1\ntorch.Size([1, 1, 3]) [[[6.0, 7.0, 8.0]]]\n",
+  "error": null
+ },
+ "fuzz2/index0203": {
+  "out": "ERR IndexError shape mismatch: indexing tensors could not be broadcast together with shapes [2], [4]\nERR ValueError step must be greater than zero\ntorch.Size([1, 1, 1]) [[[3.0]]]\nERR IndexError index -4 is out of bounds for dimension 0 with size 3\n[[5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0]]\n",
+  "error": null
+ },
+ "fuzz2/index0204": {
+  "out": "ERR IndexError too many indices for tensor of dimension 1\n[5.0, 5.0, 5.0, 5.0, 5.0]\ntorch.Size([1]) [0.0]\nERR IndexError index 5 is out of bounds for dimension 0 with size 5\nERR IndexError too many indices for tensor of dimension 1\n",
+  "error": null
+ },
+ "fuzz2/index0206": {
+  "out": "torch.Size([3]) [0.0, 0.0, 0.0]\ntorch.Size([]) 3.0\ntorch.Size([5]) [0.0, 1.0, 2.0, 3.0, 4.0]\nERR IndexError too many indices for tensor of dimension 1\nERR IndexError too many indices for tensor of dimension 1\n",
+  "error": null
+ },
+ "fuzz2/index0214": {
+  "out": "torch.Size([1, 3, 4]) [[[12.0, 13.0, 14.0, 15.0], [16.0, 17.0, 18.0, 19.0], [20.0, 21.0, 22.0, 23.0]]]\nERR IndexError too many indices for tensor of dimension 3\nERR RuntimeError The expanded size of the tensor (1) must match the existing size (2) at non-singleton dimension 1.  Target sizes: [0, 1].  Tensor sizes: [2]\ntorch.Size([1, 4]) [[14.0, 15.0, 15.0, 15.0]]\nERR IndexError index -3 is out of bounds for dimension 0 with size 2\n",
+  "error": null
+ },
+ "fuzz2/index0223": {
+  "out": "ERR IndexError only integers, slices (`:`), ellipsis (`...`), None and long or byte Variables are valid indices (got float)\nERR IndexError too many indices for tensor of dimension 2\n[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 5.0, 5.0, 11.0]]\ntorch.Size([1, 1, 3, 4]) [[[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]]]\n[[7.0, 7.0, 7.0, 7.0], [7.0, 7.0, 7.0, 7.0], [7.0, 7.0, 7.0, 7.0]]\n",
+  "error": null
+ },
+ "fuzz2/index0225": {
+  "out": "[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]\n[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]\nERR IndexError too many indices for tensor of dimension 2\n[[5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0], [5.0, 5.0, 5.0, 5.0]]\n[[-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, -1.0, -1.0]]\n",
+  "error": null
+ },
+ "fuzz2/index0237": {
+  "out": "torch.Size([2]) [0.0, 4.0]\nERR IndexError too many indices for tensor of dimension 2\ntorch.Size([1, 3, 4]) [[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0, 11.0]]]\nERR IndexError too many indices for tensor of dimension 2\n[[0.0, 1.0, 2.0, 3.0], [5.0, 5.0, 6.0, 7.0], [5.0, 9.0, 10.0, 11.0]]\n",
+  "error": null
+ },
+ "fuzz2/index0238": {
+  "out": "ERR IndexError index 3 is out of bounds for dimension 1 with size 2\nERR IndexError too many indices for tensor of dimension 3\ntorch.Size([0, 3, 4]) []\n[[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, -1.0], [8.0, 9.0, 10.0, 11.0]], [[12.0, 13.0, 14.0, 15.0], [16.0, 17.0, 18.0, -1.0], [20.0, 21.0, 22.0, 23.0]]]\nERR TypeError new(): invalid data type 'str'\n",
+  "error": null
+ },
+ "fuzz2/index0246": {
+  "out": "torch.Size([1]) [11.0]\nERR IndexError too many indices for tensor of dimension 3\ntorch.Size([1, 1, 3]) [[[0.0, 1.0, 2.0]]]\ntorch.Size([1, 1, 3]) [[[0.0, 1.0, 2.0]]]\n[[[0.0, 1.0, 2.0]], [[3.0, 4.0, 5.0]], [[6.0, 7.0, 8.0]], [[9.0, 10.0, 11.0]]]\n",
+  "error": null
+ },
+ "fuzz2/inplace0007": {
+  "out": "y tensor([ 1.2184,  0.3793,  0.7900, -0.4712], grad_fn=<DivBackward0>)\ny tensor([-1.2184, -0.3793, -0.7900,  0.4712], grad_fn=<NegBackward0>)\ny tensor([1.2184, 0.3793, 0.7900, 0.4712], grad_fn=<AbsBackward0>)\ny tensor([-1.2184, -0.3793, -0.7900, -0.4712], grad_fn=<NegBackward0>)\nx.grad tensor([-2.8064, -0.9074, -0.6215,  0.7231]) w.grad tensor([-0.8720, -0.5599, -0.5137,  0.4730]) NegBackward0\n",
+  "error": null
+ },
+ "fuzz2/inplace0011": {
+  "out": "y tensor([ 0.9254, 13.1206,  1.3292,  4.4972], grad_fn=<PowBackward0>)\ny tensor([0.5000, 0.5000, 0.5000, 0.5000], grad_fn=<FillBackward2>)\ny tensor([-0.0133, -0.0133, -0.0133, -0.0133], grad_fn=<AddBackward0>)\ny tensor([0.0133, 0.0133, 0.0133, 0.0133], grad_fn=<AbsBackward0>)\nx.grad tensor([0., 0., -0., -0.]) w.grad tensor([-4.,  0.,  0.,  0.]) AbsBackward0\n",
+  "error": null
+ },
+ "fuzz2/inplace0041": {
+  "out": "y tensor([ 2.0000, -0.6578,  0.8314,  0.3928], grad_fn=<CopySlices>)\ny tensor([ 3.4610, -1.2819,  0.3321,  0.3105], grad_fn=<SubBackward0>)\ny tensor([31.8491,  0.2775,  1.3939,  1.3642], grad_fn=<ExpBackward0>)\nx.grad tensor([0.0000, 0.5550, 2.7877, 2.7283]) w.grad tensor([-31.8491,   0.0000,   0.0000,   0.0000]) ExpBackward0\n",
+  "error": null
+ },
+ "fuzz2/inplace0095": {
+  "out": "y tensor([-2.7880, -0.9053,  0.1225,  1.7326], grad_fn=<CopyBackwards>)\ny tensor([-1.0000, -0.9053,  0.1225,  1.0000], grad_fn=<ClampBackward1>)\ny tensor([0., 0., 0., 0.], grad_fn=<ZeroBackward0>)\ny tensor([0., 0., 0., 0.], grad_fn=<DivBackward0>)\ny tensor([-2.7880, -0.9053,  0.1225,  1.7326], grad_fn=<CopyBackwards>)\nx.grad tensor([0., 0., 0., 0.]) w.grad tensor([2., 2., 2., 2.]) torch::autograd::CopyBackwards\n",
+  "error": null
+ },
+ "fuzz2/inplace0101": {
+  "out": "y tensor([ 4.5344,  1.0272,  0.8928, -1.0382], grad_fn=<NegBackward0>)\ny tensor([ 9.0688,  2.0544,  1.7857, -2.0763], grad_fn=<MulBackward0>)\nx.grad tensor([-4., -4., -4., -4.]) w.grad tensor([-2., -2., -2., -2.]) MulBackward0\n",
+  "error": null
+ },
+ "fuzz2/inplace0121": {
+  "out": "y tensor([3.1959, 1.1012, 0.8836, 2.6807], grad_fn=<ReluBackward0>)\ny tensor([0.2918, 1.1012, 0.8836, 2.6807], grad_fn=<CopySlices>)\nERR RuntimeError one of the variables needed for gradient computation has been modified by an inplace operation: [torch.FloatTensor [4]], which is output 0 of Relu, is at version 2; expected version 1 instead. Hint: enable anomaly detection to find the operation that failed to compute its gradient, with torch.autograd.set_detect_anomaly(True, check_nan=False).\n",
+  "error": null
+ },
+ "fuzz2/inplace0126": {
+  "out": "y tensor([-1.4118,  1.3854,  1.9807, -0.1767], grad_fn=<DivBackward0>)\ny tensor([-2.5177,  2.0169,  3.5281,  0.1801], grad_fn=<CopyBackwards>)\nx.grad tensor([3., 3., 3., 3.]) w.grad tensor([0., 0., 0., 0.]) torch::autograd::CopyBackwards\n",
+  "error": null
+ },
+ "fuzz2/inplace0134": {
+  "out": "y tensor([ 0.1648, -0.0584, -0.6296, -0.2453], grad_fn=<DivBackward0>)\ny tensor([0.1648, 3.0000, 3.0000, 3.0000], grad_fn=<CopySlices>)\ny tensor([0.1112, 2.0238, 2.0238, 2.0238], grad_fn=<DivBackward0>)\ny tensor([0.0124, 4.0959, 4.0959, 4.0959], grad_fn=<PowBackward0>)\ny tensor([-1.4876,  2.5959,  2.5959,  2.5959], grad_fn=<SubBackward0>)\nx.grad tensor([0.1000, 0.0000, 0.0000, 0.0000]) w.grad tensor([-16.5456,   0.0000,   0.0000,   0.0000]) SubBackward0\n",
+  "error": null
+ },
+ "fuzz2/inplace0189": {
+  "out": "y tensor([-2.5450, -6.9100,  6.9051,  0.6101], grad_fn=<MulBackward0>)\ny tensor([ 2.0000, -6.9100,  6.9051,  0.6101], grad_fn=<CopySlices>)\nx.grad tensor([0., 3., 3., 3.]) w.grad tensor([0.0000, 1.5000, 1.5000, 1.5000]) torch::autograd::CopySlices\n",
+  "error": null
+ },
+ "fuzz2/inplace0217": {
+  "out": "y tensor([-0.9941,  0.9915, -0.4698,  0.5575], grad_fn=<TanhBackward0>)\ny tensor([-0.7591,  0.7580, -0.4380,  0.5062], grad_fn=<TanhBackward0>)\ny tensor([-0.7591,  3.0000,  3.0000,  3.0000], grad_fn=<CopySlices>)\nERR RuntimeError one of the variables needed for gradient computation has been modified by an inplace operation: [torch.FloatTensor [4]], which is output 0 of Tanh, is at version 3; expected version 2 instead. Hint: enable anomaly detection to find the operation that failed to compute its gradient, with torch.autograd.set_detect_anomaly(True, check_nan=False).\n",
+  "error": null
+ },
+ "fuzz2/model0043": {
+  "out": "[0.7945, 0.7795, 0.767, 0.7603, 0.7571, 0.7523]\ntensor([-0.1038, -0.3701,  0.5383, -0.2742], grad_fn=<SliceBackward0>)\ntensor([[-0.0714],\n        [-0.1905]], grad_fn=<AddmmBackward0>)\n21\n",
+  "error": null
+ },
+ "fuzz2/model0078": {
+  "out": "[0.3846, 0.3752, 0.3669, 0.3596, 0.353, 0.3472]\ntensor([-0.2447, -0.5437, -0.3044,  0.3357], grad_fn=<SliceBackward0>)\ntensor([[-0.1103,  0.3086,  0.2833],\n        [-0.0950,  0.2642,  0.2017]], grad_fn=<AddmmBackward0>)\n63\n",
+  "error": null
+ },
+ "fuzz2/model0100": {
+  "out": "[0.7079, 0.7028, 0.6979, 0.6931, 0.6883, 0.6836]\ntensor([-0.2173,  0.2818, -0.1091,  0.0474], grad_fn=<SliceBackward0>)\ntensor([[-0.0458],\n        [-0.2851]], grad_fn=<AddmmBackward0>)\n31\n",
+  "error": null
+ },
+ "fuzz2/model0128": {
+  "out": "[0.5768, 0.5644, 0.5536, 0.5441, 0.5357, 0.5282]\ntensor([ 0.4880, -0.2040, -0.1750, -0.6313], grad_fn=<SliceBackward0>)\ntensor([[ 0.1422],\n        [-0.3348]], grad_fn=<AddmmBackward0>)\n33\n",
+  "error": null
+ },
+ "fuzz2/model0148": {
+  "out": "[0.7149, 0.7136, 0.7119, 0.7101, 0.7081, 0.7061]\ntensor([-0.1960, -0.4188,  0.4179, -0.4701], grad_fn=<SliceBackward0>)\ntensor([[0.1238],\n        [0.1427]], grad_fn=<AddmmBackward0>)\n98\n",
+  "error": null
+ },
+ "fuzz2/model0151": {
+  "out": "[0.9543, 0.9073, 0.8651, 0.8271, 0.7929, 0.7623]\ntensor([-0.5553,  0.1823, -0.2775,  0.1112], grad_fn=<SliceBackward0>)\ntensor([[ 0.0813,  0.2539, -0.1039],\n        [ 0.0389,  0.1311, -0.0380]], grad_fn=<AddmmBackward0>)\n68\n",
+  "error": null
+ },
+ "fuzz2/model0157": {
+  "out": "[1.3179, 1.2752, 1.2277, 1.1748, 1.1179, 1.0702]\ntensor([-0.2605,  0.1070,  0.2264, -0.3256], grad_fn=<SliceBackward0>)\ntensor([[-0.2005],\n        [-0.1806]], grad_fn=<AddmmBackward0>)\n89\n",
+  "error": null
+ },
+ "fuzz2/model0165": {
+  "out": "[0.4751, 0.4728, 0.4698, 0.4663, 0.4625, 0.4585]\ntensor([ 0.0036, -0.1463,  0.1721, -0.3094], grad_fn=<SliceBackward0>)\ntensor([[0.2111, 0.2922, 0.2479],\n        [0.2085, 0.3020, 0.1234]], grad_fn=<AddmmBackward0>)\n139\n",
+  "error": null
+ },
+ "fuzz2/model0180": {
+  "out": "[0.9359, 0.9282, 0.9205, 0.9128, 0.9051, 0.899]\ntensor([-0.3828, -0.4147, -0.1719, -0.2110], grad_fn=<SliceBackward0>)\ntensor([[1.0124],\n        [0.5642]], grad_fn=<AddmmBackward0>)\n5\n",
+  "error": null
+ },
+ "fuzz2/model0217": {
+  "out": "[0.706, 0.7055, 0.7048, 0.704, 0.703, 0.702]\ntensor([ 0.0484, -0.6739, -0.5189,  0.5056], grad_fn=<SliceBackward0>)\ntensor([[-0.0453],\n        [-0.0898]], grad_fn=<AddmmBackward0>)\n55\n",
+  "error": null
+ }
+}

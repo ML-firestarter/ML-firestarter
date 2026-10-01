@@ -8,6 +8,8 @@ on:
     paths:
       - 'exercises/**'
       - 'scripts/check-exercises.mjs'
+      - 'scripts/libraries.mjs'
+      - 'src/python/**'
       - 'src/scripts/harness.py'
       - 'package.json'
       - 'package-lock.json'
@@ -17,6 +19,8 @@ on:
     paths:
       - 'exercises/**'
       - 'scripts/check-exercises.mjs'
+      - 'scripts/libraries.mjs'
+      - 'src/python/**'
       - 'src/scripts/harness.py'
       - 'package.json'
       - 'package-lock.json'
