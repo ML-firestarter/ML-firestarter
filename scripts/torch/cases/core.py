@@ -17,7 +17,7 @@ CASES = [
     ('create/like', 'x = torch.tensor([[1., 2.], [3., 4.]]); print(torch.zeros_like(x)); print(torch.ones_like(x)); print(torch.full_like(x, 5)); print(torch.zeros_like(torch.tensor([1, 2])))'),
     ('create/numpy f64', 'print(torch.tensor(np.array([[1.0, 2.0], [3.0, 4.0]])))'),
     ('create/numpy f32', 'print(torch.tensor(np.array([1.0, 2.0], dtype=np.float32)))'),
-    ('create/numpy int', 'print(torch.tensor(np.array([1, 2, 3])))'),
+    ('create/numpy int', 'print(torch.tensor(np.array([1, 2, 3], dtype=np.int64)))'),
     ('create/numpy dtype arg', 'print(torch.tensor(np.array([1.0, 2.0]), dtype=torch.float32))'),
     ('create/from_numpy shares', 'a = np.array([1.0, 2.0]); t = torch.from_numpy(a); a[0] = 9; print(t)'),
     ('create/numpy() shares', 't = torch.tensor([1.0, 2.0]); a = t.numpy(); a[0] = 9; print(t); print(a)'),
