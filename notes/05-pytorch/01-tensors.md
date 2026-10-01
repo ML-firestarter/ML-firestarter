@@ -232,6 +232,14 @@ print(rides - rides.mean(dim=1))
 
 `std` has to be told `correction=0` to work out the spread the way the lessons do, by dividing by the number of rides. By default, it divides by one less, $n - 1$, which is what you want when the numbers are a sample of a bigger crowd, and gives 2.58 instead of 2.24 for the distances here.
 
+## Summary
+
+- A tensor is a table of numbers, with a **shape** that says how many it has along each dimension. All of its numbers have one type, its `dtype`: `float32` for numbers with a point, and `int64` for whole numbers.
+- Operators work on every number. A method with a `dim` collapses that dimension, and `@` is the matrix product, which needs the last dimension of the left tensor to be as long as the first one of the right tensor.
+- Square brackets pick out numbers, rows and columns, and give views that share their numbers with the original. `clone()` makes a copy, and a method that ends with `_` changes a tensor in place.
+- Tensors of different shapes can be combined when each pair of dimensions is equal, or one of them is 1: that one is broadcast. `keepdim=True` helps the shapes fit.
+- `std` divides by one less than the number of items, unless it's told `correction=0`.
+
 ## Check yourself
 
 <details>

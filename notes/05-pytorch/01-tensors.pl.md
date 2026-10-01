@@ -232,6 +232,14 @@ print(rides - rides.mean(dim=1))
 
 `std` trzeba powiedzieć `correction=0`, żeby liczyło rozrzut tak jak lekcje, dzieląc przez liczbę kursów. Domyślnie dzieli przez o jeden mniej, $n - 1$, czego chcesz, gdy liczby są próbką z większej grupy, i daje tu 2,58 zamiast 2,24 dla odległości.
 
+## Podsumowanie
+
+- Tensor to tabela liczb z **kształtem**, który mówi, ile ich jest wzdłuż każdego wymiaru. Wszystkie jego liczby mają jeden typ, `dtype`: `float32` dla liczb z kropką i `int64` dla liczb całkowitych.
+- Operatory działają na każdej liczbie. Metoda z `dim` zwija ten wymiar, a `@` to iloczyn macierzy, który wymaga, żeby ostatni wymiar lewego tensora miał tyle samo liczb co pierwszy wymiar prawego.
+- Nawiasy kwadratowe wybierają liczby, wiersze i kolumny i dają widoki, które dzielą liczby z oryginałem. `clone()` robi kopię, a metoda zakończona znakiem `_` zmienia tensor w miejscu.
+- Tensory o różnych kształtach można łączyć, gdy każda para wymiarów jest równa albo jeden z nich wynosi 1: ten jest rozgłaszany. `keepdim=True` pomaga dopasować kształty.
+- `std` dzieli przez o jeden mniej niż liczba elementów, chyba że powiesz mu `correction=0`.
+
 ## Sprawdź się
 
 <details>

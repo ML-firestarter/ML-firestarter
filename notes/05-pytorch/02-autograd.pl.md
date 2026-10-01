@@ -202,6 +202,13 @@ print(fare)
 
 Pierwsza opłata pamięta, jak powstała, a druga nie. Tensor z zapisem nie może wprost stać się tablicą NumPy: `.detach()` daje te same liczby bez zapisu, a `fare.detach().numpy()` działa tam, gdzie `fare.numpy()` mówi, że nie może.
 
+## Podsumowanie
+
+- `requires_grad=True` oznacza tensor liczb zmiennoprzecinkowych, dla którego liczy się nachylenia. Wyniki obliczeń z jego udziałem pamiętają, jak powstały, w swoim `grad_fn`, a `backward()` na wyniku, który jest jedną liczbą, wkłada nachylenia do `.grad` każdego takiego tensora.
+- `backward()` dodaje do `.grad`, więc pętla treningowa ustawia nachylenia z powrotem na 0 przez `zero_()` po każdym kroku.
+- Krok spadku gradientu zmienia parametry wewnątrz `torch.no_grad()`, żeby krok nie został zapisany. `torch.no_grad()` służy też do liczenia predykcji.
+- Pętla treningowa ma cztery kroki: przód, wstecz, krok, zerowanie.
+
 ## Sprawdź się
 
 <details>

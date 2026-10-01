@@ -202,6 +202,13 @@ print(fare)
 
 The first fare remembers how it was made, and the second doesn't. A tensor with a record can't become a NumPy array directly: `.detach()` gives the same numbers without the record, and `fare.detach().numpy()` works where `fare.numpy()` says that it can't.
 
+## Summary
+
+- `requires_grad=True` marks a tensor of floats to take slopes for. The results of computations with it remember how they were made, in their `grad_fn`, and `backward()` on a result that's a single number puts the slopes in the `.grad` of each such tensor.
+- `backward()` adds to `.grad`, so a training loop sets the slopes back to 0 with `zero_()` after every step.
+- A step of gradient descent changes the parameters inside `torch.no_grad()`, so that the step isn't recorded. `torch.no_grad()` is also what to use to work out predictions.
+- A training loop has four steps: forward, backward, step, reset.
+
 ## Check yourself
 
 <details>
