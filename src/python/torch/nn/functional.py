@@ -5,7 +5,7 @@ import warnings
 
 import numpy as np
 
-from .. import _autograd, _dtype, _ops, _random
+from .. import _dtype, _ops, _random
 from .._autograd import track
 from .._ops import _grad_for, _KIND_TITLES
 from .._tensor import Tensor

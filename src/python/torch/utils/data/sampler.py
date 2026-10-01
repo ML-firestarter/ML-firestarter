@@ -2,7 +2,6 @@
 
 from ... import _random
 from ..._creation import randperm
-from ..._dtype import int64
 
 
 class Sampler:

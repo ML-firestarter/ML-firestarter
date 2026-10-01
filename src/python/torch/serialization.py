@@ -1,7 +1,6 @@
 """torch.save and torch.load: keeping tensors and models' weights in a file, or in memory."""
 
 import builtins
-import collections
 import io
 import pickle
 

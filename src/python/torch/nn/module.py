@@ -1,7 +1,6 @@
 """torch.nn.Module: the base of every layer and model: it keeps track of the parameters and layers inside it."""
 
 import collections
-import itertools
 
 from .. import _autograd, _dtype
 from .._tensor import Tensor

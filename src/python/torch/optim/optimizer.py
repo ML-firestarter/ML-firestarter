@@ -3,7 +3,6 @@
 import collections
 import copy
 
-from .. import _autograd
 from .._tensor import Tensor
 
 required = object()

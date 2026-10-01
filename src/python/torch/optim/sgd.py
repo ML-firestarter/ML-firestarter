@@ -1,9 +1,7 @@
 """Stochastic gradient descent, the simplest way to update parameters: take a step downhill."""
 
-import numpy as np
-
 from .. import _autograd
-from .optimizer import Optimizer, required
+from .optimizer import Optimizer
 
 
 class SGD(Optimizer):

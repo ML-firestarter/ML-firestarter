@@ -481,4 +481,4 @@ def _rebuild(raw, shape, kind_name, requires_grad):
 _autograd.Tensor = Tensor
 
 from . import _ops  # noqa: E402  (the operations need the class above)
-from . import _methods  # noqa: E402  (so does attaching the rest of the methods)
+from . import _methods  # noqa: E402,F401  (so does attaching the rest of the methods)

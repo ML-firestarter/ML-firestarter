@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-from .. import _autograd, _dtype
+from .. import _dtype
 from .._tensor import Tensor
 
 

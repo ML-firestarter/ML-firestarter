@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from . import _autograd, _dtype, _ops
+from . import _dtype, _ops
 from ._tensor import Tensor
 
 

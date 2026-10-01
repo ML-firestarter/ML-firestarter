@@ -6,7 +6,6 @@ import math
 import warnings
 
 from ... import _random
-from ..._tensor import Tensor
 from ..._creation import randperm
 
 

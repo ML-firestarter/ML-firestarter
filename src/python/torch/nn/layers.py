@@ -2,7 +2,7 @@
 
 import math
 
-from .. import _dtype, _ops
+from .. import _dtype
 from .._creation import empty
 from . import functional as F
 from . import init

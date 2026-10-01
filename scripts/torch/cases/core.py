@@ -99,6 +99,49 @@ CASES = [
     ('matmul/dtype error', 'torch.ones(2, 2) @ torch.ones(2, 2, dtype=torch.float64)'),
     ('matmul/int', 'print(torch.tensor([[1, 2], [3, 4]]) @ torch.tensor([[1, 0], [0, 1]]))'),
     ('matmul/outer', 'print(torch.outer(torch.tensor([1., 2.]), torch.tensor([3., 4., 5.])))'),
+    ('matmul/mismatches', """for a, b in [((3,), (2, 3)), ((2, 3), (4,)), ((2, 3, 4), (3,)), ((2, 3, 4), (2, 3)), ((3,), (2, 3, 4)), ((3, 4), (2, 3, 5)),
+                 ((2, 3, 4), (2, 3, 4)), ((2, 3, 4), (3, 4, 5)), ((2, 3, 4), (4, 3, 2)), ((2, 2, 3), (4,)), ((1, 3), (3, 4, 2))]:
+    try:
+        print((torch.ones(a) @ torch.ones(b)).shape)
+    except RuntimeError as error:
+        print(a, b, error)"""),
+    ('matmul/mismatches with gradient', """for a, b in [((3, 4), (2, 3, 5)), ((3,), (2, 3, 4)), ((2, 3, 4), (3,)), ((1, 3, 4), (2, 3, 4)), ((2, 3, 4), (1, 5, 5))]:
+    for grads in [(True, False), (False, True)]:
+        x, y = torch.ones(a, requires_grad=grads[0]), torch.ones(b, requires_grad=grads[1])
+        try:
+            print((x @ y).shape)
+        except RuntimeError as error:
+            print(a, b, grads, error)"""),
+    ('matmul/grad_fn', """for a, b in [((3,), (3,)), ((2, 3), (3,)), ((3,), (3, 2)), ((2, 3), (3, 2)), ((2, 2, 3), (3, 2)), ((2, 2, 3), (2, 3, 2)), ((3,), (2, 3, 2))]:
+    print(a, b, (torch.ones(a, requires_grad=True) @ torch.ones(b)).grad_fn.name())
+for a, b in [((3, 4), (2, 4, 5)), ((1, 4), (2, 4, 5)), ((3, 4), (2, 4, 1)), ((4,), (2, 4, 5))]:
+    print(a, b, (torch.ones(a, requires_grad=True) @ torch.ones(b)).grad_fn.name())
+print(torch.bmm(torch.ones(2, 2, 3, requires_grad=True), torch.ones(2, 3, 4)).grad_fn.name())"""),
+    ('matmul/dtype errors', """for fn, a, b in [(torch.dot, (3,), (3,)), (torch.mv, (2, 3), (3,)), (torch.mm, (2, 3), (3, 2)), (torch.bmm, (2, 2, 3), (2, 3, 2)), (torch.matmul, (2, 2, 3), (3,)), (torch.matmul, (2, 2, 3), (2, 3, 2))]:
+    for first, second in [(torch.float32, torch.float64), (torch.int64, torch.float32), (torch.int16, torch.float32), (torch.bool, torch.float32), (torch.float32, torch.bool), (torch.bool, torch.bool)]:
+        try:
+            print(fn(torch.ones(a, dtype=first), torch.ones(b, dtype=second)).dtype)
+        except (RuntimeError, NotImplementedError) as error:
+            print(fn.__name__, first, second, type(error).__name__, error)"""),
+    ('matmul/bmm errors', """for a, b in [((2, 2, 3), (2, 3, 4)), ((2, 2, 3), (3, 3, 4)), ((1, 2, 3), (4, 3, 4)), ((2, 2, 3), (2, 4, 4)), ((2, 3), (2, 3, 4)), ((2, 2, 3), (3, 4))]:
+    try:
+        print(torch.bmm(torch.ones(a), torch.ones(b)).shape)
+    except RuntimeError as error:
+        print(a, b, error)"""),
+    ('matmul/mv errors', """for a, b in [((2, 3), (3,)), ((2, 3), (4,)), ((2, 3), (3, 1)), ((3,), (3,)), ((2, 2, 3), (3,))]:
+    try:
+        print(torch.mv(torch.ones(a), torch.ones(b)).shape)
+    except RuntimeError as error:
+        print(a, b, error)
+try:
+    torch.mv(torch.tensor(1.), torch.ones(3))
+except IndexError as error:
+    print(error)"""),
+    ('matmul/outer errors', """for a, b in [((3,), (4,)), ((2, 3), (4,)), ((3,), (2, 4))]:
+    try:
+        print(torch.outer(torch.ones(a), torch.ones(b)).shape)
+    except RuntimeError as error:
+        print(a, b, error)"""),
     ('T/behaviour', 'x = torch.arange(6.).reshape(2, 3); print(x.T, x.T.shape, x.t().shape, x.transpose(0, 1).shape, x.mT.shape, torch.arange(3.).T)'),
     ('reduce/basic', 'x = torch.tensor([[1., 4., 7.], [2., 3., 6.]]); print(x.sum(), x.mean(), x.sum(dim=0), x.sum(dim=1), x.mean(dim=0), x.mean(dim=1, keepdim=True), x.sum(0, keepdim=True), x.sum(dim=(0, 1)), x.prod(), x.prod(1))'),
     ('reduce/std var', 'x = torch.tensor([[1., 4., 7.], [2., 3., 6.]]); print(x.std(), x.var(), x.std(dim=0), x.std(dim=0, keepdim=True), x.var(dim=1), x.std(unbiased=False), x.std(dim=0, correction=0), x.var(1, unbiased=False))'),

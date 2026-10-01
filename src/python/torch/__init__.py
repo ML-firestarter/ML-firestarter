@@ -7,12 +7,12 @@ do, errors say what PyTorch's say, and after `torch.manual_seed(42)` the random 
 same ones PyTorch makes, so a lesson's numbers are the ones a reader gets on their own computer.
 """
 
-from . import _dtype, _random, _printing
+from . import _dtype, _random, _printing  # noqa: F401
 from ._dtype import (  # noqa: F401
     dtype, device, Size, float16, float32, float64, uint8, int8, int16, int32, int64,
     get_default_dtype, set_default_dtype, promote_types, result_type,
 )
-from ._dtype import bool_ as bool  # noqa: A001
+from ._dtype import bool_ as bool  # noqa: A001,F401
 from ._dtype import ALIASES as _ALIASES
 
 globals().update(_ALIASES)
@@ -22,7 +22,7 @@ from ._autograd import (  # noqa: E402,F401
     no_grad, enable_grad, set_grad_enabled, is_grad_enabled, inference_mode, is_inference_mode_enabled,
 )
 from ._tensor import Tensor  # noqa: E402,F401
-from . import _ops, _creation  # noqa: E402
+from . import _ops, _creation  # noqa: E402,F401
 from ._random import Generator, manual_seed, seed, initial_seed, default_generator  # noqa: E402,F401
 from ._printing import set_printoptions  # noqa: E402,F401
 from .serialization import save, load  # noqa: E402,F401

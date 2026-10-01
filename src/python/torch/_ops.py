@@ -9,7 +9,7 @@ import warnings
 
 import numpy as np
 
-from . import _autograd, _dtype, _random
+from . import _autograd, _dtype
 from ._autograd import track
 from ._dtype import Size, promote_types, result_type
 from ._tensor import Tensor
@@ -1060,10 +1060,14 @@ def log_softmax(input, dim=None, dtype=None, _stacklevel=3):
 
 # ---------- Matrix products ----------
 
+# How PyTorch's own code names the types in the errors of matrix products, which are written in C++.
 _C10_NAMES = {
-    'float32': 'float', 'float64': 'double', 'float16': 'c10::Half', 'int64': 'long', 'int32': 'int', 'int16': 'short',
+    'float32': 'float', 'float64': 'double', 'float16': 'c10::Half', 'int64': 'long int', 'int32': 'int', 'int16': 'short int',
     'int8': 'signed char', 'uint8': 'unsigned char', 'bool': 'bool',
 }
+
+# What each way of multiplying calls the code that does the work, which is named when a type isn't one it works with.
+_KERNELS = {'dot': 'dot', 'mv': 'addmv_impl_cpu', 'mm': 'addmm_impl_cpu_', 'bmm': 'bmm'}
 
 
 def _check_same_kind(a, b, message):
@@ -1071,50 +1075,136 @@ def _check_same_kind(a, b, message):
         raise RuntimeError(message(a._dtype, b._dtype))
 
 
-def matmul(input, other):
-    a, b = input, other
-    if not isinstance(b, Tensor):
-        raise TypeError(f'matmul(): argument \'other\' (position 2) must be Tensor, not {type(b).__name__}')
-    if a._data.ndim == 0 or b._data.ndim == 0:
-        raise RuntimeError('both arguments to matmul need to be at least 1D, but they are '
-                           f'{a._data.ndim}D and {b._data.ndim}D')
-    ad, bd = a._data, b._data
-    if ad.ndim == 1 and bd.ndim == 1:
-        _check_same_kind(a, b, lambda x, y: f'dot : expected both vectors to have same dtype, but found {_KIND_TITLES[x.name]} and {_KIND_TITLES[y.name]}')
-    if a._data.ndim == 1 and b._data.ndim == 1:
-        if ad.shape[0] != bd.shape[0]:
-            raise RuntimeError(
-                f'inconsistent tensor size, expected tensor [{ad.shape[0]}] and src [{bd.shape[0]}] to have the same '
-                f'number of elements, but got {ad.shape[0]} and {bd.shape[0]} elements respectively'
-            )
-        name = 'DotBackward0'
-    elif ad.ndim == 2 and bd.ndim == 2:
-        if ad.shape[1] != bd.shape[0]:
-            raise RuntimeError(f'mat1 and mat2 shapes cannot be multiplied ({_shape_text(ad.shape)} and {_shape_text(bd.shape)})')
-        name = 'MmBackward0'
-    elif ad.ndim == 1 and bd.ndim == 2 or ad.ndim == 2 and bd.ndim == 1:
-        left = (1,) + ad.shape if ad.ndim == 1 else ad.shape
-        right = bd.shape + (1,) if bd.ndim == 1 else bd.shape
-        if left[1] != right[0]:
-            raise RuntimeError(f'size mismatch, got input ({ad.shape[0]}), mat ({_shape_text(ad.shape)}x{bd.shape[0] if bd.ndim == 1 else _shape_text(bd.shape)}), vec ({bd.shape[0]})'
-                               if ad.ndim == 2 else
-                               f'size mismatch, got input ({ad.shape[0]}), mat ({_shape_text(ad.shape)}), vec ({_shape_text(bd.shape)})')
-        name = 'MvBackward0' if bd.ndim == 1 else 'SqueezeBackward4'
+def _folds(a_shape, b_shape, a_strides, b_strides, a_grad, b_grad):
+    """
+    Whether matmul turns the product of a tensor with 3 or more dimensions and a vector or matrix
+    into one big matrix product, by folding the extra dimensions into the rows, rather than into a
+    batch of small ones. PyTorch folds when the smaller tensor needs a gradient, or when folding
+    copies nothing, which is when the larger tensor's leading dimensions can be merged into one.
+    """
+    larger_first = len(a_shape) >= len(b_shape)
+    if larger_first:
+        shape, strides, other_dims, other_grad = a_shape, a_strides, len(b_shape), b_grad
     else:
-        left = ad.shape if ad.ndim > 1 else (1,) + ad.shape
-        right = bd.shape if bd.ndim > 1 else bd.shape + (1,)
-        if left[-1] != right[-2]:
-            folded = (int(np.prod(left[:-1])), left[-1])
-            raise RuntimeError(f'mat1 and mat2 shapes cannot be multiplied ({_shape_text(folded)} and {_shape_text(right[-2:])})')
-        try:
-            np.broadcast_shapes(left[:-2], right[:-2])
-        except ValueError:
-            raise _broadcast_error(left[:-2], right[:-2]) from None
-        name = 'UnsafeViewBackward0'
-    # Shapes are checked before types for everything but vectors.
-    _check_same_kind(a, b, lambda x, y: f'expected m1 and m2 to have the same dtype, but got: {_C10_NAMES[x.name]} != {_C10_NAMES[y.name]}')
+        # The larger tensor is the second one, so it's folded turned over: its last two dimensions swapped.
+        shape = tuple(b_shape[:-2]) + (b_shape[-1], b_shape[-2])
+        strides = tuple(b_strides[:-2]) + (b_strides[-1], b_strides[-2])
+        other_dims, other_grad = len(a_shape), a_grad
+    if len(shape) < 3 or other_dims > 2:
+        return False
+    if other_grad:
+        return True
+    if len(a_shape) == 2:
+        return False
+    if 0 in shape:
+        return True
+    # Dimensions of size 1 don't matter to whether two of the others sit one after the other in memory.
+    leading = [(n, s) for n, s in zip(shape[:-1], strides[:-1]) if n != 1]
+    return _all(leading[i][1] == leading[i + 1][1] * leading[i + 1][0] for i in range(len(leading) - 1))
+
+
+def _plan_product(a_shape, b_shape, a_strides, b_strides, a_grad, b_grad):
+    """
+    How matmul multiplies two tensors: which of PyTorch's four products it uses ('dot', 'mv', 'mm'
+    or 'bmm', which put the same mismatch in different words), whether the second tensor is the
+    first one of that product, the name of the node that goes backward through it, and the error
+    for shapes that don't multiply, or None.
+    """
+    da, db = len(a_shape), len(b_shape)
+    if da == 1 and db == 1:
+        problem = None
+        if a_shape[0] != b_shape[0]:
+            problem = (f'inconsistent tensor size, expected tensor [{a_shape[0]}] and src [{b_shape[0]}] to have the same '
+                       f'number of elements, but got {a_shape[0]} and {b_shape[0]} elements respectively')
+        return 'dot', False, 'DotBackward0', problem
+    if da <= 2 and db <= 2:
+        left = (1,) + tuple(a_shape) if da == 1 else tuple(a_shape)
+        if db == 1:
+            return 'mv', False, 'MvBackward0', None if left[1] == b_shape[0] else _mv_problem(left, b_shape)
+        return 'mm', False, 'SqueezeBackward4' if da == 1 else 'MmBackward0', None if left[1] == b_shape[0] else _mm_problem(left, b_shape)
+    if _folds(a_shape, b_shape, a_strides, b_strides, a_grad, b_grad):
+        swapped = da < db
+        if not swapped:
+            left, right, name = (int(np.prod(a_shape[:-1])), a_shape[-1]), tuple(b_shape), 'UnsafeViewBackward0'
+        else:
+            left = (int(np.prod(b_shape[:-2])) * b_shape[-1], b_shape[-2])
+            right = tuple(a_shape) if da == 1 else (a_shape[1], a_shape[0])
+            # A matrix times a batch is worked out turned over, and copied into the layout it should have.
+            name = 'UnsafeViewBackward0'
+            if da == 2:
+                empty = 0 in b_shape[:-2] or a_shape[0] == 0 or b_shape[-1] == 0
+                name = 'TransposeBackward0' if empty or a_shape[0] == 1 or b_shape[-1] == 1 else 'CloneBackward0'
+        kind = 'mv' if len(right) == 1 else 'mm'
+        problem = None if left[1] == right[0] else (_mv_problem if kind == 'mv' else _mm_problem)(left, right)
+        return kind, swapped, name, problem
+    batch_a, batch_b = a_shape[:_max(da - 2, 0)], b_shape[:_max(db - 2, 0)]
+    # A batch of one next to a batch of many, when the one needs a gradient, is taken out of its tensor first, so
+    # that the gradient needn't be added up over copies of it.
+    if da == 3 and db == 3 and batch_a[0] != batch_b[0]:
+        if batch_a[0] == 1 and a_grad:
+            return _plan_product(a_shape[1:], b_shape, a_strides[1:], b_strides, a_grad, b_grad)
+        if batch_b[0] == 1 and b_grad:
+            return _plan_product(a_shape, b_shape[1:], a_strides, b_strides[1:], a_grad, b_grad)
+    problem = None
+    try:
+        batch = np.broadcast_shapes(batch_a, batch_b)
+    except ValueError:
+        problem = str(_broadcast_error(batch_a, batch_b))
+    else:
+        inner_a = a_shape[-1]
+        inner_b = b_shape[-2] if db > 1 else b_shape[0]
+        if inner_a != inner_b:
+            count = int(np.prod(batch))
+            problem = f'Expected size for first two dimensions of batch2 tensor to be: [{count}, {inner_a}] but got: [{count}, {inner_b}].'
+    return 'bmm', False, 'UnsafeViewBackward0', problem
+
+
+def _mm_problem(left, right):
+    return f'mat1 and mat2 shapes cannot be multiplied ({_shape_text(left)} and {_shape_text(right)})'
+
+
+def _mv_problem(matrix, vector):
+    return f'size mismatch, got input ({matrix[0]}), mat ({_shape_text(matrix)}), vec ({vector[0]})'
+
+
+def _check_product_types(kind, first, second):
+    """The error for two types that a product can't mix, worded the way that kind of product words it."""
+    x, y = first._dtype, second._dtype
+    if kind == 'bmm' and x is _dtype.bool_:
+        # The code for the type of the first tensor is looked up before the second one is compared with it.
+        raise NotImplementedError('"bmm" not implemented for \'Bool\'')
+    if x is y:
+        return
+    if kind == 'dot':
+        raise RuntimeError(f'dot : expected both vectors to have same dtype, but found {_KIND_TITLES[x.name]} and {_KIND_TITLES[y.name]}')
+    if kind == 'mv':
+        raise RuntimeError(
+            f'addmv input tensors must have the same dtype, but got {_KIND_TITLES[y.name]}, {_KIND_TITLES[x.name]}, and {_KIND_TITLES[y.name]}'
+        )
+    if kind == 'mm':
+        raise RuntimeError(f'expected m1 and m2 to have the same dtype, but got: {_C10_NAMES[x.name]} != {_C10_NAMES[y.name]}')
+    raise RuntimeError(f'expected scalar type {_KIND_TITLES[x.name]} but found {_KIND_TITLES[y.name]}')
+
+
+def _product(a, b, name=None):
+    """The matrix product of two tensors, the way PyTorch's matmul does it, under the name of the node that goes backward through it."""
+    ad, bd = a._data, b._data
+    kind, swapped, planned, problem = _plan_product(
+        ad.shape, bd.shape, tuple(s // ad.itemsize for s in ad.strides), tuple(s // bd.itemsize for s in bd.strides),
+        a._requires_grad, b._requires_grad,
+    )
+    first, second = (b, a) if swapped else (a, b)
+    # The types of vectors are compared before their lengths, and those of everything else after the shapes.
+    if kind == 'dot':
+        _check_product_types(kind, first, second)
+    if problem is not None:
+        raise RuntimeError(problem)
+    if kind != 'dot':
+        _check_product_types(kind, first, second)
+    if first._dtype is _dtype.bool_:
+        raise NotImplementedError(f'"{_KERNELS[kind]}" not implemented for \'Bool\'')
     out = _arr(np.matmul(ad, bd))
-    node = track(name, [a, b], None, True, [a, b])
+    node = track(name or planned, [a, b], None, True, [a, b])
     if node is not None:
         need_a, need_b = a._requires_grad, b._requires_grad
 
@@ -1142,31 +1232,58 @@ def matmul(input, other):
     return _wrap(out, a._dtype, node)
 
 
+def matmul(input, other):
+    a, b = input, other
+    if not isinstance(b, Tensor):
+        raise TypeError(f'matmul(): argument \'other\' (position 2) must be Tensor, not {type(b).__name__}')
+    if a._data.ndim == 0 or b._data.ndim == 0:
+        raise RuntimeError('both arguments to matmul need to be at least 1D, but they are '
+                           f'{a._data.ndim}D and {b._data.ndim}D')
+    return _product(a, b)
+
+
 def mm(input, mat2):
     if input._data.ndim != 2:
         raise RuntimeError('self must be a matrix')
     if mat2._data.ndim != 2:
         raise RuntimeError('mat2 must be a matrix')
-    return matmul(input, mat2)
+    return _product(input, mat2)
 
 
 def bmm(input, mat2):
-    if input._data.ndim != 3 or mat2._data.ndim != 3:
-        raise RuntimeError('batch1 must be a 3D tensor' if input._data.ndim != 3 else 'batch2 must be a 3D tensor')
-    return matmul(input, mat2)
+    if input._data.ndim != 3:
+        raise RuntimeError('batch1 must be a 3D tensor')
+    if mat2._data.ndim != 3:
+        raise RuntimeError('batch2 must be a 3D tensor')
+    (batches, _, inner), (other_batches, other_inner, _) = input._data.shape, mat2._data.shape
+    # Unlike matmul's, a batch of 1 is not repeated to meet a batch of many.
+    if other_batches != batches or other_inner != inner:
+        raise RuntimeError(
+            f'Expected size for first two dimensions of batch2 tensor to be: [{batches}, {inner}] but got: [{other_batches}, {other_inner}].'
+        )
+    return _product(input, mat2, 'BmmBackward0')
 
 
 def mv(input, vec):
-    return matmul(input, vec)
+    if input._data.ndim == 0:
+        raise IndexError('Dimension specified as 0 but tensor has no dimensions')
+    if input._data.ndim != 2 or vec._data.ndim != 1:
+        # PyTorch makes the vector that the result goes into first, so it counts one dimension for it.
+        raise RuntimeError(f'vector + matrix @ vector expected, got 1, {input._data.ndim}, {vec._data.ndim}')
+    return _product(input, vec)
 
 
 def dot(input, other):
     if input._data.ndim != 1 or other._data.ndim != 1:
         raise RuntimeError(f'1D tensors expected, but got {input._data.ndim}D and {other._data.ndim}D tensors')
-    return matmul(input, other)
+    return _product(input, other)
 
 
 def outer(input, vec2):
+    if input._data.ndim != 1:
+        raise RuntimeError(f'outer: Expected 1-D argument self, but got {input._data.ndim}-D')
+    if vec2._data.ndim != 1:
+        raise RuntimeError(f'outer: Expected 1-D argument vec2, but got {vec2._data.ndim}-D')
     return mul(unsqueeze(input, 1), unsqueeze(vec2, 0))
 
 

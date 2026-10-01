@@ -9,7 +9,7 @@ from ... import _dtype, _random
 from ..._creation import as_tensor, tensor
 from ..._ops import stack
 from ..._tensor import Tensor
-from .dataset import Dataset, Subset, TensorDataset
+from .dataset import Subset, TensorDataset
 from .sampler import BatchSampler, RandomSampler, SequentialSampler
 
 
