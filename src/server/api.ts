@@ -9,8 +9,10 @@
  *   GET  /api/comments                  comments' changes waiting to be merged, for signed-in readers
  *   POST /api/comments                  posts a comment as an issue, as the reader
  *   GET    /api/exams                   the reader's attempts at the exams, and their certificates
- *   POST   /api/exams/start             starts an attempt at an exam: draws its questions
- *   POST   /api/exams/submit            hands an attempt in: checks it and keeps the result, and
+ *   POST   /api/exams/start             starts an attempt at an exam: draws its questions and an
+ *                                       instance of each of its practical tasks
+ *   POST   /api/exams/submit            hands an attempt in: checks the answers and what the
+ *                                       reader's code did on the tasks' cases, keeps the result, and
  *                                       the certificate it earns when it passes
  *   POST   /api/certificates            publishes the reader's certificate for an exam they passed
  *   DELETE /api/certificates            unpublishes it
@@ -31,7 +33,9 @@ import { issueCertificate, publishCertificate, unpublishCertificate, type Signin
 import {
   ATTEMPT_TIME,
   checkAnswers,
+  checkTasks,
   drawQuestions,
+  drawTasks,
   examRecord,
   openAttempt,
   openKey,
@@ -91,8 +95,12 @@ const LOGIN_TIME = 10 * 60 * 1000;
 /** Largest request body, in characters: a comment with all its fields full fits easily. */
 const MAX_BODY = 20_000;
 
-/** Largest request body for the exams: the answer key of a chapter with a thousand questions fits. */
-const MAX_EXAM_BODY = 200_000;
+/**
+ * Largest request body for the exams: the answer key of a chapter with a thousand questions fits,
+ * and so does a key of the most tasks can make (MAX_KEY_LENGTH in exams.ts) and the results of a
+ * hand-in with the longest results of every case.
+ */
+const MAX_EXAM_BODY = 400_000;
 
 type Handler = (context: Context) => Promise<Response>;
 
@@ -288,12 +296,32 @@ async function startExam(context: Context): Promise<Response> {
   // Numbered by the attempts handed in so far: starting again before handing in gets the same questions.
   const number = record.attempts.length;
   const questions = drawQuestions(key, reader.user.id, number, site.exams.questions, exams.secret);
+  const tasks = drawTasks(key, reader.user.id, number, exams.secret);
   const at = Date.now();
   const attempt = await sealAttempt(
-    { reader: reader.user.id, chapter: key.chapter, version: key.version, number, questions, at, ...(key.covers && { covers: key.covers }) },
+    {
+      reader: reader.user.id,
+      chapter: key.chapter,
+      version: key.version,
+      number,
+      questions,
+      ...(tasks.length > 0 && { tasks: tasks.map(({ task, instance }) => ({ id: task.id, lessons: task.lessons, digest: instance.digest })) }),
+      at,
+      ...(key.covers && { covers: key.covers }),
+    },
     exams.secret,
   );
-  const started: StartResponse = { attempt, questions: questions.map((question) => question.id), expires: new Date(at + ATTEMPT_TIME).toISOString() };
+  const started: StartResponse = {
+    attempt,
+    questions: questions.map((question) => question.id),
+    // The cases only, and the files they read: never what the right code does with them.
+    tasks: tasks.map(({ task, instance }) => ({
+      id: task.id,
+      cases: instance.cases,
+      files: Object.fromEntries(Object.entries(instance.files).map(([name, text]) => [name, Buffer.from(text).toString('base64')])),
+    })),
+    expires: new Date(at + ATTEMPT_TIME).toISOString(),
+  };
   return json(started, 200, reader.cookies);
 }
 
@@ -315,12 +343,17 @@ async function submitExam(context: Context): Promise<Response> {
   if (Date.now() - attempt.at > ATTEMPT_TIME) return refuse(409, 'expired', 'This attempt ran out of time. Start the exam again.', reader.cookies);
 
   const { right } = checkAnswers(attempt.questions, data.answers);
-  const score = right.length / attempt.questions.length;
+  // What each case of each task did on the reader's code, which the page ran; only matching the right code's counts.
+  const tasks = attempt.tasks ?? [];
+  const { solved, unsolved } = checkTasks(attempt, tasks, isRecord(data.observations) ? data.observations : {}, exams.secret);
+  const total = attempt.questions.length + tasks.length;
+  const score = (right.length + solved.length) / total;
   const result: Attempt = {
     at: new Date().toISOString(),
     score,
-    right: right.length,
-    questions: attempt.questions.length,
+    right: right.length + solved.length,
+    questions: total,
+    ...(tasks.length > 0 && { tasks: tasks.length }),
     passed: score >= site.passScore,
     version: attempt.version,
   };
@@ -335,9 +368,15 @@ async function submitExam(context: Context): Promise<Response> {
     return refuse(409, 'handed-in', 'This attempt was handed in already.', reader.cookies);
   }
   const wrong = attempt.questions.filter((question) => !right.includes(question));
+  // In the order of the lessons, as the certificate's key has them.
+  const order = attempt.covers?.lessons.map((lesson) => lesson.path) ?? [];
+  const position = (lesson: string) => (order.includes(lesson) ? order.indexOf(lesson) : order.length);
+  const review = [...new Set([...wrong.map((question) => question.lesson), ...unsolved.flatMap((task) => task.lessons)])].sort(
+    (a, b) => position(a) - position(b),
+  );
   const handedIn: SubmitResponse = {
     result,
-    review: [...new Set(wrong.map((question) => question.lesson))],
+    review,
     next: examRecord([result]).next,
     ...(certificate && { certificate: stateOf(certificate) }),
   };

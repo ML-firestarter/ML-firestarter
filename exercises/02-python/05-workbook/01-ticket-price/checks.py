@@ -1,0 +1,16 @@
+CHECKS = [
+    ("ticket_price(8, False)", 20),
+    ("ticket_price(11, True)", 20),
+    ("ticket_price(12, False)", 35),
+    ("ticket_price(12, True)", 30),
+    ("ticket_price(64, True)", 30),
+    ("ticket_price(64, False)", 35),
+    ("ticket_price(65, False)", 25),
+    ("ticket_price(70, True)", 25),
+    ("group_price([8, 30, 70], False)", 80),
+    ("group_price([12, 40, 64], True)", 90),
+    ("group_price([], True)", 0),
+    ("program('15', 'yes')", prints("15\nyes\nPrice: 30\n")),
+    ("program('9', 'no')", prints("9\nno\nPrice: 20\n")),
+    ("program('40', 'no')", prints("40\nno\nPrice: 35\n")),
+]

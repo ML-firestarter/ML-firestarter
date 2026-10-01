@@ -2007,6 +2007,59 @@ main {
   display: contents;
 }
 
+/* The practical tasks, one card each, like the questions: the text, then a workbench as on an exercise's page. */
+.exam-tasks {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+.exam-questions + .exam-tasks {
+  margin-top: 1.25rem;
+}
+
+.exam-task {
+  padding: 1.2rem 1.35rem 1.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.task-header {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.task-number {
+  margin: 0;
+  color: color-mix(in srgb, var(--accent) 80%, var(--text));
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.exam-task h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+}
+
+.exam-task > .prose {
+  margin-top: 0.85rem;
+}
+
+.exam-task .workbench {
+  margin-top: 1.25rem;
+}
+
+/* What handing in is doing: running the code of each task. */
+.exam-running {
+  margin-top: 1rem;
+}
+
 .exam-review {
   grid-column: 1 / -1;
   padding-top: 1rem;
@@ -2029,7 +2082,8 @@ main {
 }
 
 @media (max-width: 639px) {
-  .exam-panel {
+  .exam-panel,
+  .exam-task {
     padding: 1rem 1rem 1.1rem;
   }
 }

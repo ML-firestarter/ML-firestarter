@@ -88,7 +88,8 @@ function setUpCertificate(page: HTMLElement) {
     link(part('login'), `@${reader.login}`, `https://github.com/${reader.login}`);
     link(part('chapter'), title(certificate.title), pageUrl(certificate.chapter));
     const score = { date: date(passed.at), score: percent(passed.score), right: String(passed.right), questions: String(passed.questions) };
-    fill(part('passed'), t.passed, score);
+    // What the exam counted: questions answered right, tasks solved, or both.
+    fill(part('passed'), !passed.tasks ? t.passed : passed.tasks === passed.questions ? t.passedTasks : t.passedMixed, score);
     part('lessons').replaceChildren(
       ...certificate.lessons.map((lesson) => {
         const item = document.createElement('li');
@@ -228,6 +229,7 @@ function readCertificate(data: unknown, id: string): Certificate | undefined {
     typeof passed.score === 'number' &&
     typeof passed.right === 'number' &&
     typeof passed.questions === 'number' &&
+    (passed.tasks === undefined || typeof passed.tasks === 'number') &&
     typeof certificate.issued === 'string';
   return isValid ? (certificate as Certificate) : undefined;
 }

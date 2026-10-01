@@ -1,0 +1,15 @@
+CHECKS = [
+    ("make_change(289)", {100: 2, 50: 1, 20: 1, 10: 1, 5: 1, 2: 2}),
+    ("list(make_change(289))", [100, 50, 20, 10, 5, 2]),
+    ("make_change(7)", {5: 1, 2: 1}),
+    ("make_change(40)", {20: 2}),
+    ("make_change(99)", {50: 1, 20: 2, 5: 1, 2: 2}),
+    ("make_change(1)", {1: 1}),
+    ("make_change(0)", {}),
+    ("make_change(-3)", raises(ValueError)),
+    ("piece_count(289)", 8),
+    ("piece_count(99)", 6),
+    ("piece_count(0)", 0),
+    ("program('289')", prints("289\n100 x 2\n50 x 1\n20 x 1\n10 x 1\n5 x 1\n2 x 2\nPieces: 8\n")),
+    ("program('0')", prints("0\nPieces: 0\n")),
+]

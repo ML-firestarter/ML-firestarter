@@ -1,5 +1,5 @@
 ---
-description: Python od decyzji i pętli po pliki i listy list, z ćwiczeniem na końcu każdej lekcji, które rozwiązujesz na stronie.
+description: Python od decyzji i pętli po pliki i listy list, z ćwiczeniem na końcu każdej lekcji, które rozwiązujesz na stronie, i zeszytem ćwiczeń do potrenowania.
 ---
 
 # Python
@@ -18,6 +18,8 @@ Zaczyna się za pierwszymi krokami: wystarczy wiedzieć, że `print()` wypisuje 
 4. [Odczyt i zapis plików](01-basics/04-files.pl.md): pogrupuj słowa z pliku według długości.
 5. [Listy list](01-basics/05-lists-of-lists.pl.md): ukryj wiadomość szyfrem płotkowym.
 6. [Test praktyczny](01-basics/06-practice-test.pl.md): pięć zadań, które łączą to wszystko, od najłatwiejszego do najtrudniejszego.
+
+Na końcu rozdziału [Zeszyt ćwiczeń](05-workbook.pl.md) ma dwanaście kolejnych ćwiczeń, które łączą lekcje na nowe sposoby, od najłatwiejszego do najtrudniejszego, do potrenowania.
 
 ## Jak działają lekcje
 

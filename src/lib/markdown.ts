@@ -10,7 +10,7 @@ import katex from 'katex';
 import type { HastNode, HastPluginDefinition, HastVisitorContext, MdastPluginDefinition } from 'satteri';
 import type { ShikiTransformer } from 'shiki';
 import { DEFAULT_LANG, ui, type Lang } from './i18n.ts';
-import { examQuestionId, exerciseUrl, isIndexFile, noteUrl, relativeUrl, splitLang, testUrl } from './paths.ts';
+import { examQuestionId, examTaskFile, exerciseUrl, isIndexFile, noteUrl, relativeUrl, splitLang, testUrl } from './paths.ts';
 
 type Element = Extract<HastNode, { type: 'element' }>;
 type Content = Element['children'][number];
@@ -200,6 +200,8 @@ export function quizzes(roots: { tests: string; exams: string }): HastPluginDefi
       const file = test ?? exam;
       // tests/README.md is the overview's introduction, and README files in exams/ describe that repository.
       if (!file || isIndexFile(path.basename(file))) return;
+      // The texts of practical tasks, which have no questions to turn into a form.
+      if (exam && examTaskFile(exam)) return;
 
       const quiz: Quiz = { questions: [], key: exam ? [] : undefined, problems: [] };
       const intro: Content[] = [];

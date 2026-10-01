@@ -6,10 +6,11 @@
  * Everything here rests on EXAM_SECRET. Whoever has it can open the answer keys and seal keys
  * of their own, so only production builds and the production API may see it.
  */
-import { createHmac, type KeyObject } from 'node:crypto';
+import { createHmac, timingSafeEqual, type KeyObject } from 'node:crypto';
+import { deflateRawSync, inflateRawSync } from 'node:zlib';
 import type { Covered } from '../lib/certificates.ts';
 import type { Exam } from '../lib/course.ts';
-import type { Attempt, ExamKey, ExamRecord, KeyQuestion } from '../lib/exams.ts';
+import type { Attempt, ExamKey, ExamRecord, KeyInstance, KeyQuestion, KeyTask } from '../lib/exams.ts';
 import { site } from '../site.config.ts';
 import { certificateKey } from './certificates.ts';
 import { botToken, isConflict, readFile, writeFile, type Bot } from './github.ts';
@@ -29,6 +30,16 @@ export interface ExamConfig {
 
 /** Longest an attempt can take, in ms: once it's over, the attempt has to be started again. */
 export const ATTEMPT_TIME = 24 * 60 * 60 * 1000;
+
+/**
+ * Longest an exam's sealed answer key can be, in characters: pages send it back to start an
+ * attempt, and the API reads at most this much (MAX_EXAM_BODY in api.ts leaves room for it).
+ */
+export const MAX_KEY_LENGTH = 150_000;
+
+/** Most results a hand-in can give for one task, and the longest each can be, as `observe` in scripts/harness.py writes them. */
+const MAX_OBSERVATIONS = 40;
+const MAX_OBSERVATION_LENGTH = 1_001;
 
 const KEY_SEAL = 'mlw_exam_key';
 const ATTEMPT_SEAL = 'mlw_exam_attempt';
@@ -76,21 +87,37 @@ export function repoName(url: string): string {
 // ---------- Answer keys ----------
 
 /**
- * An exam's answer key, sealed for its page at build time, and the version of its questions,
- * which the page shows as it is: pages in every language get the same one. The key also holds
- * what the exam covers, in every language, for the certificates the API issues from it.
+ * An exam's answer key, sealed for its page at build time, and the version of its questions and
+ * tasks, which the page shows as it is: pages in every language get the same one. The key also
+ * holds what the exam covers, in every language, for the certificates the API issues from it.
  */
 export async function pageKey(exam: Exam, covers: Covered, secret: string): Promise<{ key: string; version: string }> {
-  const files = exam.parts.flatMap((part) => part.versions.map((note) => ({ path: note.filePath ?? note.id, text: note.body ?? '' })));
+  const files = [
+    ...exam.parts.flatMap((part) => part.versions.map((note) => ({ path: note.filePath ?? note.id, text: note.body ?? '' }))),
+    ...exam.tasks.flatMap((task) => task.sources),
+  ];
   const version = examVersion(files, secret);
   const questions = exam.parts.flatMap((part) => part.key.map(({ id, right }) => ({ id, lesson: part.lesson.path, right })));
-  return { key: await sealKey({ chapter: exam.chapter.path, version, questions, covers }, secret), version };
+  const chapter = exam.chapter.path;
+  const tasks: KeyTask[] = exam.tasks.map((task) => ({
+    id: task.id,
+    lessons: task.lessons.map((lesson) => lesson.path),
+    instances: task.pool.map(({ cases, files, expected }) => ({ cases, files, digest: taskDigest(secret, chapter, version, task.id, expected) })),
+  }));
+  const key = await sealKey({ chapter, version, questions, ...(tasks.length > 0 && { tasks: packTasks(tasks) }), covers }, secret);
+  if (key.length > MAX_KEY_LENGTH) {
+    throw new Error(
+      `The answer key of the exam at ${exam.path} would be ${Math.round(key.length / 1000)} kB, and pages can't send more than ${MAX_KEY_LENGTH / 1000} kB of it. ` +
+        'Give the tasks fewer instances, or fewer and shorter cases.',
+    );
+  }
+  return { key, version };
 }
 
 /**
- * Version of an exam's questions, from the text of every language version of them: it changes
- * with any change to them. It's keyed with the secret, so it doesn't let anyone check guesses
- * of the questions' text, answers included, against it.
+ * Version of an exam's questions and tasks, from the text of every language version of them: it
+ * changes with any change to them. It's keyed with the secret, so it doesn't let anyone check
+ * guesses of the questions' text, answers included, against it.
  */
 function examVersion(files: { path: string; text: string }[], secret: string): string {
   const sorted = [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -121,10 +148,19 @@ export interface OpenAttempt {
   number: number;
   /** The questions drawn, with their right answers. */
   questions: KeyQuestion[];
+  /** The exam's practical tasks, with a digest of what the right code does on the instance drawn; attempts at exams without tasks, or started before there were, don't have it. */
+  tasks?: AttemptTask[];
   /** When it started, in ms since 1970. */
   at: number;
   /** What the exam covers, from its key, for the certificate a pass earns; attempts started before certificates don't have it. */
   covers?: Covered;
+}
+
+/** A practical task of an attempt in progress: the digest to match, and the lessons to give back when the code doesn't. */
+export interface AttemptTask {
+  id: string;
+  lessons: string[];
+  digest: string;
 }
 
 export function sealAttempt(attempt: OpenAttempt, secret: string): Promise<string> {
@@ -178,6 +214,80 @@ export function checkAnswers(questions: KeyQuestion[], answers: Record<string, u
     (isRight ? right : wrong).push(question);
   }
   return { right, wrong };
+}
+
+// ---------- Practical tasks ----------
+
+/**
+ * Keyed digest of what an instance of a task does, from what each of its cases did, as
+ * `observe` in scripts/harness.py writes it: the key holds the right code's, and a hand-in is
+ * checked by the digest of the reader's code's. Only the secret can make one, so a digest
+ * doesn't give away what the right code does, and none can be made up.
+ */
+export function taskDigest(secret: string, chapter: string, version: string, task: string, observations: string[]): string {
+  return createHmac('sha256', secret)
+    .update(`task\n${chapter}\n${version}\n${task}\n${JSON.stringify(observations)}`)
+    .digest('hex')
+    .slice(0, 32);
+}
+
+/** An exam's tasks packed to go into its key: their cases repeat themselves a lot, so they shrink to a fifth of their size. */
+function packTasks(tasks: KeyTask[]): string {
+  return deflateRawSync(JSON.stringify(tasks)).toString('base64url');
+}
+
+/** The tasks in an exam's key; none for an exam that has none, or a key sealed before there were any. */
+function unpackTasks(key: ExamKey): KeyTask[] {
+  return key.tasks ? (JSON.parse(inflateRawSync(Buffer.from(key.tasks, 'base64url')).toString()) as KeyTask[]) : [];
+}
+
+/** A task of an attempt, with the instance it runs on the reader's code. */
+export interface DrawnTask {
+  task: KeyTask;
+  instance: KeyInstance;
+}
+
+/**
+ * The instance of each of an exam's tasks for a reader's attempt. Each reader has an order of
+ * their own for a task's instances, which only the secret can work out, and each attempt takes
+ * the next one in it: the instances don't repeat before all of them have been used, and
+ * starting the same attempt again gives the same ones, so it can't be used to fish for easier ones.
+ */
+export function drawTasks(key: ExamKey, reader: number, number: number, secret: string): DrawnTask[] {
+  return unpackTasks(key).map((task) => {
+    const rank = (index: number) =>
+      createHmac('sha256', secret).update(`instance\n${reader}\n${key.chapter}\n${key.version}\n${task.id}\n${index}`).digest('hex');
+    const order = task.instances
+      .map((_, index) => ({ index, rank: rank(index) }))
+      .sort((a, b) => (a.rank < b.rank ? -1 : 1));
+    return { task, instance: task.instances[order[number % order.length].index] };
+  });
+}
+
+/**
+ * The tasks of an attempt that the reader's code solved, and those it didn't: it solved a task
+ * when what its cases did, which the page handed in, has the digest the right code's has. A task
+ * with nothing handed in, or something that isn't a list of what the cases did, isn't solved.
+ */
+export function checkTasks(
+  attempt: Pick<OpenAttempt, 'chapter' | 'version'>,
+  tasks: AttemptTask[],
+  observations: Record<string, unknown>,
+  secret: string,
+): { solved: AttemptTask[]; unsolved: AttemptTask[] } {
+  const solved: AttemptTask[] = [];
+  const unsolved: AttemptTask[] = [];
+  for (const task of tasks) {
+    const given = Object.hasOwn(observations, task.id) ? observations[task.id] : undefined;
+    const isList =
+      Array.isArray(given) &&
+      given.length <= MAX_OBSERVATIONS &&
+      given.every((item) => typeof item === 'string' && item.length <= MAX_OBSERVATION_LENGTH);
+    const digest = isList ? taskDigest(secret, attempt.chapter, attempt.version, task.id, given as string[]) : '';
+    const same = digest.length === task.digest.length && timingSafeEqual(Buffer.from(digest), Buffer.from(task.digest));
+    (same ? solved : unsolved).push(task);
+  }
+  return { solved, unsolved };
 }
 
 /** A reader's attempts at an exam, with when they can try again: `wait` hours after an attempt, unless they've passed. */

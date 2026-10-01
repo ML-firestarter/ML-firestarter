@@ -1,7 +1,8 @@
 """
-Runs readers' Python for the site: the code in an exercise's editor (ExerciseView.astro) and
-the lessons' runnable examples. The browser's worker (python.worker.ts) and the exercises' CI
-check (scripts/check-exercises.mjs) load it into Pyodide and call `run` or `check`.
+Runs readers' Python for the site: the code in an exercise's editor (ExerciseView.astro), the
+code of an exam's tasks (ExamView.astro) and the lessons' runnable examples. The browser's
+worker (python.worker.ts) and the checks of exercises and exam tasks (scripts/check-exercises.mjs,
+scripts/exam-tasks.mjs) load it into Pyodide and call `run`, `check` or `observe`.
 
 The code runs as a file called main.py, in a folder of its own next to the exercise's files,
 the way `python main.py` runs it in a terminal: tracebacks show the reader's lines and none of
@@ -33,6 +34,9 @@ FOLDER = '/home/pyodide/exercise'
 OUTPUT_LIMIT = 200_000
 # How much the code can print during each check.
 CHECK_OUTPUT_LIMIT = 50_000
+# How long an exam task's observation of one case can be, in characters: longer ones are cut, so
+# that they can't be the right one. The API takes the observations of a whole exam in one request.
+OBSERVATION_LIMIT = 1_000
 # A run sends the page each line as it's printed, but no more than SENDS_AT_ONCE times in each
 # SEND_EVERY seconds, so that a loop that prints fast can't flood it.
 SEND_EVERY = 0.05
@@ -204,6 +208,37 @@ def check(code, source, files, send):
     return json.dumps({'results': results}, ensure_ascii=False)
 
 
+# ---------- Taking an exam task ----------
+
+
+def observe(code, cases, files, send):
+    """
+    Runs the cases of an exam task on the reader's code, and says what each one did, as text the
+    site's API compares with what the case should give. The page can't tell whether they match:
+    unlike an exercise's checks, a task's cases come without their answers. `cases` is JSON, a
+    list of expressions like the ones in a checks.py, and `program('3', '4')` runs the code as a
+    program. Returns JSON with `observations`, one for each case, and `error` or `tooMuch` when
+    the code stopped before all of them could run. Calls `send('check', number)` as each case
+    starts, so that the page can tell which one ran out of time.
+    """
+    attempt = Attempt(code, decode(files))
+    try:
+        attempt.compile()
+    except SyntaxError as error:
+        return json.dumps({'error': describe(error), 'observations': []})
+
+    observations = []
+    for number, expression in enumerate(json.loads(cases), start=1):
+        send('check', str(number))
+        item = Check(number, expression, None)
+        if not item.program and attempt.module is None:
+            stopped = attempt.load()
+            if stopped:
+                return json.dumps({**stopped, 'observations': observations}, ensure_ascii=False)
+        observations.append(attempt.observe(item))
+    return json.dumps({'observations': observations}, ensure_ascii=False)
+
+
 class Attempt:
     """The reader's code, being checked."""
 
@@ -296,6 +331,32 @@ class Attempt:
             result['ok'] = same(value, expected)
         return result
 
+    def observe(self, item):
+        """
+        What one case of an exam task did, as text: what a program printed, as checks compare
+        printed text but without the lines it read, so that code that reads all its input before it
+        prints and code that prints between reads are alike; the kind of error the expression
+        raised; or the value it gave, as `canon` writes it.
+        """
+        sink = Sink(CHECK_OUTPUT_LIMIT)
+        try:
+            with redirected(sink):
+                if item.program:
+                    value = eval(item.code, {'program': self.program})
+                else:
+                    sys.modules['exercise'] = self.module
+                    value = eval(item.code, self.module.__dict__)
+        except TooMuchOutput:
+            return 'too much output'
+        except BaseException as caught:
+            return f'raised {type(caught).__name__}'
+        try:
+            text = '\n'.join(tidy(sink.output())) if item.program else canon(value)
+        except Exception:
+            # A value that can't be written down, like a list that holds itself.
+            text = 'unwritable'
+        return text if len(text) <= OBSERVATION_LIMIT else text[: OBSERVATION_LIMIT - 1] + '…'
+
 
 def expected_text(expected):
     if isinstance(expected, Raises):
@@ -343,6 +404,32 @@ def shown(value):
     except Exception:
         text = object.__repr__(value)
     return text if len(text) <= 300 else text[:299] + '…'
+
+
+def canon(value):
+    """
+    A value as text that's the same for equal values, for an exam task's observations, which are
+    compared as text, and equal in the ways `same` takes: dictionaries and sets come in order,
+    3.0 is written like 3 and other numbers are rounded, while True is not 1. Lists and tuples
+    stay in order, and a tuple isn't a list. Other things come as their kind.
+    """
+    if value is None or isinstance(value, bool):
+        return repr(value)
+    if isinstance(value, int):
+        return repr(int(value))
+    if isinstance(value, float):
+        return repr(int(value)) if value.is_integer() and abs(value) < 1e15 else f'{value:.9g}'
+    if isinstance(value, str):
+        return repr(str(value))
+    if isinstance(value, list):
+        return '[' + ', '.join(map(canon, value)) + ']'
+    if isinstance(value, tuple):
+        return '(' + ', '.join(map(canon, value)) + (',)' if len(value) == 1 else ')')
+    if isinstance(value, dict):
+        return '{' + ', '.join(sorted(f'{canon(key)}: {canon(item)}' for key, item in value.items())) + '}'
+    if isinstance(value, (set, frozenset)):
+        return '{' + ', '.join(sorted(map(canon, value))) + '}' if value else 'set()'
+    return type(value).__name__
 
 
 # ---------- What both need ----------
@@ -404,6 +491,10 @@ class Sink:
     def text(self):
         """Everything printed; for checks, whose sink sends nothing."""
         return ''.join(''.join(texts) for kind, texts in self.pieces)
+
+    def output(self):
+        """What the code printed, without the lines it read: those are shown as a terminal shows what's typed, and aren't its output."""
+        return ''.join(''.join(texts) for kind, texts in self.pieces if kind != 'in')
 
 
 class Stream(io.TextIOBase):

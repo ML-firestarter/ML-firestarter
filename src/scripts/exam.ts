@@ -1,16 +1,20 @@
 /**
  * The exam page (ExamView.astro). Starting an attempt has the API draw its questions, and the
  * reader's answers are kept in this browser's localStorage until they hand them in, so they
- * can leave and come back. Handing in has the API check the answers and keep the result. The
- * page never knows which answers are right: it gets the score and the lessons to read again.
- * A pass earns a certificate, which the API signs: once the reader has passed, the page lets
- * them publish it, and unpublish it, when the site signs certificates.
+ * can leave and come back. Practical tasks (exam-tasks.ts) are part of an attempt too: handing
+ * in runs the attempt's test cases on the reader's code, and sends what each did. Handing in has
+ * the API check the answers and what the code did, and keep the result. The page never knows
+ * which answers are right, or whether the code is: it gets the score and the lessons to read
+ * again. A pass earns a certificate, which the API signs: once the reader has passed, the page
+ * lets them publish it, and unpublish it, when the site signs certificates.
  */
 import type { CertificateResponse, CertificateState } from '../lib/certificates.ts';
-import type { ExamError, ExamRecord, StartResponse, SubmitResponse } from '../lib/exams.ts';
+import type { ExamError, ExamRecord, StartedTask, StartResponse, SubmitResponse } from '../lib/exams.ts';
 import { plural, type Lang, type ui } from '../lib/i18n.ts';
 import { EXAM_ATTEMPTS_KEY, paintAccount, readReader } from './account.ts';
+import { setUpTasks } from './exam-tasks.ts';
 import { keepAttempt, keepCertificate, loadExams, paintExams } from './exams.ts';
+import type { Strings as RunStrings } from './running.ts';
 import { percent } from './scores.ts';
 
 type Strings = (typeof ui)['en']['exams']['script'] & {
@@ -19,6 +23,8 @@ type Strings = (typeof ui)['en']['exams']['script'] & {
   lessons: Record<string, { url: string; title: string; lang?: Lang }>;
   /** URL of the certificate page in the page's language; each certificate's page is under it. */
   certificates: string;
+  /** What running a task's code says, as on an exercise's page. */
+  python: RunStrings;
 };
 
 /** An attempt in progress. */
@@ -30,6 +36,8 @@ interface Saved {
   /** The attempt as the API started it, sealed, with its questions; left out once it runs out, while the answers stay. */
   attempt?: string;
   questions?: string[];
+  /** The practical tasks' cases for this attempt. */
+  tasks?: StartedTask[];
   expires?: string;
   /** Positions of the answers picked, by question id. */
   answers: Record<string, number[]>;
@@ -50,12 +58,15 @@ function setUpExam(page: HTMLElement) {
   const startButton = panel.querySelector<HTMLButtonElement>('[data-exam-start]')!;
   const form = page.querySelector<HTMLFormElement>('[data-exam-form]')!;
   const formError = form.querySelector<HTMLElement>('[data-exam-form-error]')!;
+  const formStatus = form.querySelector<HTMLElement>('[data-exam-form-status]')!;
   const handInButton = form.querySelector<HTMLButtonElement>('[data-exam-hand-in]')!;
-  const answered = form.querySelector<HTMLElement>('[data-answered]')!;
+  // Missing in exams that only have practical tasks.
+  const answered = form.querySelector<HTMLElement>('[data-answered]');
   const result = page.querySelector<HTMLElement>('[data-result]')!;
   // Missing when the site doesn't sign certificates.
   const certificate = page.querySelector<HTMLElement>('[data-certificate]');
   const sections = new Map([...form.querySelectorAll<HTMLElement>('[data-question]')].map((section) => [section.dataset.question!, section]));
+  const tasks = setUpTasks(form, chapter, t.python);
   const dates = new Intl.DateTimeFormat(t.lang, { dateStyle: 'long', timeStyle: 'short' });
   const date = (iso: string) => dates.format(new Date(iso));
 
@@ -64,6 +75,8 @@ function setUpExam(page: HTMLElement) {
   /** The sections of its questions. */
   let drawn: HTMLElement[] = [];
   let busy = false;
+  /** The code that the reader was told can't run to the end, so that handing in with it again goes ahead. */
+  let warned = '';
 
   function show(state: State, message = '') {
     for (const el of panel.querySelectorAll<HTMLElement>('[data-state]')) el.hidden = el.dataset.state !== state;
@@ -72,6 +85,7 @@ function setUpExam(page: HTMLElement) {
     form.hidden = true;
     result.hidden = true;
     if (certificate) certificate.hidden = true;
+    tasks.stop();
   }
 
   /**
@@ -103,6 +117,7 @@ function setUpExam(page: HTMLElement) {
     const passed = attempts.find((attempt) => attempt.passed);
     if (passed || next) forget();
     if (passed) {
+      tasks.forget();
       say(panel.querySelector<HTMLElement>('[data-exam-passed]')!, t.passed.replace('{date}', date(passed.at)).replace('{score}', percent(passed.score)));
       show('passed', message);
       return offerCertificate(kept);
@@ -143,6 +158,7 @@ function setUpExam(page: HTMLElement) {
         version,
         attempt: started.attempt,
         questions: started.questions,
+        tasks: started.tasks,
         expires: started.expires,
         answers: Object.fromEntries(started.questions.flatMap((id) => (answers[id] ? [[id, answers[id]]] : []))),
       };
@@ -158,11 +174,11 @@ function setUpExam(page: HTMLElement) {
     }
   }
 
-  /** Shows the questions of a started attempt, with the answers picked so far. */
+  /** Shows the questions and tasks of a started attempt, with the answers picked and the code written so far. */
   function answer(attempt: Saved) {
     const ids = attempt.questions ?? [];
     drawn = ids.flatMap((id) => sections.get(id) ?? []);
-    if (drawn.length !== ids.length) {
+    if (drawn.length !== ids.length || !tasks.matches(attempt.tasks ?? [])) {
       forget();
       return show('ready', t.errors.changed);
     }
@@ -173,11 +189,14 @@ function setUpExam(page: HTMLElement) {
     }
     say(form.querySelector<HTMLElement>('[data-exam-due]')!, t.due.replace('{date}', date(attempt.expires!)));
     say(formError, '');
+    say(formStatus, '');
     paintAnswered();
     panel.hidden = true;
     result.hidden = true;
     if (certificate) certificate.hidden = true;
     form.hidden = false;
+    // Once the form shows, for editors that need to measure themselves.
+    tasks.show();
   }
 
   async function handIn() {
@@ -192,8 +211,12 @@ function setUpExam(page: HTMLElement) {
     handInButton.disabled = true;
     label(handInButton, t.handingIn);
     say(formError, '');
+    tasks.lock(true);
     try {
-      const response = await post('/api/exams/submit', { attempt: current.attempt, answers: picked() });
+      const observations = await runTasks(current.tasks ?? []);
+      if (!observations) return;
+      say(formStatus, '');
+      const response = await post('/api/exams/submit', { attempt: current.attempt, answers: picked(), observations });
       if (!response.ok) return await refused(response, 'hand-in');
       const handedIn: SubmitResponse = await response.json();
       forget();
@@ -207,13 +230,45 @@ function setUpExam(page: HTMLElement) {
       busy = false;
       handInButton.disabled = false;
       label(handInButton, t.handIn);
+      tasks.lock(false);
+      say(formStatus, '');
     }
+  }
+
+  /**
+   * Runs the attempt's test cases on the reader's code, and gives what each did, by task id. Gives
+   * nothing when it has told the reader something instead: that Python won't run, or that some
+   * code can't run to the end, which is said once, so nobody hands in code that stops with an error
+   * without having been told.
+   */
+  async function runTasks(started: StartedTask[]): Promise<Record<string, string[]> | undefined> {
+    if (started.length === 0) return {};
+    const observed = await tasks.observe(started, {
+      onLoading: () => say(formStatus, t.python.loading),
+      onTask: (number, total) => say(formStatus, t.runningTask.replace('{number}', String(number)).replace('{total}', String(total))),
+    });
+    if ('failure' in observed) {
+      const { unavailable, crashed, stopped } = t.python;
+      say(formError, observed.failure === 'unavailable' ? unavailable : observed.failure === 'crashed' ? crashed.replace('{message}', observed.message) : stopped);
+      return undefined;
+    }
+    if (observed.broken.length > 0 && observed.signature !== warned) {
+      warned = observed.signature;
+      const numbers = observed.broken.map((id) => t.taskNumber.replace('{number}', String(tasks.number(id))));
+      say(formError, t.broken.replace('{tasks}', numbers.join(', ')));
+      return undefined;
+    }
+    return observed.observations;
   }
 
   function showResult({ result: attempt, review, next, certificate: earned }: SubmitResponse) {
     result.classList.toggle('is-passed', attempt.passed);
     result.querySelector('[data-result-percent]')!.textContent = percent(attempt.score);
-    result.querySelector('[data-result-count]')!.textContent = `${attempt.right}/${attempt.questions}`;
+    // What the exam counts, as the attempt says: questions answered right, tasks solved, or both.
+    const [before, after] = (!attempt.tasks ? t.resultQuestions : attempt.tasks === attempt.questions ? t.resultTasks : t.resultMixed).split('{}');
+    const figure = document.createElement('strong');
+    figure.textContent = `${attempt.right}/${attempt.questions}`;
+    result.querySelector<HTMLElement>('[data-result-count]')!.replaceChildren(before, figure, after);
     say(result.querySelector<HTMLElement>('[data-result-next]')!, next ? t.waiting.replace('{date}', date(next)) : '');
     // Only when the site doesn't make readers wait between attempts.
     result.querySelector<HTMLElement>('[data-exam-again]')!.hidden = attempt.passed || Boolean(next);
@@ -235,7 +290,11 @@ function setUpExam(page: HTMLElement) {
     panel.hidden = true;
     form.hidden = true;
     result.hidden = false;
-    if (attempt.passed) offerCertificate(earned);
+    if (attempt.passed) {
+      // Their code, which they don't need to keep any more, and no more starting from it.
+      tasks.forget();
+      offerCertificate(earned);
+    }
     result.focus();
   }
 
@@ -311,10 +370,12 @@ function setUpExam(page: HTMLElement) {
   function forget() {
     current = undefined;
     drawn = [];
+    warned = '';
     removeSaved(chapter);
   }
 
   function paintAnswered() {
+    if (!answered) return;
     const count = drawn.filter((section) => section.querySelector('input:checked')).length;
     answered.textContent = `${count}/${drawn.length}`;
   }

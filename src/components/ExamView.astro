@@ -2,8 +2,11 @@
 /**
  * A chapter's exam (scripts/exam.ts). The page holds every exam question on the chapter's
  * lessons, hidden until an attempt draws some of them, without their answers: those are in
- * the exam's answer key, sealed with EXAM_SECRET so that only the API can open it. Readers who
- * pass can publish their certificate here, and unpublish it, when the site signs certificates.
+ * the exam's answer key, sealed with EXAM_SECRET so that only the API can open it. It also holds
+ * the exam's practical tasks (ExamTask.astro), which every attempt gives in full, but not the
+ * test cases the reader's code is run on: those come from the API when an attempt starts.
+ * Readers who pass can publish their certificate here, and unpublish it, when the site signs
+ * certificates.
  */
 import { render } from 'astro:content';
 import type { Covered, Titles } from '../lib/certificates.ts';
@@ -14,6 +17,7 @@ import { publicKeys } from '../server/certificates.ts';
 import { ATTEMPT_TIME, examSecret, pageKey } from '../server/exams.ts';
 import { site } from '../site.config.ts';
 import Crumbs from './Crumbs.astro';
+import ExamTask from './ExamTask.astro';
 import Icon from './Icon.astro';
 import Phrase from './Phrase.astro';
 
@@ -31,23 +35,42 @@ const s = t.exams.script;
 const courses = await Promise.all(LANGS.map((code) => getCourse(code)));
 const titles = (path: string): Titles =>
   Object.fromEntries(courses.flatMap((other) => (other.byPath.has(path) ? [[other.lang, other.byPath.get(path)!.title]] : [])));
-const covers: Covered = { title: titles(chapter.path), lessons: exam.parts.map(({ lesson }) => ({ path: lesson.path, title: titles(lesson.path) })) };
+const covers: Covered = { title: titles(chapter.path), lessons: exam.lessons.map((lesson) => ({ path: lesson.path, title: titles(lesson.path) })) };
 const { key, version } = await pageKey(exam, covers, examSecret());
 const parts = await Promise.all(exam.parts.map(async (part) => ({ lang: part.lang, Content: (await render(part.note)).Content })));
-/** The language of questions that aren't translated yet, if there are any. */
-const untranslated = exam.parts.find((part) => part.lang !== lang)?.lang;
+/** The language of questions and tasks that aren't translated yet, if there are any. */
+const untranslated = [...exam.parts, ...exam.tasks].find((part) => part.lang !== lang)?.lang;
 const overview = localizeUrl(TESTS_PATH, lang);
 const crumbs = [
   { title: t.tests.title, url: overview, lang },
   { title: chapter.title, url: `${overview}#${testGroupId(chapter)}`, lang: chapter.lang },
 ];
 const passPercent = `${Math.round(site.passScore * 100)}%`;
-const rules = t.exams.rules(exam.drawn, Math.round(site.passScore * 100), site.exams.wait, ATTEMPT_TIME / (60 * 60 * 1000));
+/** Questions and tasks in an attempt, which count the same. */
+const total = exam.drawn + exam.tasks.length;
+/** The fewest right answers and solved tasks that pass: the API passes a score of at least `passScore`, worked out the same way. */
+const needed = Array.from({ length: total + 1 }, (_, count) => count).find((count) => count / total >= site.passScore) ?? total;
+const rules = t.exams.rules({
+  questions: exam.drawn,
+  tasks: exam.tasks.length,
+  percent: Math.round(site.passScore * 100),
+  needed,
+  wait: site.exams.wait,
+  time: ATTEMPT_TIME / (60 * 60 * 1000),
+});
 const lessons = Object.fromEntries(
-  exam.parts.map(({ lesson }) => [lesson.path, { url: lesson.url, title: lesson.title, lang: langAttr(lesson.lang, lang) }]),
+  exam.lessons.map((lesson) => [lesson.path, { url: lesson.url, title: lesson.title, lang: langAttr(lesson.lang, lang) }]),
 );
+const e = t.exercises;
 // For the script; `<` is escaped so the JSON can't end the script element.
-const strings = JSON.stringify({ lang, ...s, lessons, certificates: localizeUrl(CERTIFICATES_PATH, lang) }).replace(/</g, '\\u003c');
+const strings = JSON.stringify({
+  lang,
+  ...s,
+  lessons,
+  certificates: localizeUrl(CERTIFICATES_PATH, lang),
+  // What running a task's code says, as on an exercise's page: apart from the rest, as some of it is named like the exam's.
+  python: { lang, ...e.script, run: e.run, stop: e.stop, editor: e.editor },
+}).replace(/</g, '\\u003c');
 /** Whether the site signs certificates: builds without CERTIFICATE_KEY offer none. */
 const signs = publicKeys().length > 0;
 ---
@@ -59,7 +82,7 @@ const signs = publicKeys().length > 0;
     <h1 class="page-title" lang={langAttr(chapter.lang, lang)}>{exam.title}</h1>
     <p class="lede">{t.exams.lede}</p>
     <div class="meta" data-exam={chapter.path}>
-      <span class="meta-item"><Icon name="quiz" />{t.tests.questionCount(exam.drawn)}</span>
+      <span class="meta-item"><Icon name="quiz" />{t.exams.count(exam.drawn, exam.tasks.length)}</span>
       <span class="meta-item best-chip">
         <Icon name="award" />
         <span><Phrase text={t.tests.best}><strong data-exam-score></strong></Phrase></span>
@@ -113,22 +136,35 @@ const signs = publicKeys().length > 0;
 
   <form class="quiz exam-form" autocomplete="off" data-exam-form hidden>
     <p class="exam-due" data-exam-due></p>
-    <div class="prose exam-questions">
-      {
-        parts.map(({ lang: partLang, Content }) => (
-          <div class="exam-part" lang={langAttr(partLang, lang)}>
-            <Content />
-          </div>
-        ))
-      }
-    </div>
+    {
+      parts.length > 0 && (
+        <div class="prose exam-questions">
+          {parts.map(({ lang: partLang, Content }) => (
+            <div class="exam-part" lang={langAttr(partLang, lang)}>
+              <Content />
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      exam.tasks.length > 0 && (
+        <div class="exam-tasks">
+          {exam.tasks.map((task, i) => (
+            <ExamTask lang={lang} task={task} number={i + 1} total={exam.tasks.length} />
+          ))}
+        </div>
+      )
+    }
 
     <div class="quiz-submit">
       <button class="button primary" type="submit" data-exam-hand-in>
         <Icon name="check" /><span data-label>{s.handIn}</span>
       </button>
-      <p><Phrase text={t.tests.answered}><strong data-answered>0/{exam.drawn}</strong></Phrase></p>
+      {exam.drawn > 0 && <p><Phrase text={t.tests.answered}><strong data-answered>0/{exam.drawn}</strong></Phrase></p>}
     </div>
+    <p class="run-status exam-running" role="status" data-exam-form-status hidden></p>
     <p class="exam-error" role="alert" data-exam-form-error hidden></p>
   </form>
 
@@ -139,7 +175,8 @@ const signs = publicKeys().length > 0;
         <span class="when-passed">{s.pass}</span>
         <span class="when-failed">{s.fail.replace('{score}', passPercent)}</span>
       </p>
-      <p><Phrase text={t.tests.result}><strong data-result-count>0/{exam.drawn}</strong></Phrase></p>
+      {/* What the script writes here depends on whether the exam asked questions, set tasks, or both. */}
+      <p data-result-count></p>
       <p data-result-next hidden></p>
     </div>
     <button class="button" type="button" data-exam-again hidden><Icon name="refresh" />{s.retry}</button>

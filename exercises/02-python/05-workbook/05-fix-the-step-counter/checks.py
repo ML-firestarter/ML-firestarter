@@ -1,0 +1,21 @@
+CHECKS = [
+    ("total_steps([8200, 10450, 3000])", 21650),
+    ("total_steps([500])", 500),
+    ("total_steps([])", 0),
+    ("level(12000)", "gold"),
+    ("level(10000)", "gold"),
+    ("level(9999)", "silver"),
+    ("level(7000)", "silver"),
+    ("level(6999)", "bronze"),
+    ("level(4000)", "bronze"),
+    ("level(3999)", "none"),
+    ("level(0)", "none"),
+    ("goal_days([8200, 10450, 3000, 12000, 7600])", 2),
+    ("goal_days([10000])", 1),
+    ("goal_days([9999, 10001])", 1),
+    ("goal_days([])", 0),
+    (
+        "program('8200 10450 3000 12000 7600')",
+        prints("8200 10450 3000 12000 7600\nTotal: 41250\nAverage: 8250\nLevel: silver\nDays with 10000 steps: 2\n"),
+    ),
+]

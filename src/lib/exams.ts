@@ -7,6 +7,14 @@
  * the reader's file of the private results repository. Pages get scores and the lessons to
  * read again, never which answers are right. A pass earns a certificate, which the reader can
  * publish (lib/certificates.ts).
+ *
+ * An exam can also have practical tasks, in which the reader writes Python. The page holds their
+ * texts and the code to start from; the key holds, for each task, a pool of instances, each with
+ * the cases to run on the reader's code and a digest of what the right code does with them. An
+ * attempt draws one instance of each task and gives the page its cases. The page runs them on the
+ * reader's code in their browser (scripts/python.ts) and hands in what each did, which the API
+ * compares with the digest: the cases never come with their answers, and the reader's code
+ * never runs on the server.
  */
 import type { CertificateState, Covered } from './certificates.ts';
 
@@ -20,26 +28,52 @@ export interface KeyQuestion {
   right: number[];
 }
 
+/** A practical task of an exam's answer key. */
+export interface KeyTask {
+  /** Like `python-triangles`, the same in every language: from its chapter's path and its folder's name. */
+  id: string;
+  /** Language-neutral URLs of the lessons it draws on, in the order of the lessons. */
+  lessons: string[];
+  /** What attempts draw from; every attempt gets one. */
+  instances: KeyInstance[];
+}
+
+/** One instance of a practical task: what to run on the reader's code, and what the right code does with it. */
+export interface KeyInstance {
+  /** Python expressions to evaluate in the code, like `triangle_kind(3, 4, 5)`, or `program('3', '4')` to run it as a program. */
+  cases: string[];
+  /** The files the cases read, by name, as text. */
+  files: Record<string, string>;
+  /** Keyed digest of what the right code does with the cases (server/exams.ts), which doesn't give it away. */
+  digest: string;
+}
+
 /** An exam's answer key, sealed into its page. */
 export interface ExamKey {
   /** Language-neutral URL of the chapter the exam covers, like `/foundations/`. */
   chapter: string;
-  /** Changes whenever the questions change, in any language. */
+  /** Changes whenever the questions or tasks change, in any language. */
   version: string;
   /** Every question of the exam, in the order of the lessons. */
   questions: KeyQuestion[];
+  /** The exam's practical tasks, a `KeyTask[]` packed to keep the key small (server/exams.ts); missing without any, and in keys sealed before there were tasks. */
+  tasks?: string;
   /** What the exam's certificates say it covers; keys sealed before certificates don't have it. */
   covers?: Covered;
 }
 
-/** A handed-in attempt, as the reader's results keep it; their answers aren't kept. */
+/** A handed-in attempt, as the reader's results keep it; their answers and code aren't kept. */
 export interface Attempt {
   /** When it was handed in, as an ISO date. */
   at: string;
-  /** Share of right answers, from 0 to 1. */
+  /** Share of right answers and solved tasks, from 0 to 1. */
   score: number;
+  /** Questions answered right, and tasks solved. */
   right: number;
+  /** Questions and tasks in all. */
   questions: number;
+  /** How many of `questions` were practical tasks; missing in attempts at exams that had none. */
+  tasks?: number;
   passed: boolean;
   /** Version of the questions it was drawn from. */
   version: string;
@@ -66,12 +100,23 @@ export interface StartRequest {
 }
 
 export interface StartResponse {
-  /** The attempt, sealed: the questions drawn and their answers, to hand back with the reader's answers. */
+  /** The attempt, sealed: the questions and tasks drawn and their answers, to hand back with the reader's answers. */
   attempt: string;
   /** Ids of the questions drawn, in the order of the lessons. */
   questions: string[];
+  /** Every practical task of the exam, with the instance this attempt runs on the reader's code. */
+  tasks: StartedTask[];
   /** When the attempt has to be handed in by, as an ISO date. */
   expires: string;
+}
+
+/** A practical task of an attempt: what to run on the reader's code when they hand it in. */
+export interface StartedTask {
+  id: string;
+  /** Python expressions to evaluate in the reader's code (scripts/python.ts's `observe`). */
+  cases: string[];
+  /** The files the cases read, by name, in base64. */
+  files: Record<string, string>;
 }
 
 /** POST /api/exams/submit */
@@ -79,11 +124,13 @@ export interface SubmitRequest {
   attempt: string;
   /** Positions of the answers picked, by question id. */
   answers: Record<string, number[]>;
+  /** What each case of each task did on the reader's code, by task id: empty when the code couldn't run them. */
+  observations: Record<string, string[]>;
 }
 
 export interface SubmitResponse {
   result: Attempt;
-  /** Language-neutral URLs of the lessons with questions answered wrong, in the order of the lessons. */
+  /** Language-neutral URLs of the lessons with questions answered wrong, and those the tasks that weren't solved draw on. */
   review: string[];
   /** When the reader can try again, as an ISO date; missing once they've passed. */
   next?: string;

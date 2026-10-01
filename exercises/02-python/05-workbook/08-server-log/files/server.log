@@ -1,0 +1,10 @@
+INFO server started
+INFO listening on port 8080
+WARN disk almost full
+INFO user ada logged in
+ERROR cannot open database
+DEBUG cache has 12 entries
+INFO user alan logged in
+WARN response took 2300 ms
+ERROR disk write failed
+INFO user ada logged out

@@ -15,7 +15,7 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { AstroIntegration } from 'astro';
-import { EXAMS_DIR } from '../lib/paths.ts';
+import { EXAMS_DIR, examTaskFile } from '../lib/paths.ts';
 import { site } from '../site.config.ts';
 import { certificateKey } from './certificates.ts';
 import { readExamConfig, repoName } from './exams.ts';
@@ -96,7 +96,15 @@ async function download(bot: Bot, repo: string, dir: string): Promise<number> {
   return files.length;
 }
 
-/** Markdown files outside folders like .github/, with nothing in their paths that could lead out of exams/. */
-function isQuestionFile(file: string): boolean {
-  return /\.md$/i.test(file) && !file.includes('\\') && file.split('/').every((part) => part !== '' && !part.startsWith('.'));
+/**
+ * Markdown files outside folders like .github/, and the files a practical task needs on the site:
+ * its starter.py, its pool.json and the files its code can open, with nothing in their paths that
+ * could lead out of exams/. A task's reference solution, the code that makes its instances and
+ * anything else in its folder stay in the private repository.
+ */
+export function isQuestionFile(file: string): boolean {
+  if (file.includes('\\') || !file.split('/').every((part) => part !== '' && !part.startsWith('.'))) return false;
+  const task = examTaskFile(file);
+  if (task) return /^(task(\.[a-z]{2})?\.md|starter\.py|pool\.json|files\/.+)$/i.test(task.file);
+  return /\.md$/i.test(file);
 }

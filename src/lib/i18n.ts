@@ -113,18 +113,39 @@ const en = {
   exams: {
     exam: 'Chapter exam',
     pageTitle: (title: string) => `Exam: ${title}`,
-    lede: 'One exam on the whole chapter. The site checks your answers and keeps your results, tied to your GitHub account.',
+    lede: 'One exam on the whole chapter. The site checks your work and keeps your results, tied to your GitHub account.',
     take: 'Take the chapter exam',
     readChapter: 'Read the chapter',
     howItWorks: 'How it works',
-    rules: (questions: number, percent: number, wait: number, time: number) => [
-      `${plural('en', questions, { one: '# question', other: '# questions' })}, drawn from the chapter's lessons.`,
-      `You pass with at least ${percent}%, and then the exam is done.`,
+    // What an exam asks of the reader: questions to answer, practical tasks to write Python for, or both.
+    count: (questions: number, tasks: number) =>
+      [
+        ...(questions > 0 ? [plural('en', questions, { one: '# question', other: '# questions' })] : []),
+        ...(tasks > 0 ? [plural('en', tasks, { one: '# task', other: '# tasks' })] : []),
+      ].join(' and '),
+    taskOf: (i: number, n: number) => `Task ${i} of ${n}`,
+    rules: ({ questions, tasks, percent, needed, wait, time }: { questions: number; tasks: number; percent: number; needed: number; wait: number; time: number }) => [
+      ...(questions > 0 ? [`${plural('en', questions, { one: '# question', other: '# questions' })}, drawn from the chapter's lessons.`] : []),
+      ...(tasks > 0
+        ? [
+            `${plural('en', tasks, { one: '# practical task', other: '# practical tasks' })}, from easy to hard. For each one you write Python in an editor on the page, and can run it as often as you like. Your code is kept in this browser.`,
+          ]
+        : []),
+      `You pass with at least ${percent}%, which is ${needed} of ${questions + tasks}, and then the exam is done.`,
       `After an attempt that doesn't pass, you can try again ${plural('en', wait, { one: '# hour', other: '# hours' })} later.`,
       `Hand in within ${plural('en', time, { one: '# hour', other: '# hours' })} of starting. You can leave and come back until then.`,
-      "The site doesn't show which answers are right, only your score and the lessons to read again.",
+      ...(tasks > 0
+        ? [
+            'When you hand in, the page runs your code in your browser on test cases the site chose for you, and the site compares what it did with what the right code does. A task is solved only if they match in every case. Every attempt uses different cases.',
+            'Programs have to print exactly what the task says, with no prompts or other extra text. Spaces at the ends of lines and blank lines at the end are ignored.',
+            "The output box also shows the lines you type in the Input box, as a terminal does. They aren't part of what your program prints.",
+          ]
+        : []),
+      tasks > 0
+        ? "The site doesn't show which answers are right or what the right code does, only your score and the lessons to read again."
+        : "The site doesn't show which answers are right, only your score and the lessons to read again.",
     ],
-    untranslated: (inLanguage: string) => `Questions that haven't been translated into English yet are shown ${inLanguage}.`,
+    untranslated: (inLanguage: string) => `Questions and tasks that haven't been translated into English yet are shown ${inLanguage}.`,
     signIn: 'Sign in with GitHub',
     // Plain text and plural forms only: the exam page passes them to exam.ts as JSON, which fills in `{date}` and `{score}`.
     script: {
@@ -139,6 +160,14 @@ const en = {
       handIn: 'Hand in',
       handingIn: 'Handing in…',
       unanswered: { one: 'One question has no answer yet.', other: '# questions have no answer yet.' } as PluralForms,
+      // Practical tasks: handing in runs the attempt's test cases on the code of each.
+      taskNumber: 'Task {number}',
+      runningTask: 'Running your code for task {number} of {total}…',
+      broken:
+        "Some code can't run to the end, so its task can't be solved: {tasks}. It stops with an error or takes too long. Hand in again to hand everything in as it is, or fix it first.",
+      resultQuestions: '{} correct',
+      resultTasks: 'Tasks solved: {}',
+      resultMixed: 'Right answers and solved tasks: {}',
       pass: 'Passed! The exam is done.',
       fail: 'Not passed this time. You need at least {score}.',
       review: 'Lessons to read again',
@@ -149,7 +178,7 @@ const en = {
         outdated: 'This page is out of date. Reload it to take the exam.',
         expired: 'This attempt is over: it ran out of time, or the site has changed since it started. Start the exam again.',
         handedIn: 'This attempt was handed in already, maybe in another tab.',
-        changed: 'The questions have changed since you started this attempt. Start the exam again.',
+        changed: 'The exam has changed since you started this attempt. Start the exam again.',
         rateLimited: 'GitHub is busy. Try again in a few minutes.',
         generic: 'Something went wrong. Try again in a moment.',
       },
@@ -259,7 +288,9 @@ const en = {
       eyebrow: 'Certificate',
       statement: 'has passed the chapter exam of',
       passed: 'Passed on {date}, with {score}: {right} of {questions} questions right.',
-      covered: 'The exam asked about these lessons:',
+      passedTasks: 'Passed on {date}, with {score}: {right} of {questions} tasks solved.',
+      passedMixed: 'Passed on {date}, with {score}: {right} of {questions} questions and tasks right.',
+      covered: 'The exam covered these lessons:',
       issued: "Issued on {date}. The site's bot keeps the published certificates in the public {repo} repository on GitHub.",
       signature: {
         valid: 'Signed by the site: the signature checks out against its {key}.',
@@ -422,18 +453,40 @@ const pl: typeof en = {
   exams: {
     exam: 'Egzamin z rozdziału',
     pageTitle: (title) => `Egzamin: ${title}`,
-    lede: 'Jeden egzamin z całego rozdziału. Strona sprawdza odpowiedzi i zapisuje wyniki powiązane z Twoim kontem GitHub.',
+    lede: 'Jeden egzamin z całego rozdziału. Strona sprawdza Twoją pracę i zapisuje wyniki powiązane z Twoim kontem GitHub.',
     take: 'Podejdź do egzaminu z rozdziału',
     readChapter: 'Przeczytaj rozdział',
     howItWorks: 'Jak to działa',
-    rules: (questions, percent, wait, time) => [
-      `Egzamin ma ${plural('pl', questions, { one: '# pytanie', few: '# pytania', many: '# pytań', other: '# pytania' })}, które strona losuje z lekcji tego rozdziału.`,
-      `Egzamin zaliczasz, zdobywając co najmniej ${percent}%. Wtedy jest ukończony.`,
+    count: (questions, tasks) =>
+      [
+        ...(questions > 0 ? [plural('pl', questions, { one: '# pytanie', few: '# pytania', many: '# pytań', other: '# pytania' })] : []),
+        ...(tasks > 0 ? [plural('pl', tasks, { one: '# zadanie', few: '# zadania', many: '# zadań', other: '# zadania' })] : []),
+      ].join(' i '),
+    taskOf: (i, n) => `Zadanie ${i} z ${n}`,
+    rules: ({ questions, tasks, percent, needed, wait, time }) => [
+      ...(questions > 0
+        ? [`Egzamin ma ${plural('pl', questions, { one: '# pytanie', few: '# pytania', many: '# pytań', other: '# pytania' })}, które strona losuje z lekcji tego rozdziału.`]
+        : []),
+      ...(tasks > 0
+        ? [
+            `Egzamin ma ${questions > 0 ? 'też ' : ''}${plural('pl', tasks, { one: '# zadanie praktyczne', few: '# zadania praktyczne', many: '# zadań praktycznych', other: '# zadania praktycznego' })}, od łatwych do trudnych. W każdym piszesz kod w Pythonie w edytorze na stronie i możesz go uruchamiać, ile razy chcesz. Kod zapisuje się w tej przeglądarce.`,
+          ]
+        : []),
+      `Egzamin zaliczasz, zdobywając co najmniej ${percent}%, czyli ${needed} z ${questions + tasks}. Wtedy jest ukończony.`,
       `Po niezaliczonym podejściu możesz spróbować ponownie ${plural('pl', wait, { one: 'po # godzinie', other: 'po # godzinach' })}.`,
       `Odpowiedzi oddaj w ciągu ${plural('pl', time, { one: '# godziny', other: '# godzin' })} od rozpoczęcia. Do tego czasu możesz przerwać i wrócić.`,
-      'Strona nie pokazuje, które odpowiedzi są poprawne, tylko wynik i lekcje do powtórzenia.',
+      ...(tasks > 0
+        ? [
+            'Przy oddawaniu strona uruchamia Twój kod w przeglądarce na przypadkach testowych wybranych dla Ciebie, a potem porównuje to, co kod zrobił, z tym, co robi poprawny kod. Zadanie jest rozwiązane tylko wtedy, gdy zgadza się to w każdym przypadku. Każde podejście ma inne przypadki.',
+            'Programy muszą wypisywać dokładnie to, co mówi zadanie, bez pytań (promptów) i innego dodatkowego tekstu. Spacje na końcach wierszy i puste wiersze na końcu są pomijane.',
+            'Pole wyniku pokazuje też wiersze wpisane w polu Wejście, tak jak terminal. Nie są one częścią tego, co wypisuje program.',
+          ]
+        : []),
+      tasks > 0
+        ? 'Strona nie pokazuje, które odpowiedzi są poprawne ani co robi poprawny kod, tylko wynik i lekcje do powtórzenia.'
+        : 'Strona nie pokazuje, które odpowiedzi są poprawne, tylko wynik i lekcje do powtórzenia.',
     ],
-    untranslated: (inLanguage) => `Pytania, których nie przetłumaczono jeszcze na polski, są wyświetlane ${inLanguage}.`,
+    untranslated: (inLanguage) => `Pytania i zadania, których nie przetłumaczono jeszcze na polski, są wyświetlane ${inLanguage}.`,
     signIn: 'Zaloguj się przez GitHuba',
     script: {
       loading: 'Wczytywanie wyników…',
@@ -452,6 +505,13 @@ const pl: typeof en = {
         many: '# pytań nie ma jeszcze odpowiedzi.',
         other: '# pytania nie ma jeszcze odpowiedzi.',
       },
+      taskNumber: 'Zadanie {number}',
+      runningTask: 'Uruchamianie kodu do zadania {number} z {total}…',
+      broken:
+        'Część kodu nie działa do końca, więc jego zadania nie da się rozwiązać: {tasks}. Kod kończy się błędem albo działa za długo. Oddaj jeszcze raz, aby oddać wszystko tak, jak jest, albo najpierw go popraw.',
+      resultQuestions: 'Poprawne odpowiedzi: {}',
+      resultTasks: 'Rozwiązane zadania: {}',
+      resultMixed: 'Poprawne odpowiedzi i rozwiązane zadania: {}',
       pass: 'Zaliczony! Egzamin jest ukończony.',
       fail: 'Tym razem niezaliczony. Potrzeba co najmniej {score}.',
       review: 'Lekcje do powtórzenia',
@@ -462,7 +522,7 @@ const pl: typeof en = {
         outdated: 'Ta strona jest nieaktualna. Odśwież ją, aby podejść do egzaminu.',
         expired: 'To podejście się skończyło: minął czas albo strona zmieniła się od jego rozpoczęcia. Rozpocznij egzamin ponownie.',
         handedIn: 'To podejście zostało już oddane, może w innej karcie.',
-        changed: 'Pytania zmieniły się od rozpoczęcia tego podejścia. Rozpocznij egzamin ponownie.',
+        changed: 'Egzamin zmienił się od rozpoczęcia tego podejścia. Rozpocznij egzamin ponownie.',
         rateLimited: 'GitHub jest przeciążony. Spróbuj ponownie za kilka minut.',
         generic: 'Coś poszło nie tak. Spróbuj ponownie za chwilę.',
       },
@@ -563,6 +623,8 @@ const pl: typeof en = {
       eyebrow: 'Certyfikat',
       statement: 'ma zaliczony egzamin z rozdziału',
       passed: 'Data zaliczenia: {date}. Wynik: {score}, poprawne odpowiedzi: {right} z {questions}.',
+      passedTasks: 'Data zaliczenia: {date}. Wynik: {score}, rozwiązane zadania: {right} z {questions}.',
+      passedMixed: 'Data zaliczenia: {date}. Wynik: {score}, poprawne odpowiedzi i rozwiązane zadania: {right} z {questions}.',
       covered: 'Egzamin obejmował te lekcje:',
       issued: 'Wystawiony {date}. Bot strony przechowuje opublikowane certyfikaty w publicznym repozytorium {repo} na GitHubie.',
       signature: {
