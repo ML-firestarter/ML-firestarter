@@ -1,5 +1,5 @@
 ---
-description: Python from decisions and loops to files and lists of lists, with an exercise at the end of every lesson that you solve in the page.
+description: Python from decisions and loops to files and lists of lists, with an exercise at the end of every lesson that you solve in the page, and a workbook to practise on.
 ---
 
 # Python
@@ -18,6 +18,8 @@ It starts past the very first steps: you should know that `print()` shows values
 4. [Reading and writing files](01-basics/04-files.md): group the words of a file by their length.
 5. [Lists of lists](01-basics/05-lists-of-lists.md): hide a message with the rail fence cipher.
 6. [Practice test](01-basics/06-practice-test.md): five tasks that mix all of the above, from the easiest to the hardest.
+
+At the end of the chapter, the [Workbook](05-workbook.md) has twelve more exercises that mix the lessons in new ways, from the easiest to the hardest, to practise on.
 
 ## How the lessons work
 
