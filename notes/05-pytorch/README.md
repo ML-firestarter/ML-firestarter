@@ -19,5 +19,7 @@ The chapter builds on [Python](../02-python/) and on [Foundations](../04-foundat
 5. [Linear regression with nn.Linear](05-linear-regression-with-nn-linear.md): the same training with PyTorch's layer, loss and optimizer.
 6. [Batches and evaluation](06-batches-and-evaluation.md): feed a model its data in batches, split the rides in three sets, and measure the model.
 7. [A network with nn.Sequential](07-a-network-with-nn-sequential.md): stack layers and ReLUs into a network that draws bends.
+8. [Classifying images](09-classifying-images.md): train a network to read digits, with cross-entropy loss, accuracy and softmax.
+9. [Saving, loading and tuning](10-saving-loading-and-tuning.md): keep a trained model, load it back, and search for good settings.
 
 Each lesson ends with exercises that you solve in the page.
