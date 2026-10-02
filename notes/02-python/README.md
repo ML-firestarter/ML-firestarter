@@ -1,5 +1,5 @@
 ---
-description: Python from decisions and loops to files, lists of lists and classes, with an exercise at the end of every lesson that you solve in the page, and a workbook to practise on.
+description: Python from decisions and loops to files, lists of lists, errors, tests and classes, with an exercise at the end of every lesson that you solve in the page, and a workbook to practise on.
 ---
 
 # Python
@@ -18,6 +18,11 @@ It starts past the very first steps: you should know that `print()` shows values
 4. [Reading and writing files](01-basics/04-files.md): group the words of a file by their length.
 5. [Lists of lists](01-basics/05-lists-of-lists.md): hide a message with the rail fence cipher.
 6. [Practice test](01-basics/06-practice-test.md): five tasks that mix all of the above, from the easiest to the hardest.
+
+[Errors and testing](03-errors-and-testing/README.md) is about what goes wrong, and how to find it first:
+
+1. [Exceptions](03-errors-and-testing/01-exceptions.md): read a receipt that has wrong lines in it, without stopping at the first, and read a traceback.
+2. [Testing your code](03-errors-and-testing/02-testing-your-code.md): write a test runner of your own.
 
 [Programs](04-programs/README.md) goes on to bigger programs:
 
