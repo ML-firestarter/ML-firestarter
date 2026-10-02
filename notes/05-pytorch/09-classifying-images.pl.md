@@ -32,7 +32,7 @@ print(y[3])
 
 ## Sieć i jej strata
 
-Sieć to ta z [poprzedniej lekcji](07-a-network-with-nn-sequential.pl.md), z nową pierwszą warstwą. `nn.Flatten()` zamienia każdy obraz `[1, 8, 8]` w wiersz 64 liczb, który biorą warstwy `nn.Linear`. Ostatnia warstwa ma po jednym wyjściu dla każdej klasy, 10, a te liczby to **logity**: wynik dla każdej cyfry, tak duży, jak sieć zechce, dodatni albo ujemny. Największy logit to cyfra, którą sieć wybiera.
+Sieć to ta z [lekcji 7](07-a-network-with-nn-sequential.pl.md), z nową pierwszą warstwą. `nn.Flatten()` zamienia każdy obraz `[1, 8, 8]` w wiersz 64 liczb, który biorą warstwy `nn.Linear`. Ostatnia warstwa ma po jednym wyjściu dla każdej klasy, 10, a te liczby to **logity**: wynik dla każdej cyfry, tak duży, jak sieć zechce, dodatni albo ujemny. Największy logit to cyfra, którą sieć wybiera.
 
 `nn.CrossEntropyLoss()` bierze logity i prawdziwe klasy. Zamienia logity na prawdopodobieństwa przez softmax, a kara za obraz to $-\ln$ prawdopodobieństwa, które sieć dała właściwej cyfrze: [strata logarytmiczna](../04-foundations/03-logistic-regression/02-error.pl.md) z rozdziału o regresji logistycznej, dla więcej niż dwóch klas. Bierze logity, a nie prawdopodobieństwa, a etykiety jako numery klas typu `long`, a nie liczby zmiennoprzecinkowe:
 

@@ -32,7 +32,7 @@ print(y[3])
 
 ## A network and its loss
 
-The network is the one of [the last lesson](07-a-network-with-nn-sequential.md), with a new first layer. `nn.Flatten()` turns each picture of `[1, 8, 8]` into a row of 64 numbers, which the `nn.Linear` layers take. The last layer has one output for every class, 10, and these numbers are the **logits**: a score for each digit, as big as the network likes, positive or negative. The biggest logit is the digit the network picks.
+The network is the one of [lesson 7](07-a-network-with-nn-sequential.md), with a new first layer. `nn.Flatten()` turns each picture of `[1, 8, 8]` into a row of 64 numbers, which the `nn.Linear` layers take. The last layer has one output for every class, 10, and these numbers are the **logits**: a score for each digit, as big as the network likes, positive or negative. The biggest logit is the digit the network picks.
 
 `nn.CrossEntropyLoss()` takes the logits and the true classes. It turns the logits into probabilities with the softmax, and the penalty for a picture is $-\ln$ of the probability that the network gave the right digit: the [log loss](../04-foundations/03-logistic-regression/02-error.md) of the logistic regression chapter, for more than two classes. It takes logits, not probabilities, and the labels as `long` class numbers, not floats:
 
