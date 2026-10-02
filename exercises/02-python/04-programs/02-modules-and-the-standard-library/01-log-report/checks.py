@@ -1,0 +1,22 @@
+GOOD = "'2024-03-05 09:12:44 GET /home 200 35ms'"
+CHECKS = [
+    (f"parse_line({GOOD})['path']", "/home"),
+    (f"parse_line({GOOD})['method']", "GET"),
+    (f"parse_line({GOOD})['status']", 200),
+    (f"parse_line({GOOD})['ms']", 35),
+    (f"parse_line({GOOD})['time'].hour", 9),
+    (f"parse_line({GOOD})['time'].day", 5),
+    (f"sorted(parse_line({GOOD}).keys())", ["method", "ms", "path", "status", "time"]),
+    ("parse_line('2024-03-06 23:59:01 POST /login 302 80ms\\n')['method']", "POST"),
+    ("parse_line('2024-03-06 23:59:01 POST /login 302 80ms\\n')['time'].hour", 23),
+    ("parse_line('this line is not a log entry')", None),
+    ("parse_line('')", None),
+    ("parse_line('2024-03-05 25:99:99 GET /home 200 30ms')", None),
+    ("parse_line('2024-03-05 09:12:44 PUT /home 200 35ms')", None),
+    ("parse_line('2024-03-05 09:12:44 GET /home 20 35ms')", None),
+    ("len(read_entries('access.log'))", 16),
+    ("busiest_hour('access.log')", 10),
+    ("report('access.log')", '{"errors": 2, "requests": 16, "slowest": "/exercises", "top_paths": [["/home", 6], ["/lessons", 5]]}'),
+    ("__import__('json').loads(report('access.log'))['errors']", 2),
+    ("list(__import__('json').loads(report('access.log')))", ["errors", "requests", "slowest", "top_paths"]),
+]
