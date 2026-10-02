@@ -17,5 +17,7 @@ Rozdział opiera się na rozdziałach [Python](../02-python/) i [Podstawy](../04
 3. [Urządzenia](03-devices.pl.md): powiedz, gdzie leżą tensory, i napisz kod, który działa na karcie graficznej, gdy jest.
 4. [Regresja liniowa ręcznie](04-linear-regression-by-hand.pl.md): wytrenuj regresję liniową na stu kursach tensorami i autogradem.
 5. [Regresja liniowa z nn.Linear](05-linear-regression-with-nn-linear.pl.md): ten sam trening z warstwą, stratą i optymalizatorem z PyTorcha.
+6. [Porcje danych i ocena](06-batches-and-evaluation.pl.md): podawaj modelowi dane w porcjach, podziel kursy na trzy zbiory i zmierz model.
+7. [Sieć z nn.Sequential](07-a-network-with-nn-sequential.pl.md): ułóż warstwy i ReLU w sieć, która rysuje zakręty.
 
 Każda lekcja kończy się ćwiczeniami, które rozwiązujesz na stronie.

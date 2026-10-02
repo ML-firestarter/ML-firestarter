@@ -8,10 +8,10 @@ description: Wytrenuj regresję liniową na dowolnej tabeli cech tensorami i aut
 
 Kod ma już parametry i wiersz `loss = ...`. Brakuje pozostałych kroków: `backward()`, kroku wewnątrz `torch.no_grad()` i wyzerowania nachyleń. `X` i `y` zawierają kursy dzienne z lekcji.
 
-| Wywołanie               | Zwraca                       |
-| ----------------------- | ---------------------------- |
-| `fit(X, y, 0.01, 0)`    | `([0.0, 0.0], 0.0)`          |
-| `fit(X, y, 0.01, 1)`    | około `([2.8, 2.04], 0.5)`   |
-| `fit(X, y, 0.01, 5000)` | około `([3.0, 0.5], 8.0)`    |
+| Wywołanie               | Zwraca                     |
+| ----------------------- | -------------------------- |
+| `fit(X, y, 0.01, 0)`    | `([0.0, 0.0], 0.0)`        |
+| `fit(X, y, 0.01, 1)`    | około `([2.8, 2.04], 0.5)` |
+| `fit(X, y, 0.01, 5000)` | około `([3.0, 0.5], 8.0)`  |
 
 Po 5000 epokach prosta jest prostą z naklejki: 3 zł za kilometr, 0,50 zł za minutę postoju i 8 zł na start, bo kursy dzienne dokładnie jej podlegają. Testy używają też tabel z inną liczbą cech, więc liczbę wag weź z `X`, a nie z liczby wpisanej w kodzie. Jeśli druga epoka zachodzi dalej, niż powinna, nachylenia pierwszej nie zostały wyzerowane.
