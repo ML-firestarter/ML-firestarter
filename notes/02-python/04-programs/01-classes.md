@@ -190,6 +190,8 @@ print(sale.percent)
 print(sale.total())
 ```
 
+The items are pairs written `(name, price)` with parentheses: a **tuple** is a short list of values that can't be changed afterwards, and `for name, price in self.items` takes each pair apart, as `for name, age in ages.items()` does for a dictionary.
+
 `super().__init__()` runs the `__init__` of `Basket`, which gives `sale` its list of items. Leave it out, and `SaleBasket` never makes one: the first `add` stops with an `AttributeError`. In `total()`, `super().total()` is the total as `Basket` works it out, 10, and `SaleBasket` takes 20 percent off it: 8.
 
 ## Objects you can call

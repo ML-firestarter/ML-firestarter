@@ -190,6 +190,8 @@ print(sale.percent)
 print(sale.total())
 ```
 
+Zakupy to pary zapisane `(name, price)` w nawiasach: **krotka** to krótka lista wartości, której potem nie można zmienić, a `for name, price in self.items` rozbiera każdą parę, tak jak `for name, age in ages.items()` robi to dla słownika.
+
 `super().__init__()` uruchamia `__init__` z `Basket`, który daje `sale` listę zakupów. Bez niego `SaleBasket` nigdy jej nie tworzy: pierwsze `add` zatrzymuje się z `AttributeError`. W `total()` `super().total()` to suma tak, jak liczy ją `Basket`, czyli 10, a `SaleBasket` odejmuje od niej 20 procent: 8.
 
 ## Obiekty, które można wywołać
