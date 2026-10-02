@@ -1,0 +1,8 @@
+[
+  {"title": "Dune", "author": "Frank Herbert", "copies": 2, "borrowed": ["ann"]},
+  {"title": "Emma", "author": "Jane Austen", "copies": 1, "borrowed": []},
+  {"title": "Ulysses", "author": "James Joyce", "copies": 1, "borrowed": ["bob"]},
+  {"title": "Persuasion", "author": "Jane Austen", "copies": 3, "borrowed": ["ann", "cy"]},
+  {"title": "Pride and Prejudice", "author": "Jane Austen", "copies": 2, "borrowed": []},
+  {"title": "Neuromancer", "author": "William Gibson", "copies": 1, "borrowed": []}
+]

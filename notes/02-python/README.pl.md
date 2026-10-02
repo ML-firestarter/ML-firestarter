@@ -29,6 +29,7 @@ Zaczyna się za pierwszymi krokami: wystarczy wiedzieć, że `print()` wypisuje 
 1. [Klasy](04-programs/01-classes.pl.md): napisz koszyk z zakupami i koszyk ze zniżką zbudowany na nim.
 2. [Moduły i biblioteka standardowa](04-programs/02-modules-and-the-standard-library.pl.md): przeczytaj log serwera internetowego z `re`, `datetime`, `Counter` i `json`.
 3. [Python na twoim komputerze](04-programs/03-python-on-your-computer.pl.md): ustaw projekt z `uv` i przeczytaj jego zależności.
+4. [Projekt: kontuar biblioteki](04-programs/04-a-library-desk.pl.md): zbuduj program z trzech warstw, sprawdzanego pliku z danymi, klasy z własnymi błędami i pętli poleceń.
 
 Na końcu rozdziału [Zeszyt ćwiczeń](05-workbook.pl.md) ma dwanaście kolejnych ćwiczeń, które łączą lekcje na nowe sposoby, od najłatwiejszego do najtrudniejszego, do potrenowania.
 
