@@ -22,5 +22,6 @@ Rozdział opiera się na rozdziałach [Python](../02-python/) i [Podstawy](../04
 8. [Własne moduły](08-your-own-modules.pl.md): napisz własny model szeroki i głęboki, z kilkoma wejściami i wyjściami.
 9. [Klasyfikacja obrazów](09-classifying-images.pl.md): wytrenuj sieć do czytania cyfr, ze stratą entropii krzyżowej, dokładnością i softmaxem.
 10. [Zapis, wczytywanie i strojenie](10-saving-loading-and-tuning.pl.md): zachowaj wytrenowany model, wczytaj go z powrotem i poszukaj dobrych ustawień.
+11. [Zeszyt ćwiczeń](11-workbook.pl.md): dziesięć kolejnych ćwiczeń, które łączą lekcje, od najłatwiejszego do najtrudniejszego.
 
 Każda lekcja kończy się ćwiczeniami, które rozwiązujesz na stronie.
