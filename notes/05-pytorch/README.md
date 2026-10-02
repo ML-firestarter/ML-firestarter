@@ -17,5 +17,7 @@ The chapter builds on [Python](../02-python/) and on [Foundations](../04-foundat
 3. [Devices](03-devices.md): say where tensors live, and write code that runs on a graphics card when there is one.
 4. [Linear regression by hand](04-linear-regression-by-hand.md): train a linear regression on a hundred rides with tensors and autograd.
 5. [Linear regression with nn.Linear](05-linear-regression-with-nn-linear.md): the same training with PyTorch's layer, loss and optimizer.
+6. [Batches and evaluation](06-batches-and-evaluation.md): feed a model its data in batches, split the rides in three sets, and measure the model.
+7. [A network with nn.Sequential](07-a-network-with-nn-sequential.md): stack layers and ReLUs into a network that draws bends.
 
 Each lesson ends with exercises that you solve in the page.
