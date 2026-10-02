@@ -1,0 +1,16 @@
+CHECKS = [
+    ("isinstance(MLP([2, 50, 40, 1]), torch.nn.Module)", True),
+    ("sum(p.numel() for p in MLP([2, 50, 40, 1]).parameters())", 2231),
+    ("sum(p.numel() for p in MLP([2, 50, 40, 1], skip=True).parameters())", 2233),
+    ("sum(p.numel() for p in MLP([3, 1]).parameters())", 4),
+    ("sum(p.numel() for p in MLP([3, 1], skip=True).parameters())", 7),
+    ("sum(p.numel() for p in MLP([4, 8, 2], skip=True).parameters())", 66),
+    ("[type(layer).__name__ for layer in MLP([2, 50, 40, 1]).deep]", ["Linear", "ReLU", "Linear", "ReLU"]),
+    ("[type(layer).__name__ for layer in MLP([3, 1]).deep]", []),
+    ("tuple(MLP([2, 50, 40, 1]).output.weight.shape)", (1, 40)),
+    ("tuple(MLP([2, 50, 40, 1], skip=True).output.weight.shape)", (1, 42)),
+    ("tuple(MLP([2, 50, 40, 1])(torch.ones(5, 2)).shape)", (5, 1)),
+    ("tuple(MLP([4, 8, 2], skip=True)(torch.ones(5, 4)).shape)", (5, 2)),
+    ("(lambda m: (m.output.weight.data.zero_(), m.output.weight.data[:, :2].fill_(1.0), m.output.bias.data.zero_(), m(torch.tensor([[1.0, 2.0], [3.0, 4.0]])).tolist())[3])(MLP([2, 5, 1], skip=True))", [[3.0], [7.0]]),
+    ("(lambda m: (m.output.weight.data.zero_(), m.output.bias.data.fill_(2.0), m(torch.ones(2, 2)).tolist())[2])(MLP([2, 5, 1]))", [[2.0], [2.0]]),
+]
