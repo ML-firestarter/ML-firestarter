@@ -14,5 +14,8 @@ Rozdział opiera się na rozdziałach [Python](../02-python/) i [Podstawy](../04
 
 1. [Tensory](01-tensors.pl.md): policz opłaty za cały dzień naraz i poznaj kształty, typy, widoki i rozgłaszanie.
 2. [Autograd](02-autograd.pl.md): pozwól PyTorchowi liczyć nachylenia i wytrenuj z nimi prostą opłat.
+3. [Urządzenia](03-devices.pl.md): powiedz, gdzie leżą tensory, i napisz kod, który działa na karcie graficznej, gdy jest.
+4. [Regresja liniowa ręcznie](04-linear-regression-by-hand.pl.md): wytrenuj regresję liniową na stu kursach tensorami i autogradem.
+5. [Regresja liniowa z nn.Linear](05-linear-regression-with-nn-linear.pl.md): ten sam trening z warstwą, stratą i optymalizatorem z PyTorcha.
 
 Każda lekcja kończy się ćwiczeniami, które rozwiązujesz na stronie.

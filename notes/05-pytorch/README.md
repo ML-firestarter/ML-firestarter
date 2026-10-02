@@ -14,5 +14,8 @@ The chapter builds on [Python](../02-python/) and on [Foundations](../04-foundat
 
 1. [Tensors](01-tensors.md): work out a whole day's fares at once, and learn about shapes, types, views and broadcasting.
 2. [Autograd](02-autograd.md): let PyTorch work out the slopes, and train the fare line with them.
+3. [Devices](03-devices.md): say where tensors live, and write code that runs on a graphics card when there is one.
+4. [Linear regression by hand](04-linear-regression-by-hand.md): train a linear regression on a hundred rides with tensors and autograd.
+5. [Linear regression with nn.Linear](05-linear-regression-with-nn-linear.md): the same training with PyTorch's layer, loss and optimizer.
 
 Each lesson ends with exercises that you solve in the page.
