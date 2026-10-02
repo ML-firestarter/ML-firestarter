@@ -29,6 +29,7 @@ It starts past the very first steps: you should know that `print()` shows values
 1. [Classes](04-programs/01-classes.md): write a shopping basket, and a discount basket built on it.
 2. [Modules and the standard library](04-programs/02-modules-and-the-standard-library.md): read a web server's log with `re`, `datetime`, `Counter` and `json`.
 3. [Python on your computer](04-programs/03-python-on-your-computer.md): set up a project with `uv`, and read its dependencies.
+4. [Project: a library desk](04-programs/04-a-library-desk.md): build a program of three layers, a checked data file, a class with errors of its own and a command loop.
 
 At the end of the chapter, the [Workbook](05-workbook.md) has twelve more exercises that mix the lessons in new ways, from the easiest to the hardest, to practise on.
 
