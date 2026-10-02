@@ -1,5 +1,5 @@
 ---
-description: Python od decyzji i pętli po pliki, listy list i klasy, z ćwiczeniem na końcu każdej lekcji, które rozwiązujesz na stronie, i zeszytem ćwiczeń do potrenowania.
+description: Python od decyzji i pętli po pliki, listy list, błędy, testy i klasy, z ćwiczeniem na końcu każdej lekcji, które rozwiązujesz na stronie, i zeszytem ćwiczeń do potrenowania.
 ---
 
 # Python
@@ -18,6 +18,11 @@ Zaczyna się za pierwszymi krokami: wystarczy wiedzieć, że `print()` wypisuje 
 4. [Odczyt i zapis plików](01-basics/04-files.pl.md): pogrupuj słowa z pliku według długości.
 5. [Listy list](01-basics/05-lists-of-lists.pl.md): ukryj wiadomość szyfrem płotkowym.
 6. [Test praktyczny](01-basics/06-practice-test.pl.md): pięć zadań, które łączą to wszystko, od najłatwiejszego do najtrudniejszego.
+
+[Błędy i testowanie](03-errors-and-testing/README.pl.md) mówi o tym, co idzie źle i jak to znaleźć pierwszym:
+
+1. [Wyjątki](03-errors-and-testing/01-exceptions.pl.md): przeczytaj paragon ze złymi liniami, nie zatrzymując się na pierwszej, i przeczytaj ślad stosu.
+2. [Testowanie kodu](03-errors-and-testing/02-testing-your-code.pl.md): napisz własny program uruchamiający testy.
 
 [Programy](04-programs/README.pl.md) idą dalej, do większych programów:
 

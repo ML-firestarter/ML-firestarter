@@ -1,0 +1,17 @@
+CHECKS = [
+    ("parse_item('tea 3.50')", ["tea", 350]),
+    ("parse_item('jam 2,40')", ["jam", 240]),
+    ("parse_item('  bread   1  ')", ["bread", 100]),
+    ("parse_item('milk 0.1')", ["milk", 10]),
+    ("parse_item('')", raises(ValueError)),
+    ("parse_item('   ')", raises(ValueError)),
+    ("parse_item('tea')", raises(ValueError)),
+    ("parse_item('tea 3.50 extra')", raises(ValueError)),
+    ("parse_item('cake x')", raises(ValueError)),
+    ("parse_item('milk -1')", raises(ValueError)),
+    ("read_receipt(['tea 3.50', 'jam 2,40'])", {"total": 590, "items": 2, "problems": []}),
+    ("read_receipt([])", {"total": 0, "items": 0, "problems": []}),
+    ("read_receipt(['tea 3.50', 'cake x', '', 'jam 2,40', 'bread 1.20 extra', 'milk -1'])", {"total": 590, "items": 2, "problems": [[2, "bad price: x"], [3, "empty line"], [5, "expected a name and a price"], [6, "negative price"]]}),
+    ("read_receipt(['cake x'])['problems']", [[1, "bad price: x"]]),
+    ("read_receipt(['tea 1', 'tea 1', 'tea 1'])['items']", 3),
+]
