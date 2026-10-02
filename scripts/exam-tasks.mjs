@@ -24,6 +24,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Worker, isMainThread, parentPort } from 'node:worker_threads';
+import { libraryProvider, packageBaseUrl } from './libraries.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const EXAMS_DIR = path.join(ROOT, 'exams');
@@ -491,10 +492,12 @@ def lint(code):
 /** The worker thread: loads Pyodide and the harness, then does what it's asked. */
 async function serve() {
   const { loadPyodide } = await import('pyodide');
-  const pyodide = await loadPyodide({ indexURL: pyodideDir() });
+  const { version } = JSON.parse(readFileSync(path.join(pyodideDir(), 'package.json'), 'utf8'));
+  const pyodide = await loadPyodide({ indexURL: pyodideDir(), packageBaseUrl: packageBaseUrl(version) });
   const harness = pyodide.globals.get('dict')();
   pyodide.runPython(readFileSync(path.join(ROOT, 'src/scripts/harness.py'), 'utf8'), { globals: harness, filename: 'harness.py' });
   const observe = harness.get('observe');
+  const provide = libraryProvider(pyodide, harness.get('provide'));
   const tools = pyodide.globals.get('dict')();
   pyodide.runPython(GENERATE, { globals: tools, filename: 'generate.py' });
   pyodide.runPython(LINT, { globals: tools, filename: 'lint.py' });
@@ -508,6 +511,7 @@ async function serve() {
         parentPort.postMessage({ id, type: 'done', result: JSON.parse(tools.get('lint')(request.code)) });
       } else {
         await pyodide.loadPackagesFromImports(request.code, quiet);
+        await provide(request.code);
         const send = (kind, text) => {
           if (kind === 'check') parentPort.postMessage({ id, type: 'progress', number: Number(text) });
         };

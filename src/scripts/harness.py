@@ -30,6 +30,8 @@ import types
 FILENAME = 'main.py'
 # The folder the code runs in, emptied before every run.
 FOLDER = '/home/pyodide/exercise'
+# Where the libraries the page provides, like `torch`, are kept; see `provide`.
+LIBRARIES = '/home/pyodide/libraries'
 # How much a run can print before it's stopped, so a loop that prints forever can't freeze the page.
 OUTPUT_LIMIT = 200_000
 # How much the code can print during each check.
@@ -48,6 +50,37 @@ HARNESS = sys._getframe().f_code.co_filename
 ran_out = False
 
 
+# ---------- Libraries the page provides ----------
+
+
+def provide(libraries):
+    """
+    Puts libraries that Pyodide doesn't have where `import` finds them, like the small PyTorch in
+    src/python/. `libraries` is JSON with the source of each file by its path inside the
+    libraries' folder, like "torch/__init__.py". It's called once, by the first code that needs them.
+    """
+    for name, source in json.loads(libraries).items():
+        path = os.path.join(LIBRARIES, name)
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as file:
+            file.write(source)
+    if LIBRARIES not in sys.path:
+        sys.path.insert(0, LIBRARIES)
+    importlib.invalidate_caches()
+
+
+def forget_libraries():
+    """
+    Makes the next `import torch` start afresh, as it does in a new terminal, so that the random
+    numbers, the settings and everything else the last run did to a library don't carry over to
+    this one. It's done before each run, and not after each check: the checks of one exercise share
+    the reader's code, and the code and the checks have to use the same library.
+    """
+    for name, module in list(sys.modules.items()):
+        if (getattr(module, '__file__', None) or '').startswith(LIBRARIES + '/'):
+            del sys.modules[name]
+
+
 # ---------- Running a program ----------
 
 
@@ -60,6 +93,7 @@ def run(code, typed, files, send):
     """
     global ran_out
     ran_out = False
+    forget_libraries()
     sink = Sink(OUTPUT_LIMIT, send)
     status, error = 'done', None
     fill_folder(code, decode(files))
@@ -191,6 +225,7 @@ def check(code, source, files, send):
     except BrokenChecks as problem:
         return json.dumps({'broken': str(problem)})
 
+    forget_libraries()
     attempt = Attempt(code, decode(files))
     try:
         attempt.compile()
@@ -221,6 +256,7 @@ def observe(code, cases, files, send):
     the code stopped before all of them could run. Calls `send('check', number)` as each case
     starts, so that the page can tell which one ran out of time.
     """
+    forget_libraries()
     attempt = Attempt(code, decode(files))
     try:
         attempt.compile()

@@ -1,0 +1,714 @@
+{
+ "create/float2d": {
+  "out": "tensor([[1., 4., 7.],\n        [2., 3., 6.]])\n",
+  "error": null
+ },
+ "create/int": {
+  "out": "tensor([1, 2, 3])\n",
+  "error": null
+ },
+ "create/bool": {
+  "out": "tensor([ True, False])\n",
+  "error": null
+ },
+ "create/mixed int bool": {
+  "out": "tensor([1, 2])\n",
+  "error": null
+ },
+ "create/mixed int float": {
+  "out": "tensor([1.0000, 2.5000])\n",
+  "error": null
+ },
+ "create/scalar": {
+  "out": "tensor(3.5000)\ntensor(3)\ntensor(True)\n",
+  "error": null
+ },
+ "create/empty": {
+  "out": "tensor([])\ntorch.Size([0])\ntensor([], size=(0, 3))\ntensor([], size=(2, 0), dtype=torch.int64)\n",
+  "error": null
+ },
+ "create/3d": {
+  "out": "tensor([[[ 0,  1,  2,  3],\n         [ 4,  5,  6,  7],\n         [ 8,  9, 10, 11]],\n\n        [[12, 13, 14, 15],\n         [16, 17, 18, 19],\n         [20, 21, 22, 23]]])\ntensor([[[0., 1.],\n         [2., 3.]],\n\n        [[4., 5.],\n         [6., 7.]]])\n",
+  "error": null
+ },
+ "create/neg": {
+  "out": "tensor([-1.5000,  2.2500, -0.1250])\n",
+  "error": null
+ },
+ "create/zeros ones": {
+  "out": "tensor([[0., 0., 0.],\n        [0., 0., 0.]])\ntensor([1., 1., 1.])\ntensor([[0, 0],\n        [0, 0]], dtype=torch.int32)\ntensor([1., 1.], dtype=torch.float64)\n",
+  "error": null
+ },
+ "create/full": {
+  "out": "tensor([[3.5000, 3.5000],\n        [3.5000, 3.5000]])\ntensor([7, 7])\ntensor([True, True])\n",
+  "error": null
+ },
+ "create/arange": {
+  "out": "tensor([0, 1, 2, 3, 4])\ntensor([1, 3, 5])\ntensor([0.0000, 0.2500, 0.5000, 0.7500])\ntensor([0., 1., 2., 3., 4.])\ntensor([10,  7,  4,  1])\n",
+  "error": null
+ },
+ "create/linspace": {
+  "out": "tensor([0.0000, 0.2500, 0.5000, 0.7500, 1.0000])\ntensor([-1.0000, -0.3333,  0.3333,  1.0000])\n",
+  "error": null
+ },
+ "create/eye": {
+  "out": "tensor([[1., 0., 0.],\n        [0., 1., 0.],\n        [0., 0., 1.]])\ntensor([[1., 0., 0.],\n        [0., 1., 0.]])\n",
+  "error": null
+ },
+ "create/like": {
+  "out": "tensor([[0., 0.],\n        [0., 0.]])\ntensor([[1., 1.],\n        [1., 1.]])\ntensor([[5., 5.],\n        [5., 5.]])\ntensor([0, 0])\n",
+  "error": null
+ },
+ "create/numpy f64": {
+  "out": "tensor([[1., 2.],\n        [3., 4.]], dtype=torch.float64)\n",
+  "error": null
+ },
+ "create/numpy f32": {
+  "out": "tensor([1., 2.])\n",
+  "error": null
+ },
+ "create/numpy int": {
+  "out": "tensor([1, 2, 3])\n",
+  "error": null
+ },
+ "create/numpy dtype arg": {
+  "out": "tensor([1., 2.])\n",
+  "error": null
+ },
+ "create/from_numpy shares": {
+  "out": "tensor([9., 2.], dtype=torch.float64)\n",
+  "error": null
+ },
+ "create/numpy() shares": {
+  "out": "tensor([9., 2.])\n[9. 2.]\n",
+  "error": null
+ },
+ "create/FloatTensor": {
+  "out": "tensor([1., 2., 3.])\ntensor([1.5000, 2.5000])\ntorch.Size([2, 2])\n",
+  "error": null
+ },
+ "create/LongTensor": {
+  "out": "tensor([1, 2])\ntensor([1., 2.])\n",
+  "error": null
+ },
+ "create/dtype arg": {
+  "out": "tensor([1., 2.])\ntensor([1, 2])\ntensor([1., 2.], dtype=torch.float64)\ntensor([False,  True])\n",
+  "error": null
+ },
+ "create/requires_grad": {
+  "out": "tensor([1., 2.], requires_grad=True)\ntensor([0., 0.], requires_grad=True)\n",
+  "error": null
+ },
+ "create/requires_grad int error": {
+  "out": "",
+  "error": "RuntimeError: Only Tensors of floating point and complex dtype can require gradients"
+ },
+ "create/ragged": {
+  "out": "",
+  "error": "ValueError: expected sequence of length 2 at dim 1 (got 1)"
+ },
+ "create/string": {
+  "out": "",
+  "error": "ValueError: too many dimensions 'str'"
+ },
+ "create/negative dim": {
+  "out": "",
+  "error": "RuntimeError: zeros: Dimension size must be non-negative."
+ },
+ "create/tensor of tensors": {
+  "out": "tensor([1., 2.])\n",
+  "error": null
+ },
+ "create/tensor of tensor copy warn": {
+  "out": "tensor([1., 2.])\n[warning UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone()]\n",
+  "error": null
+ },
+ "print/sci": {
+  "out": "tensor([1.0000e-05, 1.0000e+00])\ntensor([1.0000e+10, 1.0000e+00])\ntensor([1.0000e-10, 1.0000e+10])\ntensor([1.2346e+08, 2.0000e+00])\n",
+  "error": null
+ },
+ "print/int-valued float": {
+  "out": "tensor([  1.,   2., 300.])\ntensor([1.0000e+00, 2.0000e+00, 3.0000e+06])\ntensor([1.0000e+00, 2.0000e+00, 3.0000e+10])\n",
+  "error": null
+ },
+ "print/mixed decimals": {
+  "out": "tensor([  0.5000,   0.2500, 100.1235])\ntensor([0.3333, 0.6667, 1.0000])\ntensor([1.2000e-04, 5.0000e-01])\n",
+  "error": null
+ },
+ "print/nan inf": {
+  "out": "tensor([nan, 1., inf, -inf])\ntensor([nan, nan])\ntensor([   inf, 1.5000])\n",
+  "error": null
+ },
+ "print/zeros": {
+  "out": "tensor([0., 0.])\ntensor([-0., 1.])\ntensor(0.)\ntensor([0, 0])\n",
+  "error": null
+ },
+ "print/long vector": {
+  "out": "tensor([ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12., 13.,\n        14., 15., 16., 17., 18., 19., 20., 21., 22., 23., 24., 25., 26., 27.,\n        28., 29.])\ntensor([    0,  1000,  2000,  3000,  4000,  5000,  6000,  7000,  8000,  9000,\n        10000, 11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000,\n        20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000])\ntensor([0.0000, 0.0417, 0.0833, 0.1250, 0.1667, 0.2083, 0.2500, 0.2917, 0.3333,\n        0.3750, 0.4167, 0.4583, 0.5000, 0.5417, 0.5833, 0.6250, 0.6667, 0.7083,\n        0.7500, 0.7917, 0.8333, 0.8750, 0.9167, 0.9583, 1.0000])\n",
+  "error": null
+ },
+ "print/wide matrix": {
+  "out": "tensor([[ 0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,  8.,  9., 10., 11., 12., 13.,\n         14., 15., 16., 17., 18., 19.],\n        [20., 21., 22., 23., 24., 25., 26., 27., 28., 29., 30., 31., 32., 33.,\n         34., 35., 36., 37., 38., 39.],\n        [40., 41., 42., 43., 44., 45., 46., 47., 48., 49., 50., 51., 52., 53.,\n         54., 55., 56., 57., 58., 59.]])\ntensor([[0.0000, 0.0256, 0.0513, 0.0769, 0.1026, 0.1282, 0.1538, 0.1795, 0.2051,\n         0.2308, 0.2564, 0.2821, 0.3077, 0.3333, 0.3590, 0.3846, 0.4103, 0.4359,\n         0.4615, 0.4872],\n        [0.5128, 0.5385, 0.5641, 0.5897, 0.6154, 0.6410, 0.6667, 0.6923, 0.7179,\n         0.7436, 0.7692, 0.7949, 0.8205, 0.8462, 0.8718, 0.8974, 0.9231, 0.9487,\n         0.9744, 1.0000]])\n",
+  "error": null
+ },
+ "print/summarized": {
+  "out": "tensor([0.0000e+00, 1.0000e+00, 2.0000e+00,  ..., 1.9970e+03, 1.9980e+03,\n        1.9990e+03])\ntensor([[0.0000e+00, 1.0000e+00, 2.0000e+00],\n        [3.0000e+00, 4.0000e+00, 5.0000e+00],\n        [6.0000e+00, 7.0000e+00, 8.0000e+00],\n        ...,\n        [2.9910e+03, 2.9920e+03, 2.9930e+03],\n        [2.9940e+03, 2.9950e+03, 2.9960e+03],\n        [2.9970e+03, 2.9980e+03, 2.9990e+03]])\ntensor([[0., 0., 0.,  ..., 0., 0., 0.],\n        [0., 0., 0.,  ..., 0., 0., 0.],\n        [0., 0., 0.,  ..., 0., 0., 0.],\n        ...,\n        [0., 0., 0.,  ..., 0., 0., 0.],\n        [0., 0., 0.,  ..., 0., 0., 0.],\n        [0., 0., 0.,  ..., 0., 0., 0.]])\n",
+  "error": null
+ },
+ "print/4d": {
+  "out": "tensor([[[[ 0.,  1.],\n          [ 2.,  3.]],\n\n         [[ 4.,  5.],\n          [ 6.,  7.]]],\n\n\n        [[[ 8.,  9.],\n          [10., 11.]],\n\n         [[12., 13.],\n          [14., 15.]]]])\n",
+  "error": null
+ },
+ "print/float64": {
+  "out": "tensor([1.5000, 2.5000], dtype=torch.float64)\ntensor([0., 0.], dtype=torch.float64)\ntensor([1, 2], dtype=torch.int32)\ntensor([1, 2], dtype=torch.uint8)\ntensor([1, 2], dtype=torch.int8)\ntensor([1.5000], dtype=torch.float16)\n",
+  "error": null
+ },
+ "print/requires_grad & dtype long": {
+  "out": "tensor([1., 2.], dtype=torch.float64, requires_grad=True)\ntensor([0.0000e+00, 1.0000e+00, 2.0000e+00,  ..., 9.9997e+04, 9.9998e+04,\n        9.9999e+04], requires_grad=True)\n",
+  "error": null
+ },
+ "print/options precision": {
+  "out": "tensor([1.23, 2.00])\n",
+  "error": null
+ },
+ "print/options sci": {
+  "out": "tensor([1.5000e+00, 2.5000e+00])\n",
+  "error": null
+ },
+ "print/options profile": {
+  "out": "tensor([0., 1., 2.])\n",
+  "error": null
+ },
+ "print/options edgeitems": {
+  "out": "tensor([0., 1.,  ..., 8., 9.])\ntensor([[ 0.,  1.,  ...,  3.,  4.],\n        [ 5.,  6.,  ...,  8.,  9.],\n        ...,\n        [20., 21.,  ..., 23., 24.],\n        [25., 26.,  ..., 28., 29.]])\n",
+  "error": null
+ },
+ "attr/shape dtype": {
+  "out": "torch.Size([2, 3]) torch.float32 torch.Size([2, 3]) 2 3 2 2 6 cpu False True\n",
+  "error": null
+ },
+ "attr/shape slicing": {
+  "out": "torch.Size([3, 4]) 2 (2, 3, 4) [2, 3, 4] True 24\n",
+  "error": null
+ },
+ "attr/dtype reprs": {
+  "out": "torch.float32 torch.float32 torch.float64 torch.int64 torch.int32 torch.bool True True False 4\n",
+  "error": null
+ },
+ "attr/device": {
+  "out": "cpu device(type='cpu') cuda:0 device(type='cuda', index=1) True\n",
+  "error": null
+ },
+ "attr/item tolist": {
+  "out": "[[1.0, 2.0], [3.0, 4.0]] 2.0 10.0 <class 'float'>\n",
+  "error": null
+ },
+ "attr/item errors": {
+  "out": "",
+  "error": "RuntimeError: a Tensor with 2 elements cannot be converted to Scalar"
+ },
+ "attr/float conv": {
+  "out": "2.5 2 2.50 2.5 True\n",
+  "error": null
+ },
+ "attr/float conv error": {
+  "out": "",
+  "error": "ValueError: only one element tensors can be converted to Python scalars"
+ },
+ "attr/bool error": {
+  "out": "",
+  "error": "RuntimeError: Boolean value of Tensor with more than one value is ambiguous"
+ },
+ "attr/format vector error": {
+  "out": "",
+  "error": "TypeError: unsupported format string passed to Tensor.__format__"
+ },
+ "attr/len iter": {
+  "out": "2\n[tensor([1., 2.]), tensor([3., 4.])]\n[tensor(3.), tensor(7.)]\n",
+  "error": null
+ },
+ "attr/len 0d error": {
+  "out": "",
+  "error": "TypeError: len() of a 0-d tensor"
+ },
+ "attr/iter 0d error": {
+  "out": "",
+  "error": "TypeError: iteration over a 0-d tensor"
+ },
+ "math/basic": {
+  "out": "tensor([[20., 50., 80.],\n        [30., 40., 70.]])\ntensor([[0., 3., 6.],\n        [1., 2., 5.]])\ntensor([[0.5000, 2.0000, 3.5000],\n        [1.0000, 1.5000, 3.0000]])\ntensor([[ 1., 16., 49.],\n        [ 4.,  9., 36.]])\ntensor([[-1., -4., -7.],\n        [-2., -3., -6.]])\ntensor([[  2.,  16., 128.],\n        [  4.,   8.,  64.]])\ntensor([[1.0000, 0.2500, 0.1429],\n        [0.5000, 0.3333, 0.1667]])\ntensor([[0., 2., 3.],\n        [1., 1., 3.]])\ntensor([[1., 1., 1.],\n        [2., 0., 0.]])\n",
+  "error": null
+ },
+ "math/two tensors": {
+  "out": "tensor([5., 7., 9.]) tensor([-3., -3., -3.]) tensor([ 4., 10., 18.]) tensor([0.2500, 0.4000, 0.5000]) tensor([  1.,  32., 729.]) tensor(32.)\n",
+  "error": null
+ },
+ "math/broadcast": {
+  "out": "tensor([[2., 3., 4.],\n        [2., 3., 4.]])\ntensor([[1., 1., 1.],\n        [2., 2., 2.]])\ntensor([[2., 3., 4.],\n        [3., 4., 5.]])\n",
+  "error": null
+ },
+ "math/dtype int float": {
+  "out": "tensor([2, 3, 4]) torch.int64\ntensor([2.5000, 3.5000, 4.5000]) torch.float32\ntensor([0.5000, 1.0000, 1.5000]) torch.float32\ntensor([1, 4, 9]) torch.int64\ntensor([0, 1, 1]) torch.int64\ntensor([1, 4, 9]) torch.int64\ntensor([1., 1., 1.])\n",
+  "error": null
+ },
+ "math/dtype promotion": {
+  "out": "torch.float64 torch.float32 torch.int64 torch.bool torch.float64 torch.int64 torch.float32\n",
+  "error": null
+ },
+ "math/dtype 0d": {
+  "out": "torch.float32 torch.float64 torch.float32 torch.float32\n",
+  "error": null
+ },
+ "math/int32": {
+  "out": "torch.int32 torch.int64 torch.float32\n",
+  "error": null
+ },
+ "math/bool ops": {
+  "out": "tensor([ True, False, False]) tensor([True, True, True]) tensor([False,  True,  True]) tensor([False,  True, False]) tensor([True, True, True]) tensor([ True, False, False]) tensor(2)\n",
+  "error": null
+ },
+ "math/bool sub error": {
+  "out": "",
+  "error": "NotImplementedError: Subtraction, the `-` operator, with two bool tensors is not supported. Use the `^` or `logical_xor()` operator instead."
+ },
+ "math/compare": {
+  "out": "tensor([False, False,  True]) tensor([False,  True, False]) tensor([ True, False,  True]) tensor([ True,  True, False]) tensor([ True, False,  True]) tensor([ True,  True, False])\n",
+  "error": null
+ },
+ "math/compare eq none": {
+  "out": "False True\n",
+  "error": null
+ },
+ "math/unary": {
+  "out": "tensor([1.6487, 2.7183, 7.3891]) tensor([-0.6931,  0.0000,  0.6931]) tensor([0.7071, 1.0000, 1.4142]) tensor([0.4794, 0.8415, 0.9093]) tensor([ 0.8776,  0.5403, -0.4161]) tensor([0.4621, 0.7616, 0.9640]) tensor([0.6225, 0.7311, 0.8808]) tensor([0.5000, 1.0000, 2.0000]) tensor([-0.5000, -1.0000, -2.0000]) tensor([2.0000, 1.0000, 0.5000]) tensor([0.2500, 1.0000, 4.0000])\n",
+  "error": null
+ },
+ "math/unary int": {
+  "out": "tensor([1., 2., 3.]) tensor([2.7183e+00, 5.4598e+01, 8.1031e+03]) tensor([0.0000, 1.3863, 2.1972]) tensor([1, 4, 9]) tensor([-1, -4, -9]) tensor([0.7311, 0.9820, 0.9999]) tensor([1, 2])\n",
+  "error": null
+ },
+ "math/round": {
+  "out": "tensor([0., 2., 2., -0., 1.]) tensor([ 0.,  1.,  2., -1.,  1.]) tensor([1., 2., 3., -0., 2.]) tensor([0., 1., 2., -0., 1.]) tensor([ 0.5000,  1.5000,  2.5000, -0.5000,  1.2300]) tensor([ 1.,  1.,  1., -1.,  1.])\n",
+  "error": null
+ },
+ "math/clamp": {
+  "out": "tensor([0.0000, 0.5000, 1.0000]) tensor([0.0000, 0.5000, 3.0000]) tensor([-2.0000,  0.5000,  1.0000]) tensor([-1.0000,  0.5000,  1.0000])\n",
+  "error": null
+ },
+ "math/where": {
+  "out": "tensor([0., 2., 0.]) tensor([0., 1., 0.]) tensor([0., 2., 0.])\n",
+  "error": null
+ },
+ "math/maximum": {
+  "out": "tensor([4., 5., 3.]) tensor([1., 2., 3.])\n",
+  "error": null
+ },
+ "math/pow variants": {
+  "out": "tensor([1., 1., 1.]) tensor([1.0000, 1.4142, 1.7321]) tensor([1.0000, 0.5000, 0.3333]) tensor([1., 4., 9.]) tensor([ 1.,  8., 27.]) tensor([2., 4., 8.]) torch.float32\n",
+  "error": null
+ },
+ "math/int neg pow error": {
+  "out": "",
+  "error": "RuntimeError: Integers to negative integer powers are not allowed."
+ },
+ "math/relu": {
+  "out": "tensor([0., 0., 2.]) tensor([0., 0., 2.]) tensor([0., 0., 2.])\n",
+  "error": null
+ },
+ "math/floor_divide neg": {
+  "out": "tensor([-4.,  3.]) tensor([-4,  3]) tensor([2., 1.]) tensor([2, 1]) tensor([-1.,  1.])\n",
+  "error": null
+ },
+ "math/div mode": {
+  "out": "tensor([-4.,  3.]) tensor([-3.,  3.]) tensor([-3,  3])\n",
+  "error": null
+ },
+ "math/div zero": {
+  "out": "tensor([inf, -inf, nan])\ntensor([inf, inf])\n",
+  "error": null
+ },
+ "math/log zero": {
+  "out": "tensor([-inf, nan])\ntensor([nan])\n",
+  "error": null
+ },
+ "math/alpha": {
+  "out": "tensor([4., 8.]) tensor([-1., -2.])\n",
+  "error": null
+ },
+ "math/numpy operand": {
+  "out": "tensor([3., 4.]) tensor([2., 4.])\ntorch.float32\n",
+  "error": null
+ },
+ "math/numpy array operand": {
+  "out": "tensor([2., 4.], dtype=torch.float64)\n",
+  "error": null
+ },
+ "math/list operand error": {
+  "out": "",
+  "error": "TypeError: unsupported operand type(s) for +: 'Tensor' and 'list'"
+ },
+ "math/str operand error": {
+  "out": "",
+  "error": "TypeError: unsupported operand type(s) for +: 'Tensor' and 'str'"
+ },
+ "math/isnan": {
+  "out": "tensor([False,  True, False]) tensor([False, False,  True]) tensor([ True, False, False]) tensor([1.0000e+00, 0.0000e+00, 3.4028e+38])\n",
+  "error": null
+ },
+ "math/allclose": {
+  "out": "True True True tensor([True, True])\n",
+  "error": null
+ },
+ "matmul/2d": {
+  "out": "tensor([[66., 56.],\n        [56., 49.]])\ntensor([[66., 56.],\n        [56., 49.]])\ntensor([[66., 56.],\n        [56., 49.]])\ntensor([[ 5., 10., 19.],\n        [10., 25., 46.],\n        [19., 46., 85.]])\n",
+  "error": null
+ },
+ "matmul/1d": {
+  "out": "tensor(14.) tensor([6., 6.]) tensor([6., 6.]) tensor(14.) tensor([6., 6.])\n",
+  "error": null
+ },
+ "matmul/batched": {
+  "out": "tensor([[[10., 13.],\n         [28., 40.]],\n\n        [[46., 67.],\n         [64., 94.]]])\ntensor([[[ 10.,  13.],\n         [ 28.,  40.]],\n\n        [[172., 193.],\n         [244., 274.]]])\n",
+  "error": null
+ },
+ "matmul/shape error": {
+  "out": "",
+  "error": "RuntimeError: mat1 and mat2 shapes cannot be multiplied (3x4 and 3x2)"
+ },
+ "matmul/shape error mm": {
+  "out": "",
+  "error": "RuntimeError: mat1 and mat2 shapes cannot be multiplied (3x4 and 3x2)"
+ },
+ "matmul/1d error": {
+  "out": "",
+  "error": "RuntimeError: inconsistent tensor size, expected tensor [3] and src [4] to have the same number of elements, but got 3 and 4 elements respectively"
+ },
+ "matmul/dtype error": {
+  "out": "",
+  "error": "RuntimeError: expected m1 and m2 to have the same dtype, but got: float != double"
+ },
+ "matmul/int": {
+  "out": "tensor([[1, 2],\n        [3, 4]])\n",
+  "error": null
+ },
+ "matmul/outer": {
+  "out": "tensor([[ 3.,  4.,  5.],\n        [ 6.,  8., 10.]])\n",
+  "error": null
+ },
+ "matmul/mismatches": {
+  "out": "(3,) (2, 3) mat1 and mat2 shapes cannot be multiplied (1x3 and 2x3)\n(2, 3) (4,) size mismatch, got input (2), mat (2x3), vec (4)\n(2, 3, 4) (3,) size mismatch, got input (6), mat (6x4), vec (3)\n(2, 3, 4) (2, 3) mat1 and mat2 shapes cannot be multiplied (6x4 and 2x3)\ntorch.Size([2, 4])\n(3, 4) (2, 3, 5) Expected size for first two dimensions of batch2 tensor to be: [2, 4] but got: [2, 3].\n(2, 3, 4) (2, 3, 4) Expected size for first two dimensions of batch2 tensor to be: [2, 4] but got: [2, 3].\n(2, 3, 4) (3, 4, 5) The size of tensor a (2) must match the size of tensor b (3) at non-singleton dimension 0\n(2, 3, 4) (4, 3, 2) The size of tensor a (2) must match the size of tensor b (4) at non-singleton dimension 0\n(2, 2, 3) (4,) size mismatch, got input (4), mat (4x3), vec (4)\n(1, 3) (3, 4, 2) Expected size for first two dimensions of batch2 tensor to be: [3, 3] but got: [3, 4].\n",
+  "error": null
+ },
+ "matmul/mismatches with gradient": {
+  "out": "(3, 4) (2, 3, 5) (True, False) mat1 and mat2 shapes cannot be multiplied (10x3 and 4x3)\n(3, 4) (2, 3, 5) (False, True) Expected size for first two dimensions of batch2 tensor to be: [2, 4] but got: [2, 3].\ntorch.Size([2, 4])\ntorch.Size([2, 4])\n(2, 3, 4) (3,) (True, False) size mismatch, got input (6), mat (6x4), vec (3)\n(2, 3, 4) (3,) (False, True) size mismatch, got input (6), mat (6x4), vec (3)\n(1, 3, 4) (2, 3, 4) (True, False) mat1 and mat2 shapes cannot be multiplied (8x3 and 4x3)\n(1, 3, 4) (2, 3, 4) (False, True) Expected size for first two dimensions of batch2 tensor to be: [2, 4] but got: [2, 3].\n(2, 3, 4) (1, 5, 5) (True, False) Expected size for first two dimensions of batch2 tensor to be: [2, 4] but got: [2, 5].\n(2, 3, 4) (1, 5, 5) (False, True) mat1 and mat2 shapes cannot be multiplied (6x4 and 5x5)\n",
+  "error": null
+ },
+ "matmul/grad_fn": {
+  "out": "(3,) (3,) DotBackward0\n(2, 3) (3,) MvBackward0\n(3,) (3, 2) SqueezeBackward4\n(2, 3) (3, 2) MmBackward0\n(2, 2, 3) (3, 2) UnsafeViewBackward0\n(2, 2, 3) (2, 3, 2) UnsafeViewBackward0\n(3,) (2, 3, 2) UnsafeViewBackward0\n(3, 4) (2, 4, 5) CloneBackward0\n(1, 4) (2, 4, 5) TransposeBackward0\n(3, 4) (2, 4, 1) TransposeBackward0\n(4,) (2, 4, 5) UnsafeViewBackward0\nBmmBackward0\n",
+  "error": null
+ },
+ "matmul/dtype errors": {
+  "out": "dot torch.float32 torch.float64 RuntimeError dot : expected both vectors to have same dtype, but found Float and Double\ndot torch.int64 torch.float32 RuntimeError dot : expected both vectors to have same dtype, but found Long and Float\ndot torch.int16 torch.float32 RuntimeError dot : expected both vectors to have same dtype, but found Short and Float\ndot torch.bool torch.float32 RuntimeError dot : expected both vectors to have same dtype, but found Bool and Float\ndot torch.float32 torch.bool RuntimeError dot : expected both vectors to have same dtype, but found Float and Bool\ndot torch.bool torch.bool NotImplementedError \"dot\" not implemented for 'Bool'\nmv torch.float32 torch.float64 RuntimeError addmv input tensors must have the same dtype, but got Double, Float, and Double\nmv torch.int64 torch.float32 RuntimeError addmv input tensors must have the same dtype, but got Float, Long, and Float\nmv torch.int16 torch.float32 RuntimeError addmv input tensors must have the same dtype, but got Float, Short, and Float\nmv torch.bool torch.float32 RuntimeError addmv input tensors must have the same dtype, but got Float, Bool, and Float\nmv torch.float32 torch.bool RuntimeError addmv input tensors must have the same dtype, but got Bool, Float, and Bool\nmv torch.bool torch.bool NotImplementedError \"addmv_impl_cpu\" not implemented for 'Bool'\nmm torch.float32 torch.float64 RuntimeError expected m1 and m2 to have the same dtype, but got: float != double\nmm torch.int64 torch.float32 RuntimeError expected m1 and m2 to have the same dtype, but got: long int != float\nmm torch.int16 torch.float32 RuntimeError expected m1 and m2 to have the same dtype, but got: short int != float\nmm torch.bool torch.float32 RuntimeError expected m1 and m2 to have the same dtype, but got: bool != float\nmm torch.float32 torch.bool RuntimeError expected m1 and m2 to have the same dtype, but got: float != bool\nmm torch.bool torch.bool NotImplementedError \"addmm_impl_cpu_\" not implemented for 'Bool'\nbmm torch.float32 torch.float64 RuntimeError expected scalar type Float but found Double\nbmm torch.int64 torch.float32 RuntimeError expected scalar type Long but found Float\nbmm torch.int16 torch.float32 RuntimeError expected scalar type Short but found Float\nbmm torch.bool torch.float32 NotImplementedError \"bmm\" not implemented for 'Bool'\nbmm torch.float32 torch.bool RuntimeError expected scalar type Float but found Bool\nbmm torch.bool torch.bool NotImplementedError \"bmm\" not implemented for 'Bool'\nmatmul torch.float32 torch.float64 RuntimeError addmv input tensors must have the same dtype, but got Double, Float, and Double\nmatmul torch.int64 torch.float32 RuntimeError addmv input tensors must have the same dtype, but got Float, Long, and Float\nmatmul torch.int16 torch.float32 RuntimeError addmv input tensors must have the same dtype, but got Float, Short, and Float\nmatmul torch.bool torch.float32 RuntimeError addmv input tensors must have the same dtype, but got Float, Bool, and Float\nmatmul torch.float32 torch.bool RuntimeError addmv input tensors must have the same dtype, but got Bool, Float, and Bool\nmatmul torch.bool torch.bool NotImplementedError \"addmv_impl_cpu\" not implemented for 'Bool'\nmatmul torch.float32 torch.float64 RuntimeError expected scalar type Float but found Double\nmatmul torch.int64 torch.float32 RuntimeError expected scalar type Long but found Float\nmatmul torch.int16 torch.float32 RuntimeError expected scalar type Short but found Float\nmatmul torch.bool torch.float32 NotImplementedError \"bmm\" not implemented for 'Bool'\nmatmul torch.float32 torch.bool RuntimeError expected scalar type Float but found Bool\nmatmul torch.bool torch.bool NotImplementedError \"bmm\" not implemented for 'Bool'\n",
+  "error": null
+ },
+ "matmul/bmm errors": {
+  "out": "torch.Size([2, 2, 4])\n(2, 2, 3) (3, 3, 4) Expected size for first two dimensions of batch2 tensor to be: [2, 3] but got: [3, 3].\n(1, 2, 3) (4, 3, 4) Expected size for first two dimensions of batch2 tensor to be: [1, 3] but got: [4, 3].\n(2, 2, 3) (2, 4, 4) Expected size for first two dimensions of batch2 tensor to be: [2, 3] but got: [2, 4].\n(2, 3) (2, 3, 4) batch1 must be a 3D tensor\n(2, 2, 3) (3, 4) batch2 must be a 3D tensor\n",
+  "error": null
+ },
+ "matmul/mv errors": {
+  "out": "torch.Size([2])\n(2, 3) (4,) size mismatch, got input (2), mat (2x3), vec (4)\n(2, 3) (3, 1) vector + matrix @ vector expected, got 1, 2, 2\n(3,) (3,) vector + matrix @ vector expected, got 1, 1, 1\n(2, 2, 3) (3,) vector + matrix @ vector expected, got 1, 3, 1\nDimension specified as 0 but tensor has no dimensions\n",
+  "error": null
+ },
+ "matmul/outer errors": {
+  "out": "torch.Size([3, 4])\n(2, 3) (4,) outer: Expected 1-D argument self, but got 2-D\n(3,) (2, 4) outer: Expected 1-D argument vec2, but got 2-D\n",
+  "error": null
+ },
+ "T/behaviour": {
+  "out": "tensor([[0., 3.],\n        [1., 4.],\n        [2., 5.]]) torch.Size([3, 2]) torch.Size([3, 2]) torch.Size([3, 2]) torch.Size([3, 2]) tensor([0., 1., 2.])\n[warning UserWarning: The use of `x.T` on tensors of dimension other than 2 to reverse their shape is deprecated and it will throw an error in]\n",
+  "error": null
+ },
+ "reduce/basic": {
+  "out": "tensor(23.) tensor(3.8333) tensor([ 3.,  7., 13.]) tensor([12., 11.]) tensor([1.5000, 3.5000, 6.5000]) tensor([[4.0000],\n        [3.6667]]) tensor([[ 3.,  7., 13.]]) tensor(23.) tensor(1008.) tensor([28., 36.])\n",
+  "error": null
+ },
+ "reduce/std var": {
+  "out": "tensor(2.3166) tensor(5.3667) tensor([0.7071, 0.7071, 0.7071]) tensor([[0.7071, 0.7071, 0.7071]]) tensor([9.0000, 4.3333]) tensor(2.1148) tensor([0.5000, 0.5000, 0.5000]) tensor([6.0000, 2.8889])\n",
+  "error": null
+ },
+ "reduce/max min": {
+  "out": "tensor(7.) tensor(1.) torch.return_types.max(\nvalues=tensor([2., 4., 7.]),\nindices=tensor([1, 0, 0])) torch.return_types.min(\nvalues=tensor([1., 2.]),\nindices=tensor([0, 0])) torch.return_types.max(\nvalues=tensor([[7.],\n        [6.]]),\nindices=tensor([[2],\n        [2]])) tensor([2., 4., 7.]) tensor([2, 2]) tensor([2., 4., 7.]) tensor([1., 2.]) tensor(2) tensor([2, 2]) tensor([0, 1, 1])\n",
+  "error": null
+ },
+ "reduce/max tuple unpack": {
+  "out": "tensor([7., 6.]) tensor([2, 2])\ntensor([2., 4., 7.]) tensor([1, 0, 0])\n",
+  "error": null
+ },
+ "reduce/max ties": {
+  "out": "tensor(1) torch.return_types.max(\nvalues=tensor(3.),\nindices=tensor(1))\n",
+  "error": null
+ },
+ "reduce/int": {
+  "out": "tensor(10) tensor([4, 6]) torch.int64 tensor(24) tensor(4) torch.return_types.max(\nvalues=tensor([3, 4]),\nindices=tensor([1, 1])) tensor(3) tensor(2) torch.int64\n",
+  "error": null
+ },
+ "reduce/int mean error": {
+  "out": "",
+  "error": "RuntimeError: mean(): could not infer output dtype. Input dtype must be either a floating point or complex dtype. Got: Long"
+ },
+ "reduce/float64": {
+  "out": "tensor(6., dtype=torch.float64) tensor(2., dtype=torch.float64) tensor(1., dtype=torch.float64)\n",
+  "error": null
+ },
+ "reduce/all any": {
+  "out": "tensor(False) tensor(True) tensor([ True, False]) tensor([True, True]) tensor(True)\n",
+  "error": null
+ },
+ "reduce/cumsum": {
+  "out": "tensor([[1., 2., 3.],\n        [5., 7., 9.]]) tensor([[ 1.,  3.,  6.],\n        [ 4.,  9., 15.]]) tensor([1, 3, 6])\n",
+  "error": null
+ },
+ "reduce/logsumexp": {
+  "out": "tensor([3.4076, 6.4076]) tensor([[4.0486, 5.0486, 6.0486]])\n",
+  "error": null
+ },
+ "reduce/norm": {
+  "out": "tensor(5.) tensor(5.) tensor(7.) tensor(5.4772)\n",
+  "error": null
+ },
+ "reduce/softmax": {
+  "out": "tensor([[0.0900, 0.2447, 0.6652],\n        [0.3333, 0.3333, 0.3333]]) tensor([[0.5000, 0.7311, 0.8808],\n        [0.5000, 0.2689, 0.1192]]) tensor([[-2.4076, -1.4076, -0.4076],\n        [-1.0986, -1.0986, -1.0986]]) tensor([[0.0900, 0.2447, 0.6652],\n        [0.3333, 0.3333, 0.3333]])\n",
+  "error": null
+ },
+ "reduce/empty": {
+  "out": "tensor(0.) tensor([0., 0., 0.]) tensor(nan)\n",
+  "error": null
+ },
+ "reduce/topk": {
+  "out": "torch.return_types.topk(\nvalues=tensor([[9., 7.],\n        [8., 6.]]),\nindices=tensor([[1, 3],\n        [2, 3]]))\ntensor([[9., 7., 3.],\n        [8., 6., 4.]]) tensor([[1, 3, 2],\n        [2, 3, 0]])\ntorch.return_types.topk(\nvalues=tensor([[1., 3.],\n        [2., 4.]]),\nindices=tensor([[0, 2],\n        [1, 0]]))\n",
+  "error": null
+ },
+ "reduce/sort": {
+  "out": "torch.return_types.sort(\nvalues=tensor([1., 2., 3.]),\nindices=tensor([1, 2, 0]))\ntorch.return_types.sort(\nvalues=tensor([3., 2., 1.]),\nindices=tensor([0, 2, 1]))\ntensor([1, 2, 0]) torch.return_types.sort(\nvalues=tensor([[2., 1.],\n        [3., 5.]]),\nindices=tensor([[1, 0],\n        [0, 1]]))\n",
+  "error": null
+ },
+ "reduce/bad dim": {
+  "out": "",
+  "error": "IndexError: Dimension out of range (expected to be in range of [-2, 1], but got 2)"
+ },
+ "reduce/bad dim max": {
+  "out": "",
+  "error": "IndexError: Dimension out of range (expected to be in range of [-2, 1], but got -3)"
+ },
+ "shape/reshape": {
+  "out": "tensor([[0., 1., 2.],\n        [3., 4., 5.]]) tensor([[0., 1.],\n        [2., 3.],\n        [4., 5.]]) tensor([[0., 1.],\n        [2., 3.],\n        [4., 5.]]) tensor([[0., 1.],\n        [2., 3.],\n        [4., 5.]]) tensor([0., 1., 2., 3., 4., 5.]) torch.Size([6, 1]) tensor([0., 1., 2., 3., 4., 5.]) torch.Size([2, 12])\n",
+  "error": null
+ },
+ "shape/reshape error": {
+  "out": "",
+  "error": "RuntimeError: shape '[4, 2]' is invalid for input of size 6"
+ },
+ "shape/reshape error neg": {
+  "out": "",
+  "error": "RuntimeError: shape '[4, -1]' is invalid for input of size 6"
+ },
+ "shape/view error": {
+  "out": "",
+  "error": "RuntimeError: view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead."
+ },
+ "shape/reshape noncontiguous ok": {
+  "out": "tensor([0., 3., 1., 4., 2., 5.])\n",
+  "error": null
+ },
+ "shape/squeeze unsqueeze": {
+  "out": "torch.Size([3]) torch.Size([3, 1]) torch.Size([1, 3, 1]) torch.Size([1, 1, 3, 1]) torch.Size([1, 3, 1, 1]) torch.Size([3, 1])\n",
+  "error": null
+ },
+ "shape/permute": {
+  "out": "torch.Size([4, 2, 3]) torch.Size([4, 3, 2]) tensor([12, 13, 14, 15]) torch.Size([3, 4, 2])\n",
+  "error": null
+ },
+ "shape/expand": {
+  "out": "tensor([[1., 1., 1.],\n        [2., 2., 2.]]) torch.Size([2, 4]) tensor([[1., 2.],\n        [1., 2.],\n        [1., 2.]]) torch.Size([2, 5]) tensor([[1, 2, 1, 2],\n        [1, 2, 1, 2]])\n",
+  "error": null
+ },
+ "shape/expand error": {
+  "out": "",
+  "error": "RuntimeError: The expanded size of the tensor (4) must match the existing size (3) at non-singleton dimension 1.  Target sizes: [2, 4].  Tensor sizes: [3]"
+ },
+ "shape/cat stack": {
+  "out": "tensor([[1., 2.],\n        [3., 4.],\n        [5., 6.],\n        [7., 8.]]) tensor([[1., 2., 5., 6.],\n        [3., 4., 7., 8.]]) tensor([[1., 2., 5., 6.],\n        [3., 4., 7., 8.]]) torch.Size([2, 2, 2]) torch.Size([2, 2, 2]) tensor([[1., 5.],\n        [2., 6.]])\n",
+  "error": null
+ },
+ "shape/cat dtype": {
+  "out": "tensor([1., 2., 3., 4.]) tensor([1., 2.])\n",
+  "error": null
+ },
+ "shape/cat error": {
+  "out": "",
+  "error": "RuntimeError: Sizes of tensors must match except in dimension 0. Expected size 3 but got size 4 for tensor number 1 in the list."
+ },
+ "shape/cat error dims": {
+  "out": "",
+  "error": "RuntimeError: Tensors must have same number of dimensions: got 2 and 1"
+ },
+ "shape/stack error": {
+  "out": "",
+  "error": "RuntimeError: stack expects each tensor to be equal size, but got [2] at entry 0 and [3] at entry 1"
+ },
+ "shape/split chunk unbind": {
+  "out": "(tensor([0., 1., 2., 3.]), tensor([4., 5., 6., 7.]), tensor([8., 9.]))\n(tensor([0., 1., 2., 3.]), tensor([4., 5., 6., 7.]), tensor([8., 9.]))\n(tensor([0., 1., 2.]), tensor([3., 4., 5.]))\n(tensor([0., 1.]), tensor([2., 3., 4., 5., 6., 7., 8., 9.]))\n",
+  "error": null
+ },
+ "shape/flip": {
+  "out": "tensor([[3., 4., 5.],\n        [0., 1., 2.]]) tensor([4, 3, 2, 1, 0])\n",
+  "error": null
+ },
+ "index/basic": {
+  "out": "tensor([0., 1., 2., 3.]) tensor(6.) tensor([1., 5., 9.]) tensor([[ 4.,  5.,  6.,  7.],\n        [ 8.,  9., 10., 11.]]) tensor([[0., 1.],\n        [4., 5.],\n        [8., 9.]]) tensor([ 8.,  9., 10., 11.]) tensor([0., 4., 8.]) torch.Size([1, 3, 4]) torch.Size([3, 1, 4]) tensor([[ 0.,  1.,  2.,  3.],\n        [ 8.,  9., 10., 11.]]) tensor([0., 2.])\n",
+  "error": null
+ },
+ "index/advanced": {
+  "out": "tensor([[ 0.,  1.,  2.,  3.],\n        [ 8.,  9., 10., 11.]]) tensor([[ 0.,  1.,  2.,  3.],\n        [ 8.,  9., 10., 11.]]) tensor([1., 6.]) tensor([ 6.,  7.,  8.,  9., 10., 11.]) tensor([[ 0.,  3.],\n        [ 4.,  7.],\n        [ 8., 11.]]) tensor([[ 0.,  1.,  2.,  3.],\n        [ 8.,  9., 10., 11.]])\n",
+  "error": null
+ },
+ "index/assign": {
+  "out": "tensor([[  1., -99.,   1.],\n        [  0., -99.,   0.],\n        [  0., -99.,   5.]])\ntensor([[1., 7., 1.],\n        [0., 7., 0.],\n        [0., 7., 5.]])\ntensor([[8., 7., 1.],\n        [0., 9., 0.],\n        [0., 7., 5.]])\n",
+  "error": null
+ },
+ "index/assign dtype": {
+  "out": "tensor([2, 0, 0])\ntensor([3., 0.])\n",
+  "error": null
+ },
+ "index/shares memory": {
+  "out": "tensor([  0., 100.,   2.,   3.,   4.,   5.]) tensor([100.,   2.,   3.])\ntensor([ -1., 100.,   2.,   3.,   4.,   5.])\n",
+  "error": null
+ },
+ "index/advanced copies": {
+  "out": "tensor([0., 1., 2., 3., 4., 5.])\n",
+  "error": null
+ },
+ "index/out of range": {
+  "out": "",
+  "error": "IndexError: index 5 is out of bounds for dimension 0 with size 3"
+ },
+ "index/out of range 2d": {
+  "out": "",
+  "error": "IndexError: index 3 is out of bounds for dimension 1 with size 3"
+ },
+ "index/too many": {
+  "out": "",
+  "error": "IndexError: too many indices for tensor of dimension 2"
+ },
+ "index/neg step": {
+  "out": "",
+  "error": "ValueError: step must be greater than zero"
+ },
+ "index/float index": {
+  "out": "",
+  "error": "IndexError: only integers, slices (`:`), ellipsis (`...`), None and long or byte Variables are valid indices (got float)"
+ },
+ "index/0d bool": {
+  "out": "torch.Size([1, 3]) torch.Size([0, 3])\n",
+  "error": null
+ },
+ "index/item scalar": {
+  "out": "tensor(5.) <class 'torch.Tensor'> 5.0 tensor(5.)\n",
+  "error": null
+ },
+ "index/tensor as index int": {
+  "out": "tensor(2.) tensor([0., 1., 2.])\n",
+  "error": null
+ },
+ "inplace/methods": {
+  "out": "tensor([ 2., -1.,  4.])\ntensor([ 4., -2.,  8.])\ntensor([4., 0., 8.])\ntensor([ 1.5000, -0.5000,  3.5000])\ntensor([0., 0., 0.])\ntensor([3., 3., 3.])\ntensor([2., 2., 2.])\ntensor([-2., -2., -2.])\ntensor([7.3891, 7.3891, 7.3891])\n",
+  "error": null
+ },
+ "inplace/operators": {
+  "out": "tensor([1.5000, 2.5000]) True\ntensor([2, 3])\n",
+  "error": null
+ },
+ "inplace/dtype error": {
+  "out": "",
+  "error": "RuntimeError: result type Float can't be cast to the desired output type Long"
+ },
+ "inplace/dtype ok": {
+  "out": "tensor([2., 4.])\ntensor([3., 6.]) torch.float32\n",
+  "error": null
+ },
+ "inplace/shape error": {
+  "out": "",
+  "error": "RuntimeError: output with shape [2] doesn't match the broadcast shape [2, 2]"
+ },
+ "inplace/version": {
+  "out": "0\n1\n2\n3 3\n",
+  "error": null
+ },
+ "inplace/copy": {
+  "out": "tensor([1., 2., 3.])\ntensor([5., 5., 5.])\n",
+  "error": null
+ },
+ "inplace/masked_fill": {
+  "out": "tensor([1., 0., 0.])\ntensor([-1.,  2.,  3.])\n",
+  "error": null
+ },
+ "inplace/leaf error": {
+  "out": "",
+  "error": "RuntimeError: a leaf Variable that requires grad is being used in an in-place operation."
+ },
+ "inplace/leaf error add_": {
+  "out": "",
+  "error": "RuntimeError: a leaf Variable that requires grad is being used in an in-place operation."
+ },
+ "inplace/leaf error setitem": {
+  "out": "",
+  "error": "RuntimeError: a view of a leaf Variable that requires grad is being used in an in-place operation."
+ },
+ "inplace/leaf ok under no_grad": {
+  "out": "tensor([9., 3.], requires_grad=True) True True None\n",
+  "error": null
+ },
+ "inplace/data attr": {
+  "out": "tensor([2., 3.], requires_grad=True)\ntensor([0., 0.], requires_grad=True)\nFalse False\n",
+  "error": null
+ },
+ "inplace/detach shares": {
+  "out": "tensor([9., 2.])\n",
+  "error": null
+ },
+ "inplace/clone independent": {
+  "out": "tensor([1., 2.]) tensor([9., 2.])\n",
+  "error": null
+ },
+ "convert/to dtype": {
+  "out": "tensor([1, 2]) tensor([1, 2], dtype=torch.int32) tensor([1, 2]) tensor([1.5000, 2.5000], dtype=torch.float64) tensor([1.5000, 2.5000], dtype=torch.float16) tensor([True, True]) True True True tensor([1.5000, 2.5000], dtype=torch.float64) tensor([1, 2], dtype=torch.int32)\n",
+  "error": null
+ },
+ "convert/to other": {
+  "out": "torch.float64 torch.float64 True torch.float64\n",
+  "error": null
+ },
+ "convert/type str": {
+  "out": "torch.FloatTensor torch.LongTensor tensor([1])\n",
+  "error": null
+ },
+ "convert/device kw error": {
+  "out": "",
+  "error": "RuntimeError: Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx"
+ },
+ "convert/numpy grad error": {
+  "out": "",
+  "error": "RuntimeError: Can't call numpy() on Tensor that requires grad. Use tensor.detach().numpy() instead."
+ },
+ "convert/np array conv": {
+  "out": "[1. 2.] [2. 3.] tensor([2., 4.])\n",
+  "error": null
+ },
+ "convert/np mul order": {
+  "out": "Tensor tensor([2., 4.])\n",
+  "error": null
+ },
+ "convert/isinstance": {
+  "out": "True True False True False\n",
+  "error": null
+ }
+}

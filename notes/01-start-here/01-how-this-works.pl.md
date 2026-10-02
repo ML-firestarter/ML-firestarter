@@ -159,6 +159,17 @@ CHECKS = [
 
 Żeby przykład w Pythonie dało się uruchomić w lekcji, dopisz `python run` po grawisach, które otwierają jego blok kodu. Szczegóły są w [README](https://github.com/ML-firestarter/ML-firestarter#writing-exercises) (po angielsku), w tym `npm run check:exercises`, które sprawdza, czy każde rozwiązanie przechodzi swoje sprawdzenia.
 
+## PyTorch na stronie
+
+Sam PyTorch nie uruchomi się w przeglądarce, więc lekcje i ćwiczenia, które zaczynają się od `import torch`, dostają mały PyTorch, który ta witryna ma ze sobą. Jest napisany w NumPy i ma to, czego używają lekcje: tensory, autograd, `torch.nn`, `torch.optim`, `torch.utils.data` i `torchmetrics`. Wypisuje tensory tak jak PyTorch, kończy się tymi samymi komunikatami błędów i po `torch.manual_seed(42)` tworzy te same liczby losowe co PyTorch, więc liczby w lekcji to te, które dostaniesz na swoim komputerze, z dokładnością do ostatniej cyfry ułamka. Różnice:
+
+- Nie ma karty graficznej. `torch.cuda.is_available()` zwraca `False`, a prośba o `device="cuda"` kończy się błędem, tak jak na komputerze bez niej.
+- Liczby całkowite NumPy mają w przeglądarce 32 bity, a na komputerze zwykle 64, więc `torch.tensor(np.array([1, 2, 3]))` jest tu tensorem `int32`. Napisz `dtype=torch.int64`, gdy ma to znaczenie.
+- To mała biblioteka, zbudowana na potrzeby lekcji. Kilku rzeczy, które ma prawdziwy PyTorch, jak splotów, jeszcze w niej nie ma, a `torch.save` zapisuje własny plik, którego PyTorch nie odczyta.
+- Jest wolniejsza od prawdziwej, więc lekcje trzymają dane małe.
+
+Reszta działa tak samo, więc żeby pójść dalej, zainstaluj PyTorch na swoim komputerze przez `pip install torch` i uruchom tam ten sam kod.
+
 ## Śledzenie postępów
 
 Na końcu lekcji naciśnij **Oznacz lekcję jako ukończoną**. Po rozwiązaniu testu twój najlepszy wynik widać w zakładce **Testy** i na końcu lekcji. Zaliczone ćwiczenia dostają znacznik na liście ćwiczeń lekcji, a pasek boczny je zlicza. Postęp, wyniki i twoje ćwiczenia są wspólne dla obu języków i zapisywane tylko w tej przeglądarce, więc nie synchronizują się między urządzeniami.
