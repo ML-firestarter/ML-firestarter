@@ -38,7 +38,7 @@ More terms, such as [SFT](../vocabulary/sft.md) and [RL](../vocabulary/rl.md), a
 
 ## Training, validation and test data
 
-A model that has memorized its training data can look perfect and still fail on new data. That's called **overfitting**. To catch it, split the data three ways:
+A model that has memorized its training data can look perfect and still fail on new data. That's called [**overfitting**](../vocabulary/overfitting.md). To catch it, split the data three ways:
 
 1. The **training set** is used to fit the parameters.
 2. The **validation set** is used to compare models and tune settings such as the learning rate.

@@ -14,4 +14,4 @@ Dostrajanie najlepiej sprawdza się wtedy, gdy trzeba zmienić to, jak model si�
 
 **Przykład:** dostrojenie ogólnego modelu na kilku tysiącach dawnych rozmów z działem obsługi klienta, żeby odpowiadał klientom w tonie i formacie firmy.
 
-**Powiązane:** [Pretrening](pretraining.pl.md) · [SFT](sft.pl.md) · [Model bazowy](base-model.pl.md) · [LoRA](lora.pl.md) · [RAG](rag.pl.md)
+**Powiązane:** [Pretrening](pretraining.pl.md) · [SFT](sft.pl.md) · [Model bazowy](base-model.pl.md) · [LoRA](lora.pl.md) · [RAG](rag.pl.md) · [Nadmierne dopasowanie](overfitting.pl.md)
