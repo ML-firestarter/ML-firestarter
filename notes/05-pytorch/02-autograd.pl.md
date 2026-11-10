@@ -282,7 +282,7 @@ print(round(loss.item(), 2), round(new_loss.item(), 2))
 
 Oba nachylenia są ujemne, więc kurs, który najbardziej podnosi stratę, jest trochę krótszy i ma trochę mniej postoju: 3,9 km i 5,9 minuty. Predykcja dla niego jest niższa, więc mija 30 o więcej: strata rośnie z 49 do 54,02. Ceny się nie zmieniły. `ride.detach()` daje liczby kursu bez zapisu, żeby `changed` było nowym wejściem, a nie krokiem w obliczeniu starej straty.
 
-Te same kilka wierszy działa na obrazie i sieci, która go czyta. Każdy piksel przesuwa się odrobinę, za mało, żeby to zobaczyć, zgodnie ze znakiem swojego nachylenia, a sieć, która czytała obraz dobrze, może przeczytać go źle. Tak zmieniony obraz nazywa się **przykładem antagonistycznym** (ang. adversarial example), a jego tworzenie zaczyna się od nachylenia straty względem wejścia.
+Te same kilka wierszy działa na obrazie i sieci, która go czyta. Każdy piksel przesuwa się odrobinę, za mało, żeby to zobaczyć, zgodnie ze znakiem swojego nachylenia, a sieć, która czytała obraz dobrze, może przeczytać go źle. Tak zmieniony obraz nazywa się **przykładem antagonistycznym** (ang. adversarial example), a jego tworzenie zaczyna się od nachylenia straty względem wejścia. Od tego zaczyna się rozdział [Przykłady antagonistyczne](../07-adversarial-examples/).
 
 ## Podsumowanie
 

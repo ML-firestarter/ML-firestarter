@@ -282,7 +282,7 @@ print(round(loss.item(), 2), round(new_loss.item(), 2))
 
 Both slopes are negative, so the ride that raises the loss the most is a little shorter, with a little less waiting: 3.9 km and 5.9 minutes. The prediction for it is lower, so it misses the 30 by more: the loss goes from 49 to 54.02. The prices never changed. `ride.detach()` gives the ride's numbers without the record, so that `changed` is a new input, and not a step in the computation of the old loss.
 
-The same few lines work on a picture and a network that reads it. Each pixel moves a little, too little to see, along the sign of its slope, and the network that read the picture right can read it wrong. A picture changed like that is called an **adversarial example**, and making one starts with the slope of the loss for the input.
+The same few lines work on a picture and a network that reads it. Each pixel moves a little, too little to see, along the sign of its slope, and the network that read the picture right can read it wrong. A picture changed like that is called an **adversarial example**, and making one starts with the slope of the loss for the input. That's where the [Adversarial examples](../07-adversarial-examples/) chapter starts.
 
 ## Summary
 
