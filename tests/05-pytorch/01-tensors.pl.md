@@ -53,3 +53,39 @@ Ostatni wymiar lewego tensora, 2, ma tyle samo liczb co pierwszy (i jedyny) wymi
 - [ ] Domyślnie dodaje średnią zamiast ją odejmować
 
 Rozrzut z lekcji uśrednia kwadraty odległości od średniej, więc dzieli przez liczbę kursów, 4. `std` w PyTorchu domyślnie dzieli przez 3, co jest dobre dla liczb będących próbką z większej grupy, i daje większy rozrzut. `correction=0` każe mu dzielić przez 4.
+
+## `fares` ma 12 liczb. Które z tych wywołań kończy się błędem?
+
+- [x] `fares.reshape(5, 2)`
+- [ ] `fares.reshape(3, 4)`
+- [ ] `fares.reshape(-1, 6)`
+- [ ] `fares.reshape(2, 2, 3)`
+
+`reshape` tnie te same liczby w inny kształt, więc nowy kształt musi mieścić tyle liczb co stary. 5 wierszy po 2 mieści 10, a jest ich 12. Pozostałe mieszczą 12: 3 × 4, 2 × 2 × 3 i 2 wiersze po 6, gdzie `-1` zostaje wyliczone jako 2.
+
+## `x` ma kształt `[2, 3, 4]`. Jaki kształt ma `x.permute(2, 0, 1)`?
+
+- [x] `[4, 2, 3]`
+- [ ] `[3, 4, 2]`
+- [ ] `[4, 3, 2]`
+- [ ] `[2, 3, 4]`
+
+`permute` wymienia stare wymiary w ich nowej kolejności. Stary wymiar 2, z 4 liczbami, idzie pierwszy, potem stary 0, z 2, a potem stary 1, z 3.
+
+## Obraz wczytany z pliku ma kształt `[32, 48, 3]` i typ `uint8`. Który wiersz robi tensor, jaki biorą warstwy PyTorcha?
+
+- [x] `picture.permute(2, 0, 1).float() / 255`
+- [ ] `picture.reshape(3, 32, 48).float() / 255`
+- [ ] `picture.float() / 255`
+- [ ] `picture.permute(2, 0, 1) + 0.5`
+
+Warstwy chcą liczb zmiennoprzecinkowych od 0 do 1 z kanałami na początku, `[3, 32, 48]`. `permute` przestawia tam kanały. `reshape(3, 32, 48)` też daje ten kształt, ale tylko inaczej tnie ten sam ciąg liczb, więc kolory każdego piksela rozchodzą się po obrazie. Bez `permute` kanały zostają na końcu, a dodanie 0,5 nie sprowadza liczb od 0 do 255 do przedziału od 0 do 1.
+
+## `pixel = torch.tensor([250, 100, 0], dtype=torch.uint8)`. Ile wynosi `pixel + 10`?
+
+- [x] `tensor([  4, 110,  10], dtype=torch.uint8)`
+- [ ] `tensor([260, 110,  10], dtype=torch.uint8)`
+- [ ] `tensor([255, 110,  10], dtype=torch.uint8)`
+- [ ] Błąd, bo 260 nie mieści się w `uint8`
+
+`uint8` mieści liczby od 0 do 255, a po 255 liczenie zaczyna się od nowa od 0: 250 + 10 to 260, a 260 − 256 = 4. Nic cię nie ostrzega i nic nie zatrzymuje się na 255. Żeby rozjaśnić obraz, najpierw zamień go na liczby zmiennoprzecinkowe, a przed zamianą z powrotem użyj na nich `clamp`.

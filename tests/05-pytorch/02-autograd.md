@@ -53,3 +53,30 @@ Nothing is recorded inside `no_grad`, so `y` doesn't remember how it was made, a
 - [ ] `torch.zeros(3)`
 
 `torch.tensor(5)` holds a whole number, and slopes only make sense for floats: PyTorch says "Only Tensors of floating point and complex dtype can require gradients". The other three hold floats.
+
+## `km = torch.tensor(5.0)` is marked with `km.requires_grad_()`, and then `fare = 3 * km + 10` and `fare.backward()`. What's `km.grad`?
+
+- [x] `tensor(3.)`
+- [ ] `tensor(5.)`
+- [ ] `tensor(25.)`
+- [ ] `None`
+
+The slope of the fare for the distance is what a kilometer costs, 3: an input gets a slope the way a parameter does, once it's marked. 5 is the distance itself, which would be the slope for the weight, and 25 is the fare. `None` is what `.grad` holds for a tensor that isn't marked.
+
+## `loss` was worked out from a marked `ride` and from the parameters `prices`, which are marked too. After `slopes = torch.autograd.grad(loss, ride)`, what's in `prices.grad`?
+
+- [x] What was there before, `None` if nothing was: the slopes are returned, and no `.grad` is filled
+- [ ] The slope of the loss for `prices`
+- [ ] The same tensor as `slopes[0]`
+- [ ] Zeros
+
+`torch.autograd.grad` works out the slopes for the tensors it's asked about, here the ride, and returns them as a tuple, so the ride's slope is `slopes[0]`. It's `backward()` that puts a slope in the `.grad` of everything that's marked.
+
+## What does `prices.requires_grad_(False)` do to a parameter?
+
+- [x] It freezes it: nothing records what's done with it, so it gets no slopes, and no step changes it
+- [ ] It sets its numbers to 0
+- [ ] It sets its `.grad` to 0, like `zero_()`
+- [ ] It turns its numbers into whole numbers, which can't have slopes
+
+Taking the mark off leaves the numbers as they are, and only stops the recording. `backward()` then passes the parameter by, which is what you want for a model that's done learning, or for the part of a model that should stay as it is while the rest learns.

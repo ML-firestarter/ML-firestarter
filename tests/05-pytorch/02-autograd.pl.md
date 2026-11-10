@@ -53,3 +53,30 @@ Wewnątrz `no_grad` nic nie jest zapisywane, więc `y` nie pamięta, jak powsta�
 - [ ] `torch.zeros(3)`
 
 `torch.tensor(5)` zawiera liczbę całkowitą, a nachylenia mają sens tylko dla liczb zmiennoprzecinkowych: PyTorch mówi „Only Tensors of floating point and complex dtype can require gradients”. Pozostałe trzy zawierają liczby zmiennoprzecinkowe.
+
+## `km = torch.tensor(5.0)` zostaje oznaczone przez `km.requires_grad_()`, a potem `fare = 3 * km + 10` i `fare.backward()`. Ile wynosi `km.grad`?
+
+- [x] `tensor(3.)`
+- [ ] `tensor(5.)`
+- [ ] `tensor(25.)`
+- [ ] `None`
+
+Nachylenie opłaty względem odległości to koszt kilometra, 3: wejście dostaje nachylenie tak jak parametr, gdy tylko jest oznaczone. 5 to sama odległość, czyli nachylenie względem wagi, a 25 to opłata. `None` to zawartość `.grad` tensora, który nie jest oznaczony.
+
+## `loss` policzono z oznaczonego `ride` i z parametrów `prices`, które też są oznaczone. Co jest w `prices.grad` po `slopes = torch.autograd.grad(loss, ride)`?
+
+- [x] To, co było tam wcześniej, czyli `None`, jeśli nic: nachylenia są zwracane, a żadne `.grad` nie jest wypełniane
+- [ ] Nachylenie straty względem `prices`
+- [ ] Ten sam tensor co `slopes[0]`
+- [ ] Zera
+
+`torch.autograd.grad` liczy nachylenia względem tensorów, o które je zapytano, tutaj względem kursu, i zwraca je jako krotkę, więc nachylenie względem kursu to `slopes[0]`. To `backward()` wkłada nachylenie do `.grad` wszystkiego, co jest oznaczone.
+
+## Co `prices.requires_grad_(False)` robi z parametrem?
+
+- [x] Zamraża go: nic nie zapisuje, co się z nim robi, więc nie dostaje nachyleń i żaden krok go nie zmienia
+- [ ] Ustawia jego liczby na 0
+- [ ] Ustawia jego `.grad` na 0, jak `zero_()`
+- [ ] Zamienia jego liczby na całkowite, które nie mogą mieć nachyleń
+
+Zdjęcie oznaczenia zostawia liczby bez zmian i tylko wyłącza zapisywanie. `backward()` omija wtedy parametr, a tego właśnie chcesz dla modelu, który skończył się uczyć, albo dla tej części modelu, która ma zostać taka, jaka jest, gdy reszta się uczy.

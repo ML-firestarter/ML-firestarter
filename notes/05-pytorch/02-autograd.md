@@ -1,5 +1,5 @@
 ---
-description: Let PyTorch work out the slopes for you, by marking the parameters and calling backward after a forward pass, and take gradient descent steps without tracking them.
+description: Let PyTorch work out the slopes for you, by marking the parameters and calling backward after a forward pass, take gradient descent steps without tracking them, and find the slope of a loss for an input.
 ---
 
 # Autograd
@@ -202,12 +202,95 @@ print(fare)
 
 The first fare remembers how it was made, and the second doesn't. A tensor with a record can't become a NumPy array directly: `.detach()` gives the same numbers without the record, and `fare.detach().numpy()` works where `fare.numpy()` says that it can't.
 
+## The slope for an input
+
+So far, the slopes were for the parameters, because training changes those. But `backward()` gives a slope for anything that's marked, and an input can be marked too. `requires_grad_()` marks a tensor that's there already, in place, as the underscore says. That's the way for data, which usually comes from somewhere else, like a file. Here's the trained fare line, with $w = 3$ and $b = 10$, and a ride of 5 km:
+
+```python run
+import torch
+
+w = torch.tensor(3.0, requires_grad=True)
+b = torch.tensor(10.0, requires_grad=True)
+km = torch.tensor(5.0)
+km.requires_grad_()
+
+fare = w * km + b
+fare.backward()
+print(km.grad)
+print(w.grad, b.grad)
+```
+
+The slope of the fare for the distance is 3: one more kilometer costs €3 more, which is what the weight says. For a line, the slope for the input is the weight, wherever the ride is. The slopes for $w$ and $b$ were worked out as well, 5 and 1, because they're still marked.
+
+Often only the input's slope is wanted, and the parameters' slopes are in the way: they'd be added to whatever a training loop has in `.grad`. `torch.autograd.grad(loss, ride)` works out the slope of the loss for the ride and nothing else, and returns it instead of putting it in `.grad`. Take the fares with waiting from [Tensors](01-tensors.md#matrix-multiplication): €3 a kilometer, €0.50 a minute, and €8 to start. For a ride of 4 km with 6 minutes of waiting, they give 23. Say the receipt has 30 on it:
+
+```python run
+import torch
+
+prices = torch.tensor([3.0, 0.5], requires_grad=True)
+start = torch.tensor(8.0, requires_grad=True)
+ride = torch.tensor([4.0, 6.0], requires_grad=True)
+
+prediction = ride @ prices + start
+loss = (prediction - 30.0) ** 2
+print(prediction, loss)
+
+slopes = torch.autograd.grad(loss, ride)
+print(slopes)
+print(ride.grad, prices.grad, start.grad)
+```
+
+The loss is $(23 - 30)^2 = 49$, and its slopes for the ride are −42 for the kilometers and −7 for the minutes: $2(\hat{y} - y)$ times each price, $2 \times (-7) \times 3$ and $2 \times (-7) \times 0.5$. `torch.autograd.grad` returns a tuple, with a tensor for each tensor it was asked about, so the slope is `slopes[0]`. Every `.grad` is still `None`: nothing was put there.
+
+The other way to leave the parameters out is to take their mark off, with `requires_grad_(False)`. A parameter without the mark is **frozen**: nothing records what's done with it, `backward()` passes it by, and so no step changes it. That's for a model that's done learning, or for a part of a model that should stay as it is while the rest learns:
+
+```python run
+import torch
+
+prices = torch.tensor([3.0, 0.5], requires_grad=True)
+start = torch.tensor(8.0, requires_grad=True)
+prices.requires_grad_(False)
+start.requires_grad_(False)
+
+ride = torch.tensor([4.0, 6.0], requires_grad=True)
+loss = (ride @ prices + start - 30.0) ** 2
+loss.backward()
+print(ride.grad)
+print(prices.grad, start.grad)
+```
+
+The ride has its slopes, and the frozen prices have none.
+
+What's an input's slope for? It says which way to move the input to change the result. A step of gradient descent moves the parameters *against* their slopes, to lower the loss. Here the ride moves *along* its slopes, by a tenth for each of its numbers, and the loss goes up. `sign()` keeps only the direction of each slope, as −1, 0 or 1:
+
+```python run
+import torch
+
+prices = torch.tensor([3.0, 0.5])
+start = torch.tensor(8.0)
+ride = torch.tensor([4.0, 6.0], requires_grad=True)
+
+loss = (ride @ prices + start - 30.0) ** 2
+slope = torch.autograd.grad(loss, ride)[0]
+print(slope.sign())
+
+changed = ride.detach() + 0.1 * slope.sign()
+new_loss = (changed @ prices + start - 30.0) ** 2
+print(changed)
+print(round(loss.item(), 2), round(new_loss.item(), 2))
+```
+
+Both slopes are negative, so the ride that raises the loss the most is a little shorter, with a little less waiting: 3.9 km and 5.9 minutes. The prediction for it is lower, so it misses the 30 by more: the loss goes from 49 to 54.02. The prices never changed. `ride.detach()` gives the ride's numbers without the record, so that `changed` is a new input, and not a step in the computation of the old loss.
+
+The same few lines work on a picture and a network that reads it. Each pixel moves a little, too little to see, along the sign of its slope, and the network that read the picture right can read it wrong. A picture changed like that is called an **adversarial example**, and making one starts with the slope of the loss for the input.
+
 ## Summary
 
 - `requires_grad=True` marks a tensor of floats to take slopes for. The results of computations with it remember how they were made, in their `grad_fn`, and `backward()` on a result that's a single number puts the slopes in the `.grad` of each such tensor.
 - `backward()` adds to `.grad`, so a training loop sets the slopes back to 0 with `zero_()` after every step.
 - A step of gradient descent changes the parameters inside `torch.no_grad()`, so that the step isn't recorded. `torch.no_grad()` is also what to use to work out predictions.
 - A training loop has four steps: forward, backward, step, reset.
+- An input can be marked too, with `requires_grad_()`, and gets a slope like a parameter. `torch.autograd.grad(loss, x)` returns the slopes for `x` alone, as a tuple, and fills no `.grad`. `requires_grad_(False)` freezes a parameter.
 
 ## Check yourself
 
@@ -232,6 +315,13 @@ A step is not part of the model: it changes the parameters, and nothing should g
 
 </details>
 
+<details>
+<summary>The slopes of a loss for a ride are <code>tensor([-42., -7.])</code>. Which way does the ride have to move for the loss to go up?</summary>
+
+Down in both of its numbers: fewer kilometers, and less waiting. A slope says how the loss changes when its number grows, and both are negative, so growing the numbers lowers the loss and shrinking them raises it. `ride + step * slope.sign()` moves each number that way, by `step`.
+
+</details>
+
 ## Your turn
 
-In [The slope of any function](../../exercises/05-pytorch/02-autograd/01-slope-of-any-function/task.md), you'll let autograd find the slope of a function at a point. In [Train a fare line](../../exercises/05-pytorch/02-autograd/02-train-a-fare-line/task.md), you'll put the four steps in a loop and train a line on any receipts.
+In [The slope of any function](../../exercises/05-pytorch/02-autograd/01-slope-of-any-function/task.md), you'll let autograd find the slope of a function at a point. In [Train a fare line](../../exercises/05-pytorch/02-autograd/02-train-a-fare-line/task.md), you'll put the four steps in a loop and train a line on any receipts. In [Nudge the input](../../exercises/05-pytorch/02-autograd/03-nudge-the-input/task.md), you'll find the slope of a loss for a ride, and move the ride so that the loss goes up.

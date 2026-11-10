@@ -53,3 +53,39 @@ The last dimension of the left tensor, 2, is as long as the first (and only) dim
 - [ ] By default, it adds the average instead of taking it away
 
 The spread of the lessons averages the squared distances from the average, so it divides by the number of rides, 4. PyTorch's `std` divides by 3 by default, which is the right thing for numbers that are a sample of a bigger crowd, and gives a bigger spread. `correction=0` makes it divide by 4.
+
+## `fares` has 12 numbers. Which of these stops with an error?
+
+- [x] `fares.reshape(5, 2)`
+- [ ] `fares.reshape(3, 4)`
+- [ ] `fares.reshape(-1, 6)`
+- [ ] `fares.reshape(2, 2, 3)`
+
+`reshape` cuts the same numbers into another shape, so the new shape has to hold as many numbers as the old one. 5 rows of 2 hold 10, and there are 12. The others hold 12: 3 × 4, 2 × 2 × 3, and 2 rows of 6, where the `-1` is worked out to be 2.
+
+## `x` has the shape `[2, 3, 4]`. What's the shape of `x.permute(2, 0, 1)`?
+
+- [x] `[4, 2, 3]`
+- [ ] `[3, 4, 2]`
+- [ ] `[4, 3, 2]`
+- [ ] `[2, 3, 4]`
+
+`permute` lists the old dimensions in their new order. The old dimension 2, with 4 numbers, comes first, then the old 0, with 2, and then the old 1, with 3.
+
+## A picture read from a file has the shape `[32, 48, 3]` and the type `uint8`. Which line makes the tensor that PyTorch's layers take?
+
+- [x] `picture.permute(2, 0, 1).float() / 255`
+- [ ] `picture.reshape(3, 32, 48).float() / 255`
+- [ ] `picture.float() / 255`
+- [ ] `picture.permute(2, 0, 1) + 0.5`
+
+The layers want floats from 0 to 1 with the channels first, `[3, 32, 48]`. `permute` moves the channels there. `reshape(3, 32, 48)` gives that shape too, but it only cuts the same row of numbers differently, so the colours of each pixel end up spread over the picture. Without `permute`, the channels stay last, and adding 0.5 doesn't bring 0 to 255 down to 0 to 1.
+
+## `pixel = torch.tensor([250, 100, 0], dtype=torch.uint8)`. What's `pixel + 10`?
+
+- [x] `tensor([  4, 110,  10], dtype=torch.uint8)`
+- [ ] `tensor([260, 110,  10], dtype=torch.uint8)`
+- [ ] `tensor([255, 110,  10], dtype=torch.uint8)`
+- [ ] An error, because 260 doesn't fit in a `uint8`
+
+A `uint8` holds 0 to 255, and past 255 the count starts again from 0: 250 + 10 is 260, and 260 − 256 = 4. Nothing warns you, and nothing stops at 255. To make a picture brighter, turn it into floats first, and `clamp` them before turning them back.

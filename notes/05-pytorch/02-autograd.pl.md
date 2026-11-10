@@ -1,5 +1,5 @@
 ---
-description: Pozwól PyTorchowi liczyć nachylenia za ciebie, oznaczając parametry i wywołując backward po przejściu w przód, a kroki spadku gradientu wykonuj bez śledzenia.
+description: Pozwól PyTorchowi liczyć nachylenia za ciebie, oznaczając parametry i wywołując backward po przejściu w przód, kroki spadku gradientu wykonuj bez śledzenia i znajdź nachylenie straty względem wejścia.
 ---
 
 # Autograd
@@ -202,12 +202,95 @@ print(fare)
 
 Pierwsza opłata pamięta, jak powstała, a druga nie. Tensor z zapisem nie może wprost stać się tablicą NumPy: `.detach()` daje te same liczby bez zapisu, a `fare.detach().numpy()` działa tam, gdzie `fare.numpy()` mówi, że nie może.
 
+## Nachylenie względem wejścia
+
+Do tej pory nachylenia liczyło się względem parametrów, bo to je zmienia trening. Ale `backward()` daje nachylenie względem wszystkiego, co jest oznaczone, a wejście też można oznaczyć. `requires_grad_()` oznacza tensor, który już istnieje, w miejscu, o czym mówi podkreślnik. Tak robi się z danymi, które zwykle przychodzą skądinąd, na przykład z pliku. Oto wytrenowana prosta opłat, z $w = 3$ i $b = 10$, i kurs na 5 km:
+
+```python run
+import torch
+
+w = torch.tensor(3.0, requires_grad=True)
+b = torch.tensor(10.0, requires_grad=True)
+km = torch.tensor(5.0)
+km.requires_grad_()
+
+fare = w * km + b
+fare.backward()
+print(km.grad)
+print(w.grad, b.grad)
+```
+
+Nachylenie opłaty względem odległości to 3: każdy kolejny kilometr kosztuje 3 zł więcej, i to właśnie mówi waga. Dla prostej nachylenie względem wejścia to waga, gdziekolwiek jest kurs. Nachylenia względem $w$ i $b$ też się policzyły, 5 i 1, bo nadal są oznaczone.
+
+Często potrzebne jest tylko nachylenie względem wejścia, a nachylenia względem parametrów przeszkadzają: dodałyby się do tego, co pętla treningowa ma w `.grad`. `torch.autograd.grad(loss, ride)` liczy nachylenie straty względem kursu i niczego więcej, i zwraca je, zamiast wkładać do `.grad`. Weź opłaty z postojem z lekcji [Tensory](01-tensors.pl.md#mnożenie-macierzy): 3 zł za kilometr, 0,50 zł za minutę i 8 zł na start. Dla kursu na 4 km z 6 minutami postoju dają 23. Powiedzmy, że na paragonie jest 30:
+
+```python run
+import torch
+
+prices = torch.tensor([3.0, 0.5], requires_grad=True)
+start = torch.tensor(8.0, requires_grad=True)
+ride = torch.tensor([4.0, 6.0], requires_grad=True)
+
+prediction = ride @ prices + start
+loss = (prediction - 30.0) ** 2
+print(prediction, loss)
+
+slopes = torch.autograd.grad(loss, ride)
+print(slopes)
+print(ride.grad, prices.grad, start.grad)
+```
+
+Strata to $(23 - 30)^2 = 49$, a jej nachylenia względem kursu to −42 dla kilometrów i −7 dla minut: $2(\hat{y} - y)$ razy każda z cen, czyli $2 \times (-7) \times 3$ i $2 \times (-7) \times 0{,}5$. `torch.autograd.grad` zwraca krotkę, z tensorem dla każdego tensora, o który je zapytano, więc nachylenie to `slopes[0]`. Każde `.grad` to nadal `None`: nic tam nie trafiło.
+
+Drugi sposób na pominięcie parametrów to zdjąć z nich oznaczenie przez `requires_grad_(False)`. Parametr bez oznaczenia jest **zamrożony**: nic nie zapisuje, co się z nim robi, `backward()` go omija, więc żaden krok go nie zmienia. Tak robi się z modelem, który skończył się uczyć, albo z częścią modelu, która ma zostać taka, jaka jest, gdy reszta się uczy:
+
+```python run
+import torch
+
+prices = torch.tensor([3.0, 0.5], requires_grad=True)
+start = torch.tensor(8.0, requires_grad=True)
+prices.requires_grad_(False)
+start.requires_grad_(False)
+
+ride = torch.tensor([4.0, 6.0], requires_grad=True)
+loss = (ride @ prices + start - 30.0) ** 2
+loss.backward()
+print(ride.grad)
+print(prices.grad, start.grad)
+```
+
+Kurs ma swoje nachylenia, a zamrożone ceny nie mają żadnych.
+
+Do czego służy nachylenie względem wejścia? Mówi, w którą stronę przesunąć wejście, żeby zmienić wynik. Krok spadku gradientu przesuwa parametry *przeciwnie* do ich nachyleń, żeby zmniejszyć stratę. Tutaj kurs przesuwa się *zgodnie* ze swoimi nachyleniami, o jedną dziesiątą na każdej ze swoich liczb, i strata rośnie. `sign()` zostawia z każdego nachylenia tylko kierunek, jako −1, 0 albo 1:
+
+```python run
+import torch
+
+prices = torch.tensor([3.0, 0.5])
+start = torch.tensor(8.0)
+ride = torch.tensor([4.0, 6.0], requires_grad=True)
+
+loss = (ride @ prices + start - 30.0) ** 2
+slope = torch.autograd.grad(loss, ride)[0]
+print(slope.sign())
+
+changed = ride.detach() + 0.1 * slope.sign()
+new_loss = (changed @ prices + start - 30.0) ** 2
+print(changed)
+print(round(loss.item(), 2), round(new_loss.item(), 2))
+```
+
+Oba nachylenia są ujemne, więc kurs, który najbardziej podnosi stratę, jest trochę krótszy i ma trochę mniej postoju: 3,9 km i 5,9 minuty. Predykcja dla niego jest niższa, więc mija 30 o więcej: strata rośnie z 49 do 54,02. Ceny się nie zmieniły. `ride.detach()` daje liczby kursu bez zapisu, żeby `changed` było nowym wejściem, a nie krokiem w obliczeniu starej straty.
+
+Te same kilka wierszy działa na obrazie i sieci, która go czyta. Każdy piksel przesuwa się odrobinę, za mało, żeby to zobaczyć, zgodnie ze znakiem swojego nachylenia, a sieć, która czytała obraz dobrze, może przeczytać go źle. Tak zmieniony obraz nazywa się **przykładem antagonistycznym** (ang. adversarial example), a jego tworzenie zaczyna się od nachylenia straty względem wejścia.
+
 ## Podsumowanie
 
 - `requires_grad=True` oznacza tensor liczb zmiennoprzecinkowych, dla którego liczy się nachylenia. Wyniki obliczeń z jego udziałem pamiętają, jak powstały, w swoim `grad_fn`, a `backward()` na wyniku, który jest jedną liczbą, wkłada nachylenia do `.grad` każdego takiego tensora.
 - `backward()` dodaje do `.grad`, więc pętla treningowa ustawia nachylenia z powrotem na 0 przez `zero_()` po każdym kroku.
 - Krok spadku gradientu zmienia parametry wewnątrz `torch.no_grad()`, żeby krok nie został zapisany. `torch.no_grad()` służy też do liczenia predykcji.
 - Pętla treningowa ma cztery kroki: przód, wstecz, krok, zerowanie.
+- Wejście też można oznaczyć, przez `requires_grad_()`, i dostaje nachylenie tak jak parametr. `torch.autograd.grad(loss, x)` zwraca nachylenia względem samego `x`, jako krotkę, i nie wypełnia żadnego `.grad`. `requires_grad_(False)` zamraża parametr.
 
 ## Sprawdź się
 
@@ -232,6 +315,13 @@ Krok nie jest częścią modelu: zmienia parametry i nic nie powinno się przez 
 
 </details>
 
+<details>
+<summary>Nachylenia straty względem kursu to <code>tensor([-42., -7.])</code>. W którą stronę musi przesunąć się kurs, żeby strata wzrosła?</summary>
+
+W dół na obu liczbach: mniej kilometrów i mniej postoju. Nachylenie mówi, jak zmienia się strata, gdy jego liczba rośnie, a oba są ujemne, więc zwiększanie liczb zmniejsza stratę, a zmniejszanie ich ją zwiększa. `ride + step * slope.sign()` przesuwa każdą liczbę w tę stronę, o `step`.
+
+</details>
+
 ## Twoja kolej
 
-W ćwiczeniu [Nachylenie dowolnej funkcji](../../exercises/05-pytorch/02-autograd/01-slope-of-any-function/task.pl.md) pozwolisz autogradowi znaleźć nachylenie funkcji w punkcie. W ćwiczeniu [Wytrenuj prostą opłat](../../exercises/05-pytorch/02-autograd/02-train-a-fare-line/task.pl.md) umieścisz cztery kroki w pętli i wytrenujesz prostą na dowolnych paragonach.
+W ćwiczeniu [Nachylenie dowolnej funkcji](../../exercises/05-pytorch/02-autograd/01-slope-of-any-function/task.pl.md) pozwolisz autogradowi znaleźć nachylenie funkcji w punkcie. W ćwiczeniu [Wytrenuj prostą opłat](../../exercises/05-pytorch/02-autograd/02-train-a-fare-line/task.pl.md) umieścisz cztery kroki w pętli i wytrenujesz prostą na dowolnych paragonach. W ćwiczeniu [Przesuń wejście](../../exercises/05-pytorch/02-autograd/03-nudge-the-input/task.pl.md) znajdziesz nachylenie straty względem kursu i przesuniesz kurs tak, żeby strata wzrosła.

@@ -166,6 +166,7 @@ PyTorch itself can't run in a browser, so lessons and exercises that start with 
 - There's no graphics card. `torch.cuda.is_available()` is `False`, and asking for `device="cuda"` fails, as it does on a computer without one.
 - NumPy's whole numbers have 32 bits in the browser, and usually 64 on a computer, so `torch.tensor(np.array([1, 2, 3]))` is an `int32` tensor here. Say `dtype=torch.int64` when it matters.
 - It's a small library, built for the lessons. A few things the real PyTorch has, such as convolutions, aren't in it yet, and `torch.save` writes a file of its own, not one that PyTorch can read.
+- Dropout sets other numbers to 0 here than it does on a computer, even after `torch.manual_seed`, so a network that's trained with dropout ends with slightly different numbers there. The lesson that uses it says so.
 - It's slower than the real one, so the lessons keep their data small.
 
 Everything else works the same, so to go further, install PyTorch on your computer with `pip install torch`, and run the same code there.

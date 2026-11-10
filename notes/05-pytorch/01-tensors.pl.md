@@ -1,5 +1,5 @@
 ---
-description: Policz opłaty za cały dzień naraz dzięki tensorom PyTorcha i poznaj kształty, typy i zmiany w miejscu, na których potykają się początkujący.
+description: Policz opłaty za cały dzień naraz dzięki tensorom PyTorcha, poznaj kształty, typy i zmiany w miejscu, na których potykają się początkujący, i zamień obraz w tensor.
 ---
 
 # Tensory
@@ -232,6 +232,126 @@ print(rides - rides.mean(dim=1))
 
 `std` trzeba powiedzieć `correction=0`, żeby liczyło rozrzut tak jak lekcje, dzieląc przez liczbę kursów. Domyślnie dzieli przez o jeden mniej, $n - 1$, czego chcesz, gdy liczby są próbką z większej grupy, i daje tu 2,58 zamiast 2,24 dla odległości.
 
+## Zmiana kształtu
+
+Tensor trzyma swoje liczby w jednym długim ciągu, a jego kształt mówi, gdzie pociąć ten ciąg na wiersze i kolumny. `reshape` tnie te same liczby inaczej. Powiedzmy, że paragony z trzech dni przychodzą jako jedna lista 12 opłat, po 4 kursy dziennie:
+
+```python run
+import torch
+
+fares = torch.tensor([15.0, 23.0, 29.0, 33.0, 12.0, 18.0, 21.0, 40.0, 9.0, 14.0, 26.0, 31.0])
+
+days = fares.reshape(3, 4)
+print(days)
+print(days.sum(dim=1))
+print(fares.reshape(-1, 6).shape)
+print(days.flatten())
+```
+
+`reshape(3, 4)` robi 3 wiersze po 4: pierwsze 4 opłaty to pierwszy dzień, a następne 4 to drugi. Kolejność liczb się nie zmienia, tylko miejsca, w których kończą się wiersze, więc utarg każdego dnia to suma wzdłuż jego wiersza: 100, 91 i 80. `-1` oznacza „tyle, ile pasuje”: przy 6 liczbach w wierszu 12 liczb daje 2 wiersze. `flatten()` wraca do jednego wiersza.
+
+Liczba liczb musi zostać ta sama. 5 wierszy po 2 potrzebuje ich 10, a jest 12:
+
+```python run
+import torch
+
+fares = torch.tensor([15.0, 23.0, 29.0, 33.0, 12.0, 18.0, 21.0, 40.0, 9.0, 14.0, 26.0, 31.0])
+
+print(fares.reshape(5, 2))
+```
+
+„Input of size 12” to `fares`, ze swoimi 12 liczbami.
+
+Zmiana kształtu to nie to samo co zamiana wierszy z kolumnami. `days.T` i `days.reshape(4, 3)` mają ten sam kształt `[4, 3]`, a zawierają różne tabele:
+
+```python run
+import torch
+
+fares = torch.tensor([15.0, 23.0, 29.0, 33.0, 12.0, 18.0, 21.0, 40.0, 9.0, 14.0, 26.0, 31.0])
+days = fares.reshape(3, 4)
+
+print(days.T)
+print(days.reshape(4, 3))
+
+days[0, 0] = 99.0
+print(fares[:3])
+```
+
+`.T` obraca tabelę, więc jej pierwszy wiersz to pierwszy kurs każdego dnia: 15, 12 i 9. `reshape(4, 3)` tnie ten sam ciąg 12 liczb po każdej trzeciej, więc jego pierwszy wiersz to 15, 23 i 29, trzy kursy jednego dnia, a jego wiersze nic nie znaczą. Gdy tensor ma dobry kształt i złe liczby, zwykle to jest powód.
+
+Ostatnie dwa wiersze pokazują, że `reshape` daje widok, kiedy może, tak jak nawiasy kwadratowe: ustawienie `days[0, 0]` zmieniło `fares`. W cudzym kodzie często zobaczysz `view` tam, gdzie ta lekcja ma `reshape`. Robi to samo, ale kończy się błędem, gdy liczby trzeba by skopiować, jak po `.T`, gdzie `reshape` je kopiuje.
+
+## Obraz jako tensor
+
+Obraz to tabela pikseli, a obraz kolorowy ma dla każdego piksela trzy liczby: ile jest w nim czerwonego, zielonego i niebieskiego, od 0 do 255. Pliki i biblioteki, które je czytają, trzymają obraz jako `[wysokość, szerokość, kanały]`, w liczbach całkowitych typu `uint8`, który mieści liczby od 0 do 255 i nic więcej. Oto obraz z 2 wierszy po 3 piksele: czerwony, żółty i niebieski, a pod nimi czarny, szary i biały:
+
+```python run
+import torch
+
+picture = torch.tensor(
+    [
+        [[255, 0, 0], [255, 255, 0], [0, 0, 255]],
+        [[0, 0, 0], [128, 128, 128], [255, 255, 255]],
+    ],
+    dtype=torch.uint8,
+)
+
+print(picture.shape, picture.dtype)
+print(picture[0, 1])
+print(picture[1, 1] + 100)
+print(picture[1, 2] + 1)
+```
+
+`picture[0, 1]` to piksel w wierszu 0 i kolumnie 1: cały czerwony, cały zielony i żadnego niebieskiego, co daje żółty. Ostatnie dwa wiersze pokazują pułapkę `uint8`. Szary piksel plus 100 to 228, tak jak powinno być, ale biały plus 1 to 0: w `uint8` nie ma 256, więc liczenie zaczyna się od nowa od 0, tak jak licznik kilometrów w samochodzie przechodzi z 999999 na 000000. Nic cię nie ostrzega, a obraz rozjaśniony przez dodawanie dostaje czarne plamy tam, gdzie był najjaśniejszy.
+
+Warstwy PyTorcha chcą czegoś innego: liczb zmiennoprzecinkowych od 0 do 1, z kanałami na początku, `[kanały, wysokość, szerokość]`. `permute` ustawia wymiary w nowej kolejności: `permute(2, 0, 1)` mówi, że stary wymiar 2, kanały, idzie pierwszy, a po nim stare 0 i 1, wysokość i szerokość. `.float() / 255` zamienia liczby całkowite na zmiennoprzecinkowe od 0 do 1:
+
+```python run
+import torch
+
+picture = torch.tensor(
+    [
+        [[255, 0, 0], [255, 255, 0], [0, 0, 255]],
+        [[0, 0, 0], [128, 128, 128], [255, 255, 255]],
+    ],
+    dtype=torch.uint8,
+)
+
+x = picture.permute(2, 0, 1).float() / 255
+print(x.shape, x.dtype)
+print(x[0])
+print(picture.reshape(3, 2, 3)[0])
+```
+
+`x[0]` to kanał czerwony: tabela tak wysoka i tak szeroka jak obraz, z czerwonym każdego piksela. W pierwszym wierszu piksel czerwony i żółty mają go w całości, a niebieski wcale. W drugim czarny nie ma go wcale, szary ma połowę, a biały całość. `reshape(3, 2, 3)` daje ten sam kształt i zły tensor, tak jak `reshape(4, 3)` dla dni: jego pierwszy „kanał” to trzy liczby piksela czerwonego, a potem trzy żółtego. Do przestawiania wymiarów służy `permute`, a `.T` to `permute` dla tabeli, która ma tylko jedną inną kolejność.
+
+W drodze powrotnej, żeby zapisać obraz albo go pokazać, liczby zmiennoprzecinkowe znowu stają się `uint8`:
+
+```python run
+import torch
+
+picture = torch.tensor(
+    [
+        [[255, 0, 0], [255, 255, 0], [0, 0, 255]],
+        [[0, 0, 0], [128, 128, 128], [255, 255, 255]],
+    ],
+    dtype=torch.uint8,
+)
+x = picture.permute(2, 0, 1).float() / 255
+
+brighter = (x * 1.5).clamp(0, 1)
+back = (brighter * 255).round().to(torch.uint8).permute(1, 2, 0)
+print(back.shape, back.dtype)
+print(back[1])
+print(x.unsqueeze(0).shape)
+```
+
+Liczby zmiennoprzecinkowe mogą bez szkody przekroczyć 1, więc obraz rozjaśnia się o połowę mnożeniem, a `clamp(0, 1)` sprowadza potem każdą liczbę spoza przedziału od 0 do 1 do bliższego końca. Razy 255, `round()` i `.to(torch.uint8)` dają z powrotem liczby całkowite od 0 do 255, a `permute(1, 2, 0)` odstawia kanały na koniec. Drugi wiersz to czarny, szary 192 i biały: szary pojaśniał, a biały został biały, choć arytmetyka `uint8` by go zawinęła.
+
+Oba kroki przed zamianą są ważne. `.to(torch.uint8)` nie zaokrągla: obcina to, co po przecinku, więc 63,75 stałoby się 63. A to, co robi z liczbą poniżej 0 albo powyżej 255, zależy od komputera, więc najpierw idzie `clamp`.
+
+Sieć bierze wiele obrazów naraz, jako `[obrazy, kanały, wysokość, szerokość]`, a `unsqueeze(0)` dodaje ten pierwszy wymiar do pojedynczego obrazu: `[1, 3, 2, 3]`. [Klasyfikacja obrazów](09-classifying-images.pl.md) trenuje sieć na tensorach o takim kształcie.
+
 ## Podsumowanie
 
 - Tensor to tabela liczb z **kształtem**, który mówi, ile ich jest wzdłuż każdego wymiaru. Wszystkie jego liczby mają jeden typ, `dtype`: `float32` dla liczb z kropką i `int64` dla liczb całkowitych.
@@ -239,6 +359,8 @@ print(rides - rides.mean(dim=1))
 - Nawiasy kwadratowe wybierają liczby, wiersze i kolumny i dają widoki, które dzielą liczby z oryginałem. `clone()` robi kopię, a metoda zakończona znakiem `_` zmienia tensor w miejscu.
 - Tensory o różnych kształtach można łączyć, gdy każda para wymiarów jest równa albo jeden z nich wynosi 1: ten jest rozgłaszany. `keepdim=True` pomaga dopasować kształty.
 - `std` dzieli przez o jeden mniej niż liczba elementów, chyba że powiesz mu `correction=0`.
+- `reshape` tnie te same liczby w inny kształt, z `-1` dla wymiaru do wyliczenia, a `flatten()` układa je w jeden wiersz. `permute` ustawia wymiary w innej kolejności. Dwa tensory mogą mieć ten sam kształt, a liczby w różnych miejscach.
+- Obraz przychodzi jako `[wysokość, szerokość, kanały]` w `uint8`, czyli w liczbach całkowitych od 0 do 255, które po 255 zaczynają się od nowa od 0. Sieć bierze `[kanały, wysokość, szerokość]` w liczbach zmiennoprzecinkowych od 0 do 1: `permute(2, 0, 1).float() / 255`, a z powrotem `clamp`, `round`, `.to(torch.uint8)` i `permute(1, 2, 0)`.
 
 ## Sprawdź się
 
@@ -263,6 +385,13 @@ Tak. `a[:, 0]` to widok pierwszej kolumny, a nie kopia, więc `b[0]` i `a[0, 0]`
 
 </details>
 
+<details>
+<summary>Obraz ma kształt <code>[4, 6, 3]</code>: 4 piksele wysokości, 6 szerokości, 3 kanały. Co jest nie tak z <code>picture.reshape(3, 4, 6)</code> jako sposobem na przestawienie kanałów na początek?</summary>
+
+Kształt wychodzi dobry, `[3, 4, 6]`, a liczby trafiają w złe miejsca. `reshape` zostawia liczby w ich kolejności i tylko inaczej je tnie, więc jego pierwszy „kanał” to pierwsze 24 liczby: trzy kolory pierwszych 8 pikseli. `picture.permute(2, 0, 1)` przestawia wymiary, a jego pierwszy kanał to czerwony każdego piksela.
+
+</details>
+
 ## Twoja kolej
 
-W ćwiczeniu [Opłaty za każdy kurs](../../exercises/05-pytorch/01-tensors/01-fares-for-every-ride/task.pl.md) policzysz opłaty za cały dzień jednym wierszem arytmetyki na tensorach. W ćwiczeniu [Standaryzuj kolumny](../../exercises/05-pytorch/01-tensors/02-standardize-the-columns/task.pl.md) wystandaryzujesz tabelę, korzystając z tego, co wiesz o wymiarach i rozgłaszaniu.
+W ćwiczeniu [Opłaty za każdy kurs](../../exercises/05-pytorch/01-tensors/01-fares-for-every-ride/task.pl.md) policzysz opłaty za cały dzień jednym wierszem arytmetyki na tensorach. W ćwiczeniu [Standaryzuj kolumny](../../exercises/05-pytorch/01-tensors/02-standardize-the-columns/task.pl.md) wystandaryzujesz tabelę, korzystając z tego, co wiesz o wymiarach i rozgłaszaniu. W ćwiczeniu [Obraz jako tensor](../../exercises/05-pytorch/01-tensors/03-a-picture-as-a-tensor/task.pl.md) zamienisz obraz w tensor, który bierze sieć, i z powrotem.

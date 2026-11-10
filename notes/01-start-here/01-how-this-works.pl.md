@@ -166,6 +166,7 @@ Sam PyTorch nie uruchomi się w przeglądarce, więc lekcje i ćwiczenia, które
 - Nie ma karty graficznej. `torch.cuda.is_available()` zwraca `False`, a prośba o `device="cuda"` kończy się błędem, tak jak na komputerze bez niej.
 - Liczby całkowite NumPy mają w przeglądarce 32 bity, a na komputerze zwykle 64, więc `torch.tensor(np.array([1, 2, 3]))` jest tu tensorem `int32`. Napisz `dtype=torch.int64`, gdy ma to znaczenie.
 - To mała biblioteka, zbudowana na potrzeby lekcji. Kilku rzeczy, które ma prawdziwy PyTorch, jak splotów, jeszcze w niej nie ma, a `torch.save` zapisuje własny plik, którego PyTorch nie odczyta.
+- Dropout zeruje tu inne liczby niż na komputerze, nawet po `torch.manual_seed`, więc sieć trenowana z dropoutem kończy tam z trochę innymi liczbami. Lekcja, która go używa, o tym mówi.
 - Jest wolniejsza od prawdziwej, więc lekcje trzymają dane małe.
 
 Reszta działa tak samo, więc żeby pójść dalej, zainstaluj PyTorch na swoim komputerze przez `pip install torch` i uruchom tam ten sam kod.

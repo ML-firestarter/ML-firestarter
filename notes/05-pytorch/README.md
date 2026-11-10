@@ -12,8 +12,8 @@ The chapter builds on [Python](../02-python/) and on [Foundations](../04-foundat
 
 ## What you'll learn
 
-1. [Tensors](01-tensors.md): work out a whole day's fares at once, and learn about shapes, types, views and broadcasting.
-2. [Autograd](02-autograd.md): let PyTorch work out the slopes, and train the fare line with them.
+1. [Tensors](01-tensors.md): work out a whole day's fares at once, learn about shapes, types, views and broadcasting, and turn a picture into a tensor.
+2. [Autograd](02-autograd.md): let PyTorch work out the slopes, train the fare line with them, and find the slope for an input.
 3. [Devices](03-devices.md): say where tensors live, and write code that runs on a graphics card when there is one.
 4. [Linear regression by hand](04-linear-regression-by-hand.md): train a linear regression on a hundred rides with tensors and autograd.
 5. [Linear regression with nn.Linear](05-linear-regression-with-nn-linear.md): the same training with PyTorch's layer, loss and optimizer.
@@ -22,6 +22,7 @@ The chapter builds on [Python](../02-python/) and on [Foundations](../04-foundat
 8. [Your own modules](08-your-own-modules.md): write a wide and deep model of your own, with several inputs and outputs.
 9. [Classifying images](09-classifying-images.md): train a network to read digits, with cross-entropy loss, accuracy and softmax.
 10. [Saving, loading and tuning](10-saving-loading-and-tuning.md): keep a trained model, load it back, and search for good settings.
-11. [Workbook](11-workbook.md): ten more exercises that mix the lessons, from the easiest to the hardest.
+11. [Regularization and optimizers](11-regularization-and-optimizers.md): train faster with momentum and Adam, lower the learning rate as you go, and keep a network from memorizing with weight decay and dropout.
+12. [Workbook](13-workbook.md): ten more exercises that mix the lessons, from the easiest to the hardest.
 
 Each lesson ends with exercises that you solve in the page.
