@@ -1,15 +1,15 @@
 ---
-description: Policz naraz opłaty wielu kursów z minimum i udział tych powyżej limitu.
+description: Policz naraz opłaty za wiele kursów, z uwzględnieniem minimum, i udział opłat powyżej limitu.
 ---
 
-# Opłaty z opłatą początkową
+# Opłata początkowa i minimum
 
-*Korzysta z [Tensory](../../../../notes/05-pytorch/01-tensors.pl.md) dla arytmetyki, `clamp()` i porównań na całych tensorach.*
+*Korzysta z lekcji [Tensory](../../../../notes/05-pytorch/01-tensors.pl.md), z której przydadzą się działania arytmetyczne, `clamp()` i porównania na całych tensorach.*
 
-Taksówka liczy `per_km` za każdy kilometr, plus `fee` za wsiadanie, i nigdy mniej niż `minimum`. Dokończ dwie funkcje, które działają na wszystkich kursach tensora naraz, bez pętli:
+Taksówka liczy `per_km` za każdy kilometr i `fee` za start, ale nigdy mniej niż `minimum`. Dokończ dwie funkcje, które działają na wszystkich kursach z tensora naraz, bez pętli:
 
-- `fares_with_fee(km, per_km, fee, minimum)` zwraca tensor opłat kursów z `km`: `km * per_km + fee`, ale co najmniej `minimum`. Kursy mogą być liczbami całkowitymi albo dziesiętnymi, a działa też tabela o dowolnym kształcie.
-- `share_above(fares, limit)` zwraca jako zwykłą liczbę udział opłat większych niż `limit`: 0,5, gdy to połowa z nich.
+- `fares_with_fee(km, per_km, fee, minimum)` zwraca tensor opłat za kursy z `km`: `km * per_km + fee`, ale nie mniej niż `minimum`. Odległości mogą być liczbami całkowitymi albo dziesiętnymi, a funkcja działa też dla tabeli o dowolnym kształcie.
+- `share_above(fares, limit)` zwraca jako zwykłą liczbę udział opłat większych niż `limit`, na przykład 0,5, gdy jest to połowa z nich.
 
 | Wywołanie                                                       | Zwraca                   |
 | --------------------------------------------------------------- | ------------------------ |
@@ -17,4 +17,4 @@ Taksówka liczy `per_km` za każdy kilometr, plus `fee` za wsiadanie, i nigdy mn
 | `share_above(torch.tensor([5.0, 10.0, 20.0, 30.0]), 12.0)`      | `0.5`                    |
 
 > [!TIP]
-> Porównanie takie jak `fares > limit` daje tensor `True` i `False`. `.float()` zamienia go na jedynki i zera, a średnia z nich to ten udział.
+> Porównanie takie jak `fares > limit` daje tensor wartości `True` i `False`. `.float()` zamienia je na jedynki i zera, a średnia z nich to właśnie szukany udział.

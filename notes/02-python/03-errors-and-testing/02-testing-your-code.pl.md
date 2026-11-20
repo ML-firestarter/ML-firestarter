@@ -1,21 +1,21 @@
 ---
-description: Testuj funkcję przez assert, małe funkcje testowe, unittest i doctest oraz napisz własny program uruchamiający testy.
+description: Testuj funkcję przez assert, małe funkcje testowe, unittest i doctest, i napisz własny program do uruchamiania testów.
 ---
 
 # Testowanie kodu
 
-Piszesz funkcję, uruchamiasz ją na jednym wejściu i wygląda dobrze. Potem ktoś daje jej pustą listę. **Testy** to sposób, żeby dowiedzieć się o tym pierwszym: pytania zadawane twojemu kodowi, zapisane z odpowiedziami, których oczekujesz, które można uruchomić od nowa po każdej zmianie. Tak działa każde ćwiczenie na tej stronie. Gdy naciskasz **Sprawdź**, strona wywołuje twoje funkcje na liście przypadków i porównuje to, co dają, z tym, co powinny.
+Piszesz funkcję, uruchamiasz ją na jednym wejściu i wszystko wygląda dobrze. Potem ktoś daje jej pustą listę. **Testy** pozwalają dowiedzieć się o tym wcześniej: to pytania do kodu, zapisane razem z oczekiwanymi odpowiedziami, które można uruchomić ponownie po każdej zmianie. Tak działa każde ćwiczenie na tej stronie. Gdy naciskasz **Sprawdź**, strona wywołuje twoje funkcje na liście przypadków i porównuje to, co zwracają, z tym, co powinny zwrócić.
 
-W ćwiczeniu do tej lekcji napiszesz tę maszynerię sam, mały program uruchamiający testy. Potrzebujesz do tego:
+W ćwiczeniu do tej lekcji sam napiszesz taki mechanizm, czyli mały program do uruchamiania testów. Będą ci potrzebne:
 
-- **`assert`**, które zatrzymuje program, gdy coś, co powinno być prawdą, nią nie jest,
-- **funkcji testowych**, małych funkcji, które sprawdzają po jednej rzeczy,
-- **przypadków testowych** i tego, jak je wybierać,
-- **`unittest` i `doctest`**, dwóch narzędzi do testów, które są w Pythonie.
+- **`assert`**, który zatrzymuje program, gdy coś, co powinno być prawdą, nią nie jest,
+- **funkcje testowe**, czyli małe funkcje, z których każda sprawdza jedną rzecz,
+- **przypadki testowe** i sposób ich wybierania,
+- **`unittest` i `doctest`**, dwa narzędzia do testowania, które Python ma od razu.
 
 ## assert
 
-`assert` bierze warunek. Gdy jest prawdziwy, nic się nie dzieje. Gdy jest fałszywy, program zatrzymuje się z `AssertionError`, a opcjonalny komunikat po przecinku mówi, co było nie tak:
+`assert` przyjmuje warunek. Gdy jest prawdziwy, nic się nie dzieje. Gdy jest fałszywy, program zatrzymuje się z błędem `AssertionError`, a opcjonalny komunikat po przecinku mówi, co było nie tak:
 
 ```python run
 def median(numbers):
@@ -32,11 +32,11 @@ assert median([5]) == 6, "one item"
 print("all good")
 ```
 
-Pierwsze dwa założenia przechodzą po cichu, a trzecie zatrzymuje program przed ostatnią linią, z `AssertionError: one item` i linią, w której jest, w śladzie stosu. „all good” na końcu nigdy się nie wypisze. `assert` służy do rzeczy, które muszą być prawdą, jeśli kod jest poprawny, i sprawdza własną pracę programu, a nie to, co wpisze użytkownik: do tego służą `if` i `raise`.
+Dwie pierwsze asercje przechodzą po cichu, a trzecia zatrzymuje program przed ostatnią linijką, z `AssertionError: one item` i swoją linijką w śladzie stosu. Napis „all good” na końcu nigdy się nie wypisuje. `assert` służy do sprawdzania rzeczy, które muszą być prawdą, jeśli kod jest poprawny, czyli sprawdza pracę samego programu, a nie to, co wpisuje użytkownik: do tego służą `if` i `raise`.
 
 ## Funkcje testowe
 
-Test to funkcja, która sprawdza jedną rzecz i jest od niej nazwana. Test, który zawodzi, zgłasza `AssertionError`, a taki, który wraca bez błędu, przechodzi. Pętla, która uruchamia testy i łapie `AssertionError` każdego, może zdać raport ze wszystkich zamiast zatrzymać się na pierwszym:
+Test to funkcja, która sprawdza jedną rzecz i od niej bierze nazwę. Test, który nie przechodzi, zgłasza `AssertionError`, a ten, który kończy się bez błędu, przechodzi. Pętla, która uruchamia testy i łapie `AssertionError` każdego z nich, może opisać wszystkie, zamiast zatrzymywać się na pierwszym:
 
 ```python run
 def median(numbers):
@@ -65,18 +65,18 @@ for test in tests:
         print("FAIL", test.__name__)
 ```
 
-Ta `median` zapomina, że lista o parzystej długości ma dwa środkowe elementy, i drugi test to wykrywa. Funkcje to wartości, więc mogą leżeć na liście, a `test.__name__` to nazwa funkcji. Frameworki takie jak te poniżej znajdują testy i robią tę pętlę za ciebie.
+Ta funkcja `median` zapomina, że lista o parzystej długości ma dwa środkowe elementy, i wykrywa to drugi test. Funkcje to wartości, więc mogą leżeć na liście, a `test.__name__` to nazwa funkcji. Narzędzia opisane niżej same znajdują testy i wykonują za ciebie tę pętlę.
 
 ## Wybór przypadków
 
-Test jest tak dobry jak jego przypadki. Łatwo testować to, o czym się myślało, a błędy mieszkają gdzie indziej. Dla każdej funkcji spróbuj:
+Test jest tak dobry jak jego przypadki. Łatwo przetestować to, o czym się myślało, a błędy siedzą gdzie indziej. Dla każdej funkcji wypróbuj:
 
-- **typowego wejścia**, jak `[3, 1, 2]`,
-- **brzegów**: pusta lista, jeden element, najmniejsza i największa wartość, które powinny działać,
-- **obu stron decyzji**: jeśli kod ma `if n % 2 == 1`, nieparzystej długości i parzystej,
-- **tego, co powinno zawieść**: wejścia, które musi zgłosić błąd, jak pusta lista dla mediany.
+- **typowe wejście**, na przykład `[3, 1, 2]`,
+- **przypadki brzegowe**: pustą listę, jeden element, najmniejszą i największą wartość, która powinna działać,
+- **obie strony decyzji**: jeśli w kodzie jest `if n % 2 == 1`, długość nieparzystą i parzystą,
+- **to, co ma się nie udać**: wejście, które musi zgłosić błąd, na przykład pustą listę w przypadku mediany.
 
-Testy dla funkcji mediany takiej jak w ćwiczeniu, jako lista par argumentów i tego, co ma dać:
+Oto testy funkcji liczącej medianę, takiej jak w ćwiczeniu, zapisane jako lista par: argumenty i to, co funkcja powinna zwrócić:
 
 ```python run
 cases = [
@@ -90,9 +90,9 @@ for arguments, expected in cases:
     print(arguments, "->", expected)
 ```
 
-Ostatni przypadek oczekuje **błędu**, więc jego „odpowiedzią” jest klasa `ValueError`, a nie wartość. Program z ćwiczenia musi odróżnić jedno od drugiego. `(arguments,)` to krotka z jedną listą, lista argumentów dla funkcji, która bierze jeden argument: `function(*arguments)` rozkłada krotkę na argumenty.
+Ostatni przypadek oczekuje **błędu**, więc jego „odpowiedzią” jest klasa `ValueError`, a nie wartość. Program uruchamiający testy w ćwiczeniu musi odróżniać te dwie sytuacje. `(arguments,)` to krotka z jedną listą, czyli lista argumentów funkcji, która przyjmuje jeden argument: `function(*arguments)` rozkłada krotkę na argumenty.
 
-Liczby dziesiętne wymagają uwagi. `0.1 + 0.2 == 0.3` to `False`, bo liczby dziesiętne przechowuje się z maleńkim błędem. Porównuj je przez `math.isclose(a, b)` albo zaokrąglaj obie strony:
+Liczby dziesiętne wymagają ostrożności. `0.1 + 0.2 == 0.3` to `False`, bo liczby dziesiętne są przechowywane z drobnym błędem. Porównuj je przez `math.isclose(a, b)` albo zaokrąglaj obie strony:
 
 ```python run
 import math
@@ -104,7 +104,7 @@ print(round(0.1 + 0.2, 2) == 0.3)
 
 ## unittest
 
-`unittest` to narzędzie do testów, które jest w Pythonie. Testy to metody klasy pochodzącej od `unittest.TestCase`, a każda ma nazwę zaczynającą się od `test`. Klasa to sposób łączenia funkcji, który wyjaśnia [lekcja o klasach](../04-programs/01-classes.pl.md), więc na razie weź jej kształt, jaki jest. Metody `assert...` dają lepsze komunikaty niż zwykłe `assert`, a `assertRaises` sprawdza, że błąd jest zgłaszany:
+`unittest` to narzędzie do testowania, które Python ma od razu. Testy to metody klasy wywodzącej się z `unittest.TestCase`, a nazwa każdej z nich zaczyna się od `test`. Klasa to sposób na zebranie funkcji w całość, który wyjaśnia lekcja [Klasy](../04-programs/01-classes.pl.md), więc na razie przyjmij jej kształt taki, jaki jest. Metody `assert...` dają lepsze komunikaty niż zwykły `assert`, a `assertRaises` sprawdza, czy zgłoszono błąd:
 
 ```python run
 import unittest
@@ -138,11 +138,11 @@ class TestMedian(unittest.TestCase):
 unittest.main(argv=["tests"], exit=False)
 ```
 
-`unittest.main()` znajduje testy, uruchamia je i wypisuje raport: kropkę dla każdego testu, który przeszedł, `F` dla każdego, który zawiódł, a dla każdej porażki to, co porównywał i co znalazł. Raport idzie na wyjście błędów, więc strona pokazuje go jako wyjście błędów, chociaż sam program działał dobrze. `argv=["tests"], exit=False` sprawia, że strona nie traktuje końca testów jako końca programu.
+`unittest.main()` znajduje testy, uruchamia je i wypisuje raport: kropkę dla każdego testu, który przeszedł, `F` dla każdego, który nie przeszedł, a przy każdym niepowodzeniu to, co porównywano, i to, co wyszło. Raport trafia na wyjście błędów, więc strona pokazuje go jako błędy, choć sam program zadziałał poprawnie. `argv=["tests"], exit=False` sprawia, że strona nie traktuje końca testów jako końca programu.
 
 ## doctest
 
-`doctest` wyjmuje testy z dokumentacji. Docstring funkcji, tekst w potrójnych cudzysłowach tuż pod `def`, może pokazać, jak się jej używa, w postaci znaku zachęty Pythona, `>>>`, z wynikiem w następnej linii. `doctest.testmod()` uruchamia każdy i sprawdza wynik:
+`doctest` bierze testy z dokumentacji. Docstring funkcji, czyli tekst w potrójnych cudzysłowach tuż pod `def`, może pokazywać, jak się jej używa, w postaci znaku zachęty Pythona, `>>>`, z wynikiem w następnej linijce. `doctest.testmod()` uruchamia każdy taki przykład i sprawdza wynik:
 
 ```python run
 def double(x):
@@ -164,19 +164,19 @@ import doctest
 print(doctest.testmod())
 ```
 
-Zgłasza przykład, który zawiódł, z tym, czego oczekiwano i co dostał, a potem liczbę: `TestResults(failed=1, attempted=3)`. Doctesty są dobre do krótkich przykładów, które są też dokumentacją, a unittest do większych.
+Wypisuje przykład, który nie przeszedł, z tym, czego oczekiwał, i tym, co dostał, a potem podsumowanie: `TestResults(failed=1, attempted=3)`. Doctesty dobrze sprawdzają się przy krótkich przykładach, które przy okazji są dokumentacją, a unittest przy całej reszcie.
 
 ## Na twoim komputerze
 
-Narzędzie, którego używa większość projektów w Pythonie, to **pytest**. Test to zwykła funkcja w pliku o nazwie `test_something.py`, napisana tak jak w części o funkcjach testowych, z samym `assert`, a `pytest` znajduje wszystkie i zgłasza każdą, która zawodzi, z wartościami po obu stronach. Z `uv`, z [lekcji o twoim komputerze](../04-programs/03-python-on-your-computer.pl.md):
+Większość projektów w Pythonie korzysta z narzędzia **pytest**. Test to zwykła funkcja w pliku o nazwie `test_something.py`, napisana tak jak w części o funkcjach testowych, ze zwykłym `assert`, a `pytest` znajduje je wszystkie i zgłasza każdą, która nie przechodzi, z wartościami po obu stronach porównania. Z `uv`, które poznasz w [lekcji o Pythonie na twoim komputerze](../04-programs/03-python-on-your-computer.pl.md):
 
 ```bash
 uv add --dev pytest
 uv run pytest
 ```
 
-To ten sam pomysł co pętla z tej lekcji, z większą starannością. Pisanie testów funkcji *przed* funkcją, z przypadków tego, co ma robić, to dobry nawyk i to właśnie jest pisanie sprawdzeń ćwiczenia.
+To ta sama idea co pętla z tej lekcji, tylko dopracowana. Pisanie testów funkcji *przed* samą funkcją, na podstawie przypadków tego, co ma robić, to dobry nawyk, i właśnie tak powstają sprawdzenia do ćwiczeń.
 
 ## Twoja kolej
 
-W ćwiczeniu [Uruchom testy](../../../exercises/02-python/03-errors-and-testing/02-testing-your-code/01-run-the-tests/task.pl.md) napiszesz program uruchamiający testy: wywołuje funkcję na liście przypadków, oczekuje wartości albo błędów i zgłasza każdy przypadek, który wyszedł źle, słowami. To ta sama praca, którą przycisk **Sprawdź** robi na twoim kodzie.
+W ćwiczeniu [Uruchom testy](../../../exercises/02-python/03-errors-and-testing/02-testing-your-code/01-run-the-tests/task.pl.md) napiszesz program do uruchamiania testów: wywołuje funkcję na liście przypadków, oczekuje wartości albo błędów i opisuje słowami każdy przypadek, który poszedł źle. To ta sama praca, którą przycisk **Sprawdź** wykonuje na twoim kodzie.

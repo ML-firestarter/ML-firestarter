@@ -1,16 +1,16 @@
 ---
-description: Wyceluj atak w wybraną klasę, zmierz zaburzenie normami L∞ i L2, atakuj w okrągłej kuli i odepchnij embedding obrazu bez żadnej etykiety.
+description: Wyceluj atak w wybraną klasę, zmierz perturbację w normach L∞ i L2, zaatakuj w kuli L2 i odsuń embedding obrazu, nie używając żadnej etykiety.
 ---
 
 # Cele i normy
 
-Dotychczasowe ataki chciały, żeby sieć się pomyliła, i było im obojętne jak. Kierowcy obojętne nie jest: 1 przeczytana jako 4 nic nie da komuś, kto chciał 7. Ta lekcja celuje atakiem w klasę. Potem patrzy, jak mierzy się wielkość zmiany, bo największa zmiana piksela to nie jedyny sposób, a kończy się atakiem na embeddingi sieci, który w ogóle nie potrzebuje klas.
+Dotychczasowe ataki miały tylko sprawić, żeby sieć się pomyliła, obojętnie jak. Kierowcy nie jest to obojętne: jedynka odczytana jako czwórka nic mu nie da, jeśli chciał siódemki. W tej lekcji atak zostaje wycelowany w konkretną klasę. Potem zobaczysz, że wielkość zmiany można mierzyć inaczej niż największą zmianą piksela, a na koniec zaatakujesz embeddingi sieci, do czego klasy w ogóle nie są potrzebne.
 
-## W stronę klasy
+## Atak ukierunkowany
 
-Atak, któremu wystarczy każda zła odpowiedź, jest **nieukierunkowany** (ang. untargeted). Wspina się po stracie dla właściwej etykiety. Atak **ukierunkowany** (ang. targeted) ma etykietę, którą chce uzyskać, **cel** (ang. target), i schodzi w dół straty dla tej etykiety, więc kroki idą przeciwnie do znaków nachyleń. To pętla treningowa skierowana na obraz: spadek gradientu w stronę etykiety, przy którym zmieniają się piksele, a wagi zostają takie, jakie są.
+Atak, któremu wystarczy jakakolwiek błędna odpowiedź, jest **nieukierunkowany** (ang. untargeted): zwiększa stratę dla prawdziwej etykiety. Atak **ukierunkowany** (ang. targeted) ma wybraną etykietę, **klasę docelową** (ang. target), i zmniejsza stratę dla niej, więc kroki idą przeciwnie do znaków nachyleń. To w gruncie rzeczy pętla treningowa skierowana na obraz: spadek gradientu w stronę wybranej etykiety, w którym zmieniają się piksele, a wagi pozostają takie, jakie były.
 
-Oto [PGD](02-pgd.pl.md#rzutowany-spadek-gradientu) z jednym ustawieniem więcej. Przy `targeted=True` w `y` są etykiety, których chce atakujący, a nachylenia są odwracane. Obraz to drugi z obrazów walidacyjnych, 1, a cel to 7:
+Oto [PGD](02-pgd.pl.md#rzutowany-spadek-gradientu) z jednym dodatkowym ustawieniem. Przy `targeted=True` w `y` są etykiety, których chce atakujący, a nachylenia mają odwrócony znak. Atakowany obraz to drugi z obrazów walidacyjnych, jedynka, a klasa docelowa to siódemka:
 
 ```python run
 import torch
@@ -72,9 +72,9 @@ for before, after in zip(as_text(original[0, 0]), as_text(attacked[0, 0])):
     print(before, "  ", after)
 ```
 
-Kolumny to ε, to, co czyta sieć, i prawdopodobieństwo, które daje 7. Przy ε = 0,1 sieć nadal czyta 1 i daje 7 tylko 0,19. Przy 0,15 czyta 7, a przy 0,2 jest go prawie pewna, z 0,94. Obrazy poniżej to 1 kierowcy i obraz, który przy ε = 0,15 jest czytany jako 7.
+Kolumny to ε, cyfra, którą rozpoznaje sieć, i prawdopodobieństwo, jakie przypisuje siódemce. Przy ε = 0,1 sieć nadal widzi jedynkę i daje siódemce tylko 0,19. Przy 0,15 rozpoznaje już siódemkę, a przy 0,2 jest jej niemal pewna: daje jej 0,94. Poniżej wypisano obok siebie jedynkę kierowcy i obraz, który przy ε = 0,15 sieć odczytuje jako siódemkę.
 
-Cel kosztuje więcej niż pomyłka. Oto ε = 0,15 na wszystkich obrazach walidacyjnych: najpierw ułamek obrazów, które oszukuje nieukierunkowane PGD, a potem, dla każdej cyfry, ułamek obrazów innych cyfr, które po ukierunkowanym PGD sieć czyta jako tę cyfrę. `torch.full_like(y_valid[others], digit)` to tensor taki jak te etykiety, wypełniony cyfrą:
+Wymuszenie konkretnej klasy jest trudniejsze niż samo wywołanie błędu. Oto wyniki dla ε = 0,15 na wszystkich obrazach walidacyjnych: najpierw odsetek obrazów, na których nieukierunkowane PGD oszukało sieć, a potem dla każdej cyfry odsetek obrazów innych cyfr, które po ukierunkowanym PGD sieć rozpoznaje jako tę cyfrę. `torch.full_like(y_valid[others], digit)` to tensor o kształcie tych etykiet, wypełniony daną cyfrą:
 
 ```python run
 import torch
@@ -133,16 +133,16 @@ for digit in range(10):
     print(digit, round(accuracy(model, X_adv, targets), 3))
 ```
 
-Atak nieukierunkowany oszukuje sieć na 89,6% obrazów. Wycelowane w jedną cyfrę to samo ε osiąga od 17,8% obrazów dla 6 do 61,8% dla 8. Do niektórych cyfr łatwo dojść od większości innych, do innych trudno, ale żadna nie zbliża się do tego, co osiąga atak, któremu wystarczy każda pomyłka.
+Atak nieukierunkowany oszukuje sieć na 89,6% obrazów. Atak wycelowany w jedną cyfrę przy tym samym ε osiąga od 17,8% dla szóstki do 61,8% dla ósemki. Do niektórych cyfr łatwo dojść od większości pozostałych, do innych trudno, ale żadna nie zbliża się do wyniku ataku, któremu wystarczy dowolna pomyłka.
 
-## Mierzenie zaburzenia
+## Mierzenie perturbacji
 
-Zmiana, którą atak robi w obrazie, `X_adv - X`, nazywa się **zaburzeniem** (ang. perturbation). Do tej pory jej wielkością była największa zmiana któregokolwiek piksela. To jedna **norma**, jeden sposób wyrażenia wielkości całej listy liczb jedną liczbą, a są też inne. Dwie najczęściej używane:
+Zmianę, jaką atak wprowadza do obrazu, `X_adv - X`, nazywa się **perturbacją** (ang. perturbation). Dotąd za jej wielkość uznawano największą zmianę pojedynczego piksela. To jedna z **norm**, czyli sposobów opisania wielkości całej listy liczb jedną liczbą, ale nie jedyna. Najczęściej używa się dwóch:
 
-- **Norma L∞** to największa ze zmian, bez ich znaków: `delta.abs().max()`.
-- **Norma L2** to pierwiastek z sumy ich kwadratów: `delta.norm()`. To długość zaburzenia: odległość w linii prostej między dwoma obrazami, liczona tak, jak twierdzenie Pitagorasa liczy przekątną prostokąta, z bokiem dla każdego piksela.
+- **Norma L∞** to największa z wartości bezwzględnych zmian: `delta.abs().max()`.
+- **Norma L2** to pierwiastek z sumy kwadratów zmian: `delta.norm()`. To długość perturbacji, czyli odległość w linii prostej między dwoma obrazami, liczona tak, jak twierdzenie Pitagorasa liczy przekątną prostokąta, tyle że w tylu wymiarach, ile jest pikseli.
 
-Oto dwa zaburzenia obrazu z czterech pikseli. Pierwsze zmienia każdy piksel o 0,1, a drugie jeden piksel o 0,2:
+Oto dwie perturbacje obrazu złożonego z czterech pikseli. Pierwsza zmienia każdy piksel o 0,1, druga tylko jeden piksel, za to o 0,2:
 
 ```python run
 import torch
@@ -154,18 +154,18 @@ for delta in [spread, single]:
     print(delta.abs().max(), delta.norm())
 ```
 
-W L2 oba są tej samej wielkości: cztery kwadraty 0,1 dają razem 0,04, tak jak jeden kwadrat 0,2, a pierwiastek z tego to 0,2. W L∞ drugie jest dwa razy większe od pierwszego. To, która z dwóch zmian jest mniejsza, zależy od normy.
+W normie L2 obie są tej samej wielkości: cztery kwadraty liczby 0,1 dają razem 0,04, tyle samo co kwadrat liczby 0,2, a pierwiastek z tego to 0,2. W normie L∞ druga jest dwa razy większa od pierwszej. To, która z dwóch zmian jest mniejsza, zależy od normy.
 
-Każda norma ma swoją kulę. Przy dwóch pikselach obrazy odległe od danego obrazu najwyżej o 0,1 w L∞ tworzą kwadrat, bo każdy piksel ma własny limit, a te odległe najwyżej o 0,1 w L2 tworzą koło. Przy trzech pikselach to sześcian i kula, a nazwa przylgnęła do każdej liczby pikseli i każdej normy. Kula ε z dwóch poprzednich lekcji była tą kwadratową.
+Każda norma wyznacza własną kulę. Przy dwóch pikselach obrazy odległe od danego najwyżej o 0,1 w normie L∞ tworzą kwadrat, bo każdy piksel ma osobny limit, a w normie L2 koło. Przy trzech pikselach są to sześcian i kula, a nazwę „kula” stosuje się dla dowolnej liczby pikseli i dowolnej normy. Kula z dwóch poprzednich lekcji była więc tą kwadratową.
 
-## Okrągła kula
+## Kula w normie L2
 
-W okrągłej kuli limit dotyczy długości całego zaburzenia. Piksel może przesunąć się daleko, byle pozostałe przesunęły się niewiele. Atak w niej różni się od PGD w dwóch miejscach:
+W kuli L2 ograniczona jest długość całej perturbacji. Jeden piksel może się zmienić mocno, o ile pozostałe zmienią się niewiele. Atak w takiej kuli różni się od PGD w dwóch miejscach:
 
-- Krok idzie wzdłuż samych nachyleń, przeskalowanych do długości α, a nie wzdłuż ich znaków. Przy limicie na długość strata rośnie najbardziej w kierunku nachyleń, więc najbardziej przesuwają się piksele o dużych nachyleniach.
-- Rzut skraca zaburzenie dłuższe niż ε do długości ε, nie zmieniając jego kierunku.
+- Krok idzie wzdłuż samych nachyleń, przeskalowanych do długości α, a nie wzdłuż ich znaków. Gdy ograniczona jest długość, strata rośnie najszybciej w kierunku nachyleń, więc najbardziej zmieniają się piksele o największych nachyleniach.
+- Rzutowanie skraca perturbację dłuższą niż ε do długości ε, nie zmieniając jej kierunku.
 
-`lengths` poniżej daje normę L2 każdego obrazu w porcji: `flatten(1)` robi z każdego wiersz 64 liczb, `norm(dim=1)` bierze normę każdego wiersza, a `reshape(-1, 1, 1, 1)` nadaje wynikowi kształt, który rozgłasza się na porcję obrazów. `1e-12` chroni przed dzieleniem przez 0:
+Funkcja `lengths` poniżej daje normę L2 każdego obrazu w porcji: `flatten(1)` zamienia każdy obraz w wiersz 64 liczb, `norm(dim=1)` liczy normę każdego wiersza, a `reshape(-1, 1, 1, 1)` nadaje wynikowi kształt, który da się rozgłosić na porcję obrazów. Składnik `1e-12` chroni przed dzieleniem przez 0:
 
 ```python run
 import torch
@@ -244,17 +244,17 @@ for X_adv in [X_square, X_round]:
     print((100 * (X_adv - X_valid)[0, 0]).round().int())
 ```
 
-Trzy wiersze to PGD z poprzedniej lekcji z ε = 0,1 oraz okrągłe z ε = 0,5 i z ε = 0,68. Kolumny to dokładność pod atakiem oraz norma L∞ i norma L2 zaburzeń, uśrednione po obrazach.
+Trzy wiersze wyniku to PGD z poprzedniej lekcji z ε = 0,1 oraz atak w kuli L2 z ε = 0,5 i z ε = 0,68. Kolumny to dokładność pod atakiem oraz norma L∞ i norma L2 perturbacji, uśrednione po obrazach.
 
-Kwadratowy atak zmienia większość pikseli o całe swoje 0,1, a jego zaburzenia mają długość 0,68. Okrągły atak z ε = 0,5 robi prawie tyle samo szkody, 53,9% wobec 50,8%, zaburzeniami, które są krótsze, a których największa zmiana piksela jest dwa razy większa, 0,21. Z tą samą długością co kwadratowy, 0,68, zostawia 23,6%.
+Atak w kuli kwadratowej zmienia większość pikseli o pełne 0,1, a jego perturbacje mają długość 0,68. Atak w kuli L2 z ε = 0,5 robi prawie tyle samo szkody (53,9% wobec 50,8%) krótszymi perturbacjami, w których jednak najbardziej zmieniony piksel zmienia się dwa razy mocniej: o 0,21. Gdy dostanie tę samą długość co atak w kuli kwadratowej, 0,68, dokładność spada do zaledwie 23,6%.
 
-Dwie tabele to zaburzenia pierwszego obrazu, 0 z lekcji [Oszukiwanie sieci](01-fooling-a-network.pl.md#jeden-krok-zgodnie-ze-znakiem), w setnych. W kwadratowej kuli prawie każdy piksel przesuwa się o 10, a te, które przesuwają się mniej, zatrzymało `clamp(0, 1)`. W okrągłej kuli kilka pikseli przesuwa się o 14, 17 albo 21, a większość prawie się nie rusza: budżet idzie tam, gdzie nachylenia są największe.
+Dwie tabele pokazują w setnych perturbacje pierwszego obrazu, zera z lekcji [Oszukiwanie sieci](01-fooling-a-network.pl.md#jeden-krok-zgodnie-ze-znakiem). W kuli kwadratowej prawie każdy piksel zmienia się o 10, a te, które zmieniły się mniej, zatrzymało `clamp(0, 1)`. W kuli L2 kilka pikseli zmienia się o 14, 17 albo 21, a większość prawie wcale: cały budżet trafia tam, gdzie nachylenia są największe.
 
-Która norma jest więc właściwa? Żadna nie mierzy tego, co widzi człowiek. To zastępstwa, z którymi łatwo pracować: mała norma L∞ mówi, że żaden piksel nie zmienił się bardzo, a mała norma L2, że obraz jako całość nie zmienił się bardzo. Sieć, która wytrzymuje w jednej kuli, może upaść w drugiej, dlatego dokładność pod atakiem podaje się zawsze z jej normą i jej ε, na przykład „L∞, ε = 8/255”.
+Która norma jest więc właściwa? Żadna nie mierzy tego, co widzi człowiek. To wygodne przybliżenia: mała norma L∞ mówi, że żaden piksel nie zmienił się mocno, a mała norma L2, że obraz jako całość zmienił się niewiele. Sieć, która wytrzymuje atak w jednej kuli, może ulec w drugiej, dlatego dokładność pod atakiem zawsze podaje się razem z normą i ε, na przykład „L∞, ε = 8/255”.
 
 ## Atak na embedding
 
-Ostatnia warstwa sieci zamienia 50 liczb w 10 logitów. Te 50 liczb to to, co sieć do tego miejsca zrobiła z obrazu, i są jego [embeddingiem](../vocabulary/embedding.pl.md): obrazy, które dla sieci wyglądają podobnie, dostają liczby, które są blisko siebie. Wycinek z `nn.Sequential` daje warstwy z tego wycinka, więc `model[:-1]` to sieć bez ostatniej warstwy, z tymi samymi wagami:
+Ostatnia warstwa sieci zamienia 50 liczb na 10 logitów. Te 50 liczb to wszystko, co sieć zdążyła wyczytać z obrazu, czyli jego [embedding](../vocabulary/embedding.pl.md): obrazy, które dla sieci wyglądają podobnie, dostają podobne liczby. Wycinek z `nn.Sequential` to sieć złożona z wyciętych warstw, więc `model[:-1]` to sieć bez ostatniej warstwy, z tymi samymi wagami:
 
 ```python run
 import torch
@@ -317,13 +317,13 @@ for random_start in [False, True]:
         print(random_start, (attacked - original).abs().max(), moved, model(attacked).argmax(dim=1))
 ```
 
-`away` to odległości od embeddingu pierwszego obrazu, 0, do embeddingów pozostałych 296. Pozostałe zera są od niego średnio 3,55, a obrazy innych cyfr 9,24. Z tym pracuje ostatnia warstwa: zera trzymają się razem, z dala od reszty.
+`away` zawiera odległości od embeddingu pierwszego obrazu, zera, do embeddingów pozostałych 296 obrazów. Pozostałe zera są od niego średnio w odległości 3,55, a obrazy innych cyfr w odległości 9,24. Właśnie z tego korzysta ostatnia warstwa: zera skupiają się razem, z dala od reszty.
 
-Wiele sieci używa się tylko dla ich embeddingów, do porównywania obrazów albo przeszukiwania ich, i nie mają one klas, które dałoby się zaatakować. `push_away` atakuje sam embedding. To PGD w kwadratowej kuli, które wspina się po innej stracie: kwadracie odległości między embeddingiem zaatakowanego obrazu a `home`, embeddingiem obrazu takiego, jaki był. Nie ma w tym żadnej etykiety.
+Wiele sieci wykorzystuje się wyłącznie ze względu na ich embeddingi, do porównywania albo wyszukiwania obrazów, a takie sieci nie mają żadnych klas, które można by zaatakować. `push_away` atakuje sam embedding. To PGD w kuli kwadratowej, które zwiększa inną stratę: kwadrat odległości między embeddingiem zaatakowanego obrazu a `home`, czyli embeddingiem obrazu sprzed ataku. Etykiety nie są tu potrzebne.
 
-To atak, który nie ruszy bez [losowego startu](02-pgd.pl.md#losowy-start). Przy samym obrazie odległość wynosi 0, najmniej, ile może, a w najniższym punkcie każde nachylenie to 0. Znaki nachyleń też są wtedy równe 0 i obraz nigdy się nie rusza: wiersz, który zaczyna się od `False`, nie pokazuje żadnej zmiany ani w obrazie, ani w embeddingu. Z losowego obrazu w kuli atak przesuwa embedding o 3,53. To tyle, ile od jednego 0 do innego, a sieć nadal czyta 0.
+Ten atak nie ruszy bez [losowego punktu startowego](02-pgd.pl.md#losowy-punkt-startowy). W punkcie wyjścia odległość wynosi 0, mniej być nie może, a w minimum wszystkie nachylenia są zerowe. Ich znaki też są wtedy zerami i obraz w ogóle się nie zmienia: wiersz zaczynający się od `False` nie pokazuje żadnej zmiany ani w obrazie, ani w embeddingu. Startując z losowego obrazu w kuli, atak przesuwa embedding o 3,53. To mniej więcej tyle, ile dzieli jedno zero od innego, a sieć nadal rozpoznaje zero.
 
-Oto ten atak na wszystkich obrazach walidacyjnych, obok losowych zmian tej samej wielkości. Kolumny to ε, o ile atak średnio przesunął embeddingi, ułamek obrazów, które sieć czyta teraz jako inną cyfrę, i te same dwie liczby dla losowych zmian:
+Oto ten atak na wszystkich obrazach walidacyjnych, obok losowych zmian tej samej wielkości. Kolumny to ε, średnie przesunięcie embeddingów, odsetek obrazów, które sieć rozpoznaje teraz jako inną cyfrę, i te same dwie liczby dla losowych zmian:
 
 ```python run
 import torch
@@ -386,48 +386,48 @@ for epsilon in [0.1, 0.15, 0.2]:
     print(epsilon, round(moved(X_adv), 2), round(reads_changed(X_adv), 3), round(moved(X_noisy), 2), round(reads_changed(X_noisy), 3))
 ```
 
-Przy ε = 0,2 atak przesuwa embeddingi średnio o 5,68, wyraźnie więcej niż 3,55 między pierwszym 0 a pozostałymi zerami, a sieć czyta 75,4% obrazów jako inną cyfrę niż przedtem. Losowe zmiany tej samej wielkości przesuwają embeddingi o około 1 i zmieniają 2,7% odczytów.
+Przy ε = 0,2 atak przesuwa embeddingi średnio o 5,68, wyraźnie więcej niż średnia odległość 3,55 między pierwszym zerem a pozostałymi zerami, a sieć rozpoznaje 75,4% obrazów jako inną cyfrę niż wcześniej. Losowe zmiany tej samej wielkości przesuwają embeddingi o około 1 i zmieniają odczyt 2,7% obrazów.
 
-Atak, który zna etykiety, robi więcej przy tym samym ε: PGD zostawiło sieci przy 0,2 zaledwie 1%. Ale ten nie widział żadnej etykiety, a psuje naraz wszystko, co zbudowano na embeddingu, czy to ostatnią warstwę, wyszukiwanie, czy porównanie dwóch obrazów. Jedną sumę w `push_away` można zamienić na inną, żeby go wycelować: odległość od embeddingu jakiegoś innego obrazu, z krokiem przeciwnym do nachyleń, przyciąga embedding obrazu do embeddingu tamtego obrazu.
+Atak, który zna etykiety, osiąga przy tym samym ε więcej: przy ε = 0,2 dokładność po PGD wynosiła zaledwie 1%. Atak na embedding nie widział jednak żadnej etykiety, a psuje naraz wszystko, co zbudowano na embeddingu: ostatnią warstwę, wyszukiwanie i porównywanie obrazów. Żeby go wycelować, wystarczy zmienić jedną sumę w `push_away`: odległość do embeddingu innego obrazu, z krokami przeciwnymi do nachyleń, przyciąga embedding atakowanego obrazu do tamtego.
 
 ## Podsumowanie
 
-- Atak nieukierunkowany wspina się po stracie dla właściwej etykiety. Ukierunkowany schodzi w dół straty dla etykiety, której chce, krokami przeciwnymi do znaków nachyleń. Dojście do wybranej klasy wymaga większego ε niż jakakolwiek pomyłka.
-- Zaburzenie to zmiana, którą robi atak, `X_adv - X`. Jego norma L∞ to jego największa zmiana piksela, a norma L2 to jego długość: `delta.abs().max()` i `delta.norm()`.
-- Każda norma ma swoją kulę. W kuli L2 PGD robi kroki wzdłuż nachyleń, przeskalowanych do długości α, a rzut skraca zaburzenie, które jest za długie.
-- Dokładność pod atakiem coś znaczy tylko razem z jej normą i jej ε.
-- Embedding można zaatakować bez etykiet, odpychając go od miejsca, w którym był. Przy samym obrazie nachylenia są równe 0, więc ten atak potrzebuje losowego startu.
+- Atak nieukierunkowany zwiększa stratę dla prawdziwej etykiety. Ukierunkowany zmniejsza stratę dla wybranej klasy docelowej, robiąc kroki przeciwne do znaków nachyleń. Doprowadzenie do konkretnej klasy wymaga większego ε niż wywołanie dowolnej pomyłki.
+- Perturbacja to zmiana wprowadzona przez atak, `X_adv - X`. Jej norma L∞ to największa zmiana piksela, a norma L2 to jej długość: `delta.abs().max()` i `delta.norm()`.
+- Każda norma wyznacza własną kulę. W kuli L2 PGD robi kroki wzdłuż nachyleń przeskalowanych do długości α, a rzutowanie skraca zbyt długą perturbację.
+- Dokładność pod atakiem ma sens tylko razem z normą i wartością ε.
+- Embedding można zaatakować bez etykiet, odsuwając go od pierwotnego położenia. W punkcie wyjścia nachylenia są zerowe, więc ten atak potrzebuje losowego punktu startowego.
 
 ## Sprawdź się
 
 <details>
-<summary>Zaburzenie zmienia cztery piksele o 0,3, −0,4, 0 i 0. Ile wynoszą jego norma L∞ i norma L2?</summary>
+<summary>Perturbacja zmienia cztery piksele o 0,3, −0,4, 0 i 0. Ile wynoszą jej norma L∞ i norma L2?</summary>
 
-0,4 i 0,5. Norma L∞ to największa zmiana bez znaku, 0,4. Norma L2 to pierwiastek z sumy kwadratów: 0,09 + 0,16 = 0,25, a pierwiastek z tego to 0,5.
-
-</details>
-
-<details>
-<summary>Co zmienia się w kroku PGD, żeby atak był ukierunkowany?</summary>
-
-Etykieta i kierunek. Strata jest liczona dla celu, etykiety, której chce atakujący, a krok idzie przeciwnie do znaków jej nachyleń, żeby ta strata malała: `X_adv - alpha * slope.sign()`. Rzut zostaje bez zmian.
+0,4 i 0,5. Norma L∞ to największa wartość bezwzględna zmiany, czyli 0,4. Norma L2 to pierwiastek z sumy kwadratów: 0,09 + 0,16 = 0,25, a pierwiastek z 0,25 to 0,5.
 
 </details>
 
 <details>
-<summary>Atak, który odpycha embedding, zaczyna od samego obrazu i zwraca obraz niezmieniony. Dlaczego?</summary>
+<summary>Co trzeba zmienić w kroku PGD, żeby atak był ukierunkowany?</summary>
 
-Odległość embeddingu od niego samego to 0, najmniej, ile może wynosić odległość, a w najniższym punkcie wszystkie nachylenia są równe 0. Znak 0 to 0, więc żaden piksel się nie rusza, ani w tym kroku, ani w żadnym następnym. Losowy start w kuli daje atakowi kierunek, w którym odległość może rosnąć.
+Etykietę i kierunek. Stratę liczy się dla klasy docelowej, a krok idzie przeciwnie do znaków jej nachyleń, tak żeby ta strata malała: `X_adv - alpha * slope.sign()`. Rzutowanie pozostaje bez zmian.
 
 </details>
 
 <details>
-<summary>Jedna sieć zachowuje 60% pod „L∞, ε = 0,1”, a druga 60% pod „L2, ε = 0,1”, na obrazach z 64 pikseli. Która wytrzymała więcej?</summary>
+<summary>Atak odsuwający embedding startuje z oryginalnego obrazu i zwraca go bez zmian. Dlaczego?</summary>
 
-Pierwsza, i to zdecydowanie. W kuli L∞ każdy z 64 pikseli może przesunąć się o 0,1, co daje zaburzenia o długości do 0,8. Kula L2 o promieniu 0,1 mieści tylko zaburzenia o długości najwyżej 0,1. Tych liczb nie da się porównać bez ich norm.
+Odległość embeddingu od samego siebie wynosi 0, czyli najmniej, ile może wynosić odległość, a w minimum wszystkie nachylenia są zerowe. Znak zera to zero, więc żaden piksel się nie zmienia, ani w tym kroku, ani w następnych. Losowy punkt startowy w kuli daje atakowi kierunek, w którym odległość może rosnąć.
+
+</details>
+
+<details>
+<summary>Jedna sieć zachowuje 60% dokładności przy „L∞, ε = 0,1”, a druga 60% przy „L2, ε = 0,1”, na obrazach z 64 pikseli. Która wytrzymała silniejszy atak?</summary>
+
+Pierwsza, i to zdecydowanie. W kuli L∞ każdy z 64 pikseli może się zmienić o 0,1, co daje perturbacje o długości do 0,8. Kula L2 o promieniu 0,1 mieści tylko perturbacje o długości najwyżej 0,1. Bez norm tych liczb nie da się porównać.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Wyceluj w klasę](../../exercises/07-adversarial-examples/03-targets-and-norms/01-aim-at-a-class/task.pl.md) napiszesz ukierunkowane PGD. W ćwiczeniu [Odepchnij embedding](../../exercises/07-adversarial-examples/03-targets-and-norms/02-push-an-embedding-away/task.pl.md) napiszesz atak, który przesuwa embedding obrazu jak najdalej od miejsca, w którym był.
+W ćwiczeniu [Wyceluj w klasę](../../exercises/07-adversarial-examples/03-targets-and-norms/01-aim-at-a-class/task.pl.md) napiszesz ukierunkowane PGD. W ćwiczeniu [Odsuń embedding](../../exercises/07-adversarial-examples/03-targets-and-norms/02-push-an-embedding-away/task.pl.md) napiszesz atak, który odsuwa embedding obrazu jak najdalej od jego pierwotnego położenia.

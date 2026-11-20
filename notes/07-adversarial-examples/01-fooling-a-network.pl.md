@@ -1,16 +1,16 @@
 ---
-description: Przesuń każdy piksel obrazu odrobinę, zgodnie ze znakiem nachylenia straty, a sieć przeczyta go źle. FGSM, kula ε, piksele, które zostają poprawne, i dokładność pod atakiem.
+description: Wystarczy lekko zmienić każdy piksel obrazu zgodnie ze znakiem nachylenia straty, a sieć przestaje go rozpoznawać. FGSM, kula o promieniu ε, dozwolony zakres wartości pikseli i dokładność pod atakiem.
 ---
 
 # Oszukiwanie sieci
 
-Kierowcy firmy taksówkowej oddają paragony wypisane ręcznie, a cyfry na nich czyta sieć z lekcji [Klasyfikacja obrazów](../05-pytorch/09-classifying-images.pl.md). Czyta dobrze 94% z nich. Tyle że zmierzono to na obrazach, których nikt nie ruszał, a kierowca, który chciałby, żeby opłata została odczytana jako wyższa, niż była, ma wszelkie powody, żeby któryś ruszyć.
+Kierowcy firmy taksówkowej wypisują paragony ręcznie, a cyfry z nich odczytuje sieć z lekcji [Klasyfikacja obrazów](../05-pytorch/09-classifying-images.pl.md). Rozpoznaje poprawnie 94% cyfr. Tyle że tę dokładność zmierzono na obrazach, przy których nikt nie majstrował, a kierowca, który chciałby, żeby sieć odczytała wyższą kwotę, niż jest na paragonie, ma dobry powód, żeby pomajstrować.
 
-Ta lekcja zmienia obraz celowo: każdy piksel odrobinę, za mało, żeby zmienić to, co odczyta z niego człowiek, i każdy w kierunku, który najbardziej szkodzi sieci. Tak zmieniony obraz nazywa się **przykładem antagonistycznym** (ang. adversarial example), a jego tworzenie **atakiem**. Firma atakuje tu własną sieć, bo tylko tak może się dowiedzieć, na ile jej ufać.
+W tej lekcji celowo zmienisz obraz: każdy piksel tylko odrobinę, za mało, żeby człowiek zobaczył na obrazie co innego, ale zawsze w tę stronę, która najbardziej szkodzi sieci. Tak zmieniony obraz nazywa się **przykładem adwersarialnym** (ang. adversarial example; spotyka się też nazwę *przykład antagonistyczny*), a jego tworzenie **atakiem**. Firma atakuje tu własną sieć, bo tylko tak może sprawdzić, na ile można jej ufać.
 
 ## Sieć
 
-Każdy przykład w tym rozdziale zaczyna się od tych samych wierszy. Wczytują cyfry i trenują sieć, tak jak w lekcji [Klasyfikacja obrazów](../05-pytorch/09-classifying-images.pl.md#odczytywanie-odpowiedzi), a 297 obrazów walidacyjnych i ich etykiety trzymają w `X_valid` i `y_valid`. Zajmuje to mniej więcej sekundę. To, co w każdym przykładzie nowe, przychodzi po `model.eval()`:
+Każdy przykład w tym rozdziale zaczyna się od tych samych linijek kodu. Wczytują one cyfry i trenują sieć tak samo jak w lekcji [Klasyfikacja obrazów](../05-pytorch/09-classifying-images.pl.md#odczytywanie-odpowiedzi), a 297 obrazów walidacyjnych z etykietami zapisują w `X_valid` i `y_valid`. Trwa to około sekundy. To, co w danym przykładzie nowe, zaczyna się po `model.eval()`:
 
 ```python run
 import torch
@@ -55,11 +55,11 @@ with torch.no_grad():
 print([round(p, 2) for p in probabilities[0].tolist()])
 ```
 
-Sieć czyta dobrze 94,3% obrazów walidacyjnych. `X_valid[:1]` to pierwszy z nich, jako porcja z jednym obrazem: kształt to `[1, 1, 8, 8]`, bo sieć i strata biorą porcje. `as_text` zamienia obraz w 8 wierszy tekstu, ze znakiem dla każdego piksela, od spacji dla jasnego, poniżej 0,2, do `#` dla ciemnego, powyżej 0,8. Na obrazie jest 0. Ostatni wiersz to prawdopodobieństwa, które sieć daje dziesięciu cyfrom: 0,98 dla 0 i 0,01 dla 9.
+Sieć poprawnie rozpoznaje 94,3% obrazów walidacyjnych. `X_valid[:1]` to pierwszy z nich, podany jako porcja złożona z jednego obrazu: ma kształt `[1, 1, 8, 8]`, bo sieć i funkcja straty przyjmują porcje. `as_text` zamienia obraz na 8 wierszy tekstu, po jednym znaku na piksel: od spacji dla jasnych pikseli, poniżej 0,2, do `#` dla ciemnych, powyżej 0,8. Na obrazie jest zero. Ostatni wypisany wiersz to prawdopodobieństwa, jakie sieć przypisuje dziesięciu cyfrom: 0,98 zeru i 0,01 dziewiątce.
 
 ## Nachylenie względem obrazu
 
-W części [Nachylenie względem wejścia](../05-pytorch/02-autograd.pl.md#nachylenie-względem-wejścia) kurs przesunął się zgodnie z nachyleniami straty i strata prostej opłat wzrosła, a ceny zostały takie, jakie były. Obraz to wejście z 64 liczb, a strata ma nachylenie względem każdej z nich. `clone()` robi kopię obrazu, żeby oznaczenie trafiło na kopię, a obrazy walidacyjne zostały takie, jakie są:
+W części [Nachylenie względem wejścia](../05-pytorch/02-autograd.pl.md#nachylenie-względem-wejścia) przesunięcie kursu zgodnie z nachyleniami straty zwiększyło stratę prostej opłat, choć ceny się nie zmieniły. Obraz to wejście złożone z 64 liczb, a strata ma nachylenie względem każdej z nich. `clone()` tworzy kopię obrazu: oznacza się kopię, a obrazy walidacyjne zostają nietknięte:
 
 ```python run
 import torch
@@ -96,13 +96,13 @@ for row in slope[0, 0]:
     print("".join("+" if number > 0 else "-" for number in row))
 ```
 
-Strata wynosi 0,016, tak mało, bo sieć jest prawie pewna swojego 0. Nachylenie ma kształt obrazu, z liczbą dla każdego piksela. `+` to piksel o dodatnim nachyleniu: jeśli go przyciemnić, strata rośnie, czyli sieć jest mniej pewna 0. `-` to piksel, który robi to samo, gdy się rozjaśnia.
+Strata wynosi 0,016, bo sieć jest prawie pewna, że widzi zero. Nachylenie ma kształt obrazu, po jednej liczbie na piksel. `+` oznacza piksel o dodatnim nachyleniu: jeśli go przyciemnić, strata rośnie, czyli sieć traci pewność, że to zero. `-` oznacza piksel, który działa tak samo, gdy się go rozjaśni.
 
-Porównaj znaki z obrazem. W czterech środkowych wierszach lewa strona pierścienia to same `-`, a dziura obok niej ma `+` w każdym wierszu. Bledszy pierścień z czymś w środku to mniej 0. Nikt tego sieci nie powiedział: to jest w nachyleniach.
+Porównaj znaki z obrazem. W czterech środkowych wierszach po lewej stronie pierścienia są same `-`, a w dziurze tuż obok w każdym wierszu jest `+`. Bledszy pierścień z czymś w środku mniej przypomina zero. Nikt sieci tego nie powiedział, a jednak widać to w nachyleniach.
 
 ## Jeden krok zgodnie ze znakiem
 
-Atak przesuwa każdy piksel o tę samą małą wielkość, nazywaną ε, epsilon: w górę tam, gdzie nachylenie jest dodatnie, i w dół tam, gdzie jest ujemne. To jeden krok spadku gradientu, odwrócony, żeby wspinać się po stracie, i z samym znakiem każdego nachylenia. Nachylenia względem wszystkich pikseli razem to gradient straty względem obrazu, dlatego ta metoda nazywa się **metodą szybkiego znaku gradientu** (ang. fast gradient sign method), w skrócie **FGSM**. Oto ona z ε = 0,1, czyli jedną dziesiątą drogi od bieli do czerni:
+Atak przesuwa każdy piksel o tę samą niewielką wartość, oznaczaną ε (epsilon): w górę tam, gdzie nachylenie jest dodatnie, i w dół tam, gdzie jest ujemne. To jeden krok spadku gradientu, tylko w odwrotną stronę, żeby strata rosła, i ze znakiem każdego nachylenia zamiast jego wartości. Nachylenia względem wszystkich pikseli razem tworzą gradient straty względem obrazu, stąd nazwa metody: **FGSM**, od ang. *fast gradient sign method*, czyli szybka metoda znaku gradientu. Oto ona dla ε = 0,1, czyli jednej dziesiątej drogi od bieli do czerni:
 
 ```python run
 import torch
@@ -152,15 +152,15 @@ for before, after in zip(as_text(original[0, 0]), as_text(attacked[0, 0])):
 print((attacked - original).abs().max())
 ```
 
-Strata wzrosła z 0,016 do 1,194. Sieć daje teraz 0 prawdopodobieństwo 0,30, a 9 dostaje 0,52: czyta 0 z paragonu jako 9. Oba obrazy stoją obok siebie, obraz kierowcy po lewej, a zaatakowany po prawej. Niektóre znaki się różnią, tam, gdzie piksel przeszedł z jednego z pięciu poziomów na następny, ale na obu wyraźnie widać 0. Żaden piksel nie przesunął się o więcej niż 0,1, jak mówi ostatni wiersz. `clamp(0, 1)` pilnuje, żeby piksele zostały między 0 a 1, i następna część do tego wraca.
+Strata wzrosła z 0,016 do 1,194. Sieć przypisuje teraz zeru prawdopodobieństwo 0,30, a dziewiątce 0,52, czyli odczytuje zero z paragonu jako dziewiątkę. Oba obrazy są wypisane obok siebie: po lewej oryginał kierowcy, po prawej obraz po ataku. Niektóre znaki się różnią, bo piksel przeszedł z jednego z pięciu poziomów jasności na sąsiedni, ale na obu wyraźnie widać zero. Jak pokazuje ostatni wiersz, żaden piksel nie zmienił się o więcej niż 0,1. `clamp(0, 1)` pilnuje, żeby wartości pikseli zostały między 0 a 1. Po co, wyjaśnia następna część.
 
-Dlaczego znak, a nie samo nachylenie, jak w spadku gradientu? Przez to, jak ograniczona jest zmiana: każdy piksel może przesunąć się o ε i nie dalej. Przy małej zmianie strata rośnie mniej więcej o nachylenie razy zmianę dla każdego piksela, zsumowane po pikselach. Gdy każdy piksel ma swój limit, ta suma jest największa, kiedy każdy piksel idzie tak daleko, jak może, w kierunku swojego nachylenia, a to jest ε razy znak. Piksel o małym nachyleniu dokłada niewiele, ale wszystkie 64 małe kawałki wskazują w tę samą stronę, w górę straty, i się sumują. Zdjęcie ma tysiące razy więcej pikseli do zsumowania, dlatego do oszukania sieci, która czyta zdjęcia, wystarcza dużo mniejsze ε.
+Dlaczego znak, a nie samo nachylenie, jak w spadku gradientu? Chodzi o to, jak ograniczona jest zmiana: każdy piksel może się zmienić najwyżej o ε. Przy małej zmianie strata rośnie mniej więcej o sumę iloczynów nachylenia i zmiany, liczoną po wszystkich pikselach. Skoro każdy piksel ma osobny limit, ta suma jest największa wtedy, gdy każdy piksel wykorzysta cały limit w kierunku swojego nachylenia, a to jest właśnie ε razy znak. Piksel o małym nachyleniu dokłada niewiele, ale wszystkie 64 małe przyrosty działają w tę samą stronę i się sumują. Zdjęcie ma tysiące razy więcej pikseli, dlatego do oszukania sieci rozpoznającej zdjęcia wystarcza dużo mniejsze ε.
 
-## Kula ε i poprawne piksele
+## Kula o promieniu ε i zakres pikseli
 
-Atak obiecuje coś o obrazie, który zwraca: żaden piksel nie jest dalej niż ε od miejsca, w którym był. Wszystkie obrazy, które dotrzymują tej obietnicy, tworzą **kulę ε** (ang. ε-ball) wokół obrazu wyjściowego. Największa zmiana któregokolwiek piksela to to, jak daleko od siebie są dwa obrazy w tym sensie, i nazywa się ją ich **odległością L∞**, czytaj „L nieskończoność”. Lekcja [Cele i normy](03-targets-and-norms.pl.md) pokazuje inne sposoby mierzenia.
+Atak gwarantuje jedno: żaden piksel zwróconego obrazu nie różni się od swojej pierwotnej wartości o więcej niż ε. Wszystkie obrazy, które spełniają ten warunek, tworzą **kulę o promieniu ε** (ang. ε-ball) wokół oryginału. Największa różnica pojedynczego piksela to miara odległości między dwoma obrazami, nazywana **odległością L∞** (czytaj „L nieskończoność”). Inne sposoby mierzenia opisuje lekcja [Cele i normy](03-targets-and-norms.pl.md).
 
-Piksel musi też zostać pikselem, między 0 a 1. Cyfry mają wokół siebie dużo bieli, pikseli równych 0, a krok w dół od 0 dałby −0,1, czego nie zapisze żaden plik z obrazem. Dlatego atak kończy się na `clamp(0, 1)`. Oto cztery piksele ze znakami ich nachyleń:
+Piksel musi też pozostać pikselem, czyli mieć wartość od 0 do 1. Cyfry są otoczone bielą, czyli pikselami równymi 0, a krok w dół od zera dałby −0,1, czego żaden plik graficzny nie zapisze. Dlatego atak kończy się wywołaniem `clamp(0, 1)`. Oto cztery piksele i znaki ich nachyleń:
 
 ```python run
 import torch
@@ -177,15 +177,15 @@ print((attacked - pixels).abs())
 print((attacked - pixels).abs().max())
 ```
 
-Pierwszy piksel poszedłby do −0,1, a trzeci do 1,05, i `clamp` sprowadza je z powrotem do 0 i do 1. Pierwszy piksel w ogóle się więc nie rusza, trzeci przesuwa się o 0,05, a pozostałe dwa o całe 0,1. Przycinanie może tylko przybliżyć piksel do miejsca, z którego wyszedł, bo wyszedł spomiędzy 0 a 1, więc obraz zostaje w kuli: największa zmiana to nadal 0,1.
+Pierwszy piksel trafiłby do −0,1, a trzeci do 1,05, więc `clamp` przycina je do 0 i do 1. W efekcie pierwszy piksel w ogóle się nie zmienia, trzeci zmienia się o 0,05, a dwa pozostałe o pełne 0,1. Przycinanie może piksel tylko przybliżyć do wartości początkowej, bo ta leżała między 0 a 1, więc obraz nie wychodzi poza kulę: największa zmiana nadal wynosi 0,1.
 
-To ε sprawia, że zmieniony obraz jest przykładem antagonistycznym, a nie po prostu innym obrazem. Przy ε = 0,5 atak mógłby namalować na 0 dziewiątkę i sieć słusznie przeczytałaby 9. Kula musi być na tyle mała, żeby wszystko w niej było dla człowieka nadal tą samą cyfrą, i wtedy każdy obraz w niej, który sieć czyta inaczej, to błąd sieci.
+Właśnie od ε zależy, czy zmieniony obraz jest przykładem adwersarialnym, czy po prostu innym obrazem. Przy ε = 0,5 atak mógłby dorysować zeru ogonek dziewiątki i sieć słusznie rozpoznałaby dziewiątkę. Kula musi być na tyle mała, żeby w każdym obrazie z jej wnętrza człowiek widział tę samą cyfrę. Wtedy każdy obraz z kuli, który sieć rozpoznaje inaczej, jest błędem sieci.
 
 ## Dokładność pod atakiem
 
-Jeden oszukany obraz mówi o sieci niewiele. Miarą jest jej dokładność, gdy zaatakowany jest każdy obraz: **dokładność pod atakiem** (ang. accuracy under attack) dla danego ε. `fgsm` poniżej atakuje całą porcję naraz. Strata to średnia po obrazach, a piksele obrazu zmieniają tylko jego część tej średniej, więc jedno wywołanie `torch.autograd.grad` daje każdemu obrazowi jego własne nachylenia. Przez średnią wychodzą podzielone przez liczbę obrazów, a `sign()` to nie przeszkadza.
+Jeden udany atak niewiele mówi o sieci. Miarą jest jej dokładność na obrazach, z których każdy został zaatakowany: **dokładność pod atakiem** (ang. accuracy under attack) dla danego ε. Funkcja `fgsm` poniżej atakuje całą porcję naraz. Strata jest średnią po obrazach, a piksele danego obrazu wpływają tylko na jego składnik tej średniej, więc jedno wywołanie `torch.autograd.grad` daje każdemu obrazowi jego własne nachylenia. Przez średnią są one podzielone przez liczbę obrazów, ale na znak to nie wpływa.
 
-Dla porównania ostatnia kolumna zmienia każdy piksel o to samo ε, w górę albo w dół losowo: `torch.randn_like(X_valid)` daje tensor losowych liczb o kształcie `X_valid`, a ich znaki to kierunki.
+Dla porównania ostatnia kolumna dotyczy obrazów, w których każdy piksel zmieniono o to samo ε, ale w losową stronę: `torch.randn_like(X_valid)` daje tensor losowych liczb o kształcie `X_valid`, a ich znaki wyznaczają kierunki.
 
 ```python run
 import torch
@@ -231,53 +231,53 @@ for epsilon in [0.0, 0.05, 0.1, 0.15, 0.2]:
     print(epsilon, round(accuracy(model, X_adv, y_valid), 3), round(accuracy(model, X_noisy, y_valid), 3))
 ```
 
-Przy ε = 0 nic się nie zmienia, a dokładność to wcześniejsze 94,3%. Przy 0,05 sieć czyta dobrze 81,5% zaatakowanych obrazów, przy 0,1 już tylko 55,9%, a przy 0,2 zaledwie 4%. To mniej niż 10%, które dałoby zgadywanie: atak nie wprawia sieci w zakłopotanie, tylko prowadzi ją do złych odpowiedzi.
+Przy ε = 0 nic się nie zmienia i dokładność wynosi 94,3%, jak wcześniej. Przy ε = 0,05 sieć rozpoznaje poprawnie 81,5% zaatakowanych obrazów, przy 0,1 już tylko 55,9%, a przy 0,2 zaledwie 4%. To mniej niż 10%, jakie dałoby zgadywanie na ślepo: atak nie tyle dezorientuje sieć, ile prowadzi ją prosto do złych odpowiedzi.
 
-Losowe zmiany tej samej wielkości prawie nie mają znaczenia: przy ε = 0,1 sieć nadal czyta dobrze 91,6% takich obrazów. To więc nie wielkość zmiany oszukuje sieć, tylko jej kierunek, a który to kierunek, mówią nachylenia.
+Losowe zmiany tej samej wielkości prawie nic nie zmieniają: przy ε = 0,1 sieć nadal rozpoznaje 91,6% takich obrazów. Sieć oszukuje więc nie wielkość zmiany, tylko jej kierunek, a ten wskazują nachylenia.
 
-Sieć, która zachowuje dokładność pod atakiem, nazywa się **odporną** (ang. robust), a ta odporna nie jest. Nic w jej treningu tego od niej nie wymagało: pokazywano jej tylko obrazy takie, jakie były.
+Sieć, która zachowuje dokładność pod atakiem, nazywa się **odporną** (ang. robust). Ta odporna nie jest i nic w jej treningu tego nie wymagało: widziała wyłącznie obrazy, przy których nikt nie majstrował.
 
 > [!NOTE]
-> Atak liczył nachylenia z wag samej sieci. Trzymanie wag w tajemnicy nie jest jednak obroną, na której można polegać: obrazy zrobione przeciwko jednej sieci często oszukują też inną, wytrenowaną na tego samego rodzaju obrazach.
+> Atak liczył nachylenia na podstawie wag atakowanej sieci. Utajnienie wag nie jest jednak skuteczną obroną: obrazy przygotowane przeciwko jednej sieci często oszukują też inną, wytrenowaną na podobnych obrazach.
 
 ## Podsumowanie
 
-- Przykład antagonistyczny to obraz zmieniony odrobinę, celowo, tak żeby sieć przeczytała go źle, a człowiek tak samo jak przedtem.
-- Strata ma nachylenie względem każdego piksela: `torch.autograd.grad(loss, X)[0]`, dla obrazów oznaczonych przez `requires_grad_()`.
-- FGSM, metoda szybkiego znaku gradientu, robi jeden krok: `X + epsilon * slope.sign()`. Każdy piksel przesuwa się o ε w kierunku, w którym strata rośnie.
-- Kula ε wokół obrazu to obrazy, których wszystkie piksele są najwyżej ε od jego pikseli. Największa zmiana piksela to odległość L∞. `clamp(0, 1)` utrzymuje piksele w poprawnym zakresie, a obraz zostaje w kuli.
-- Dokładność pod atakiem to dokładność na obrazach, z których każdy został zaatakowany, dla danego ε. Losowe zmiany tej samej wielkości prawie nic nie robią: liczy się kierunek.
+- Przykład adwersarialny to obraz zmieniony celowo i tak nieznacznie, że człowiek widzi w nim to samo co wcześniej, a sieć rozpoznaje go błędnie.
+- Strata ma nachylenie względem każdego piksela: `torch.autograd.grad(loss, X)[0]` dla obrazów oznaczonych przez `requires_grad_()`.
+- FGSM, szybka metoda znaku gradientu, wykonuje jeden krok: `X + epsilon * slope.sign()`. Każdy piksel przesuwa się o ε w stronę, w którą rośnie strata.
+- Kula o promieniu ε wokół obrazu zawiera obrazy, których każdy piksel różni się od oryginału najwyżej o ε. Największa zmiana piksela to odległość L∞. `clamp(0, 1)` utrzymuje piksele w dozwolonym zakresie, a obraz pozostaje w kuli.
+- Dokładność pod atakiem to dokładność na obrazach, z których każdy zaatakowano przy danym ε. Losowe zmiany tej samej wielkości prawie nic nie zmieniają: liczy się kierunek.
 
 ## Sprawdź się
 
 <details>
-<summary>Piksel ma wartość 0,95, a jego nachylenie jest dodatnie. Gdzie jest po FGSM z ε = 0,1?</summary>
+<summary>Piksel ma wartość 0,95, a jego nachylenie jest dodatnie. Jaką wartość będzie miał po FGSM z ε = 0,1?</summary>
 
-Na 1. Krok przenosi go na 1,05, a `clamp(0, 1)` sprowadza go z powrotem do 1, najciemniejszej wartości, jaką może mieć piksel. Przesunął się o 0,05, mniej niż ε, więc obraz nadal jest w kuli ε.
-
-</details>
-
-<details>
-<summary>Dlaczego FGSM przesuwa piksel o malutkim nachyleniu tak samo daleko jak piksel o dużym?</summary>
-
-Bo limit dotyczy każdego piksela z osobna: żaden nie może przesunąć się o więcej niż ε. Przy takim limicie strata rośnie najbardziej, gdy każdy piksel idzie do końca w swoim kierunku. Piksel o malutkim nachyleniu dokłada niewiele, ale dokłada we właściwym kierunku i nic nie odbiera pozostałym.
+Będzie miał wartość 1. Krok przenosi go do 1,05, a `clamp(0, 1)` przycina go do 1, najciemniejszej możliwej wartości. Piksel zmienił się o 0,05, mniej niż ε, więc obraz nadal leży w kuli o promieniu ε.
 
 </details>
 
 <details>
-<summary>Losowe zmiany o ±0,1 zostawiają dokładność na 92%, a FGSM z ε = 0,1 obniża ją do 56%. Jedne i drugie przesuwają każdy piksel o 0,1. Na czym polega różnica?</summary>
+<summary>Dlaczego FGSM przesuwa piksel o znikomym nachyleniu tak samo daleko jak piksel o dużym?</summary>
 
-Na kierunku. Przy losowych znakach mniej więcej połowa pikseli pcha stratę w górę, a połowa w dół, i w większości się znoszą. FGSM bierze każdy znak z nachylenia, więc każdy piksel pcha stratę w górę.
+Bo limit dotyczy każdego piksela osobno: żaden nie może się zmienić o więcej niż ε. Przy takim ograniczeniu strata rośnie najbardziej, gdy każdy piksel wykorzysta cały swój limit, każdy w swoją stronę. Piksel o znikomym nachyleniu dokłada niewiele, ale zawsze we właściwą stronę, i niczego nie odbiera pozostałym.
 
 </details>
 
 <details>
-<summary>Dlaczego obraz zaatakowany z ε = 0,5 nie jest przykładem antagonistycznym?</summary>
+<summary>Losowe zmiany o ±0,1 obniżają dokładność do 92%, a FGSM z ε = 0,1 do 56%. W obu przypadkach każdy piksel zmienia się o 0,1. Skąd ta różnica?</summary>
 
-Zmiana o połowę drogi od bieli do czerni może zamienić cyfrę w inną, także dla człowieka, a wtedy sieć, która czyta tę inną cyfrę, ma rację. Przykład antagonistyczny zachowuje dla człowieka swoje znaczenie i po to jest małe ε.
+Wynika z kierunku. Przy losowych znakach mniej więcej połowa pikseli zwiększa stratę, a połowa ją zmniejsza, więc ich wpływ w dużej mierze się znosi. FGSM bierze znak każdego piksela z nachylenia, więc każdy piksel zwiększa stratę.
+
+</details>
+
+<details>
+<summary>Dlaczego obraz zaatakowany przy ε = 0,5 nie jest przykładem adwersarialnym?</summary>
+
+Zmiana o połowę drogi od bieli do czerni może zamienić cyfrę w inną także dla człowieka, a wtedy sieć, która rozpoznaje tę inną cyfrę, ma rację. W przykładzie adwersarialnym człowiek widzi to samo co w oryginale i właśnie temu służy małe ε.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Jeden krok FGSM](../../exercises/07-adversarial-examples/01-fooling-a-network/01-one-step-with-fgsm/task.pl.md) napiszesz atak dla dowolnej sieci i dowolnej porcji obrazów. W ćwiczeniu [Dokładność pod atakiem](../../exercises/07-adversarial-examples/01-fooling-a-network/02-accuracy-under-attack/task.pl.md) zmierzysz, jak spada dokładność sieci, gdy rośnie ε.
+W ćwiczeniu [Jeden krok FGSM](../../exercises/07-adversarial-examples/01-fooling-a-network/01-one-step-with-fgsm/task.pl.md) napiszesz atak, który działa dla dowolnej sieci i dowolnej porcji obrazów. W ćwiczeniu [Dokładność pod atakiem](../../exercises/07-adversarial-examples/01-fooling-a-network/02-accuracy-under-attack/task.pl.md) zmierzysz, jak dokładność sieci spada wraz ze wzrostem ε.

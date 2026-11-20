@@ -1,14 +1,14 @@
 ---
-description: Wytrenuj regresję liniową na stu kursach przy użyciu tensorów i autogradu, krok po kroku, i odzyskaj ceny z naklejki taksówki.
+description: Wytrenuj regresję liniową na stu kursach, krok po kroku, samymi tensorami i autogradem, i odzyskaj ceny z naklejki na szybie taksówki.
 ---
 
 # Regresja liniowa ręcznie
 
-[Trening prostej opłat](02-autograd.pl.md#trening-prostej-opłat) dopasował prostą do czterech paragonów. Prawdziwa firma ma ich setki, a każdy kurs ma więcej niż odległość. Ta lekcja trenuje regresję liniową na stu kursach, z których każdy ma dwie cechy, używając samych tensorów i autogradu: jeszcze bez warstw i optymalizatorów. [Następna lekcja](05-linear-regression-with-nn-linear.pl.md) pokazuje, co PyTorch ma do tego samego zadania.
+W części [Trening prostej opłat](02-autograd.pl.md#trening-prostej-opłat) prosta była dopasowywana do czterech paragonów. Prawdziwa firma ma ich setki, a kurs opisuje coś więcej niż sama odległość. W tej lekcji wytrenujesz regresję liniową na stu kursach, każdy z dwiema cechami, wyłącznie za pomocą tensorów i autogradu: na razie bez warstw i bez optymalizatorów. To, co PyTorch ma do tego samego zadania, pokazuje [następna lekcja](05-linear-regression-with-nn-linear.pl.md).
 
 ## Sto kursów
 
-Kursy są zmyślone, ale zmyślone tak, jak zrobiłaby je naklejka taksówki: 3 zł za każdy kilometr, 0,50 zł za każdą minutę postoju i 8 zł na start, plus złotówka szumu, której naklejka nie tłumaczy. Ziarno sprawia, że kursy są za każdym razem te same, tutaj i na twoim komputerze:
+Kursy są wymyślone, ale tak, jak wyliczyłaby je naklejka na szybie taksówki: 3 zł za każdy kilometr, 0,50 zł za każdą minutę postoju i 8 zł na start, do tego mniej więcej złotówka szumu, którego naklejka nie wyjaśnia. Dzięki ziarnu za każdym razem powstają te same kursy, tutaj i na twoim komputerze:
 
 ```python run
 import torch
@@ -25,11 +25,11 @@ print(X[:3])
 print(y[:3])
 ```
 
-`X` to tabela cech, z wierszem dla każdego kursu i kolumną dla każdej cechy: odległości i minut postoju. `y` zawiera opłaty i to też jest tabela, z jedną kolumną: kształt `[100, 1]`, a nie `[100]`. To ma znaczenie, jak zaraz zobaczysz.
+`X` to tabela cech, z wierszem dla każdego kursu i kolumną dla każdej cechy: odległości i minut postoju. `y` zawiera opłaty i też jest tabelą, z jedną kolumną: ma kształt `[100, 1]`, a nie `[100]`. To ważne, za chwilę zobaczysz dlaczego.
 
 ## Cechy po standaryzacji
 
-Odległości sięgają 13, a minuty 10, co jest dość blisko siebie, ale prawdziwe cechy mogą dzielić całe światy. [Standaryzacja](01-tensors.pl.md#rozgłaszanie-standaryzacja-kolumn) sprowadza je do tej samej skali, żeby jeden współczynnik uczenia pasował do wszystkich wag:
+Odległości sięgają 13, a minuty 10, więc ich skale są zbliżone, ale prawdziwe cechy potrafią różnić się o rzędy wielkości. [Standaryzacja](01-tensors.pl.md#rozgłaszanie-standaryzacja-kolumn) sprowadza je do tej samej skali, dzięki czemu jeden współczynnik uczenia pasuje do wszystkich wag:
 
 ```python run
 import torch
@@ -48,11 +48,11 @@ print(X_std.mean(dim=0).abs() < 1e-5)
 print(X_std.std(dim=0, correction=0).round(decimals=3))
 ```
 
-Średnie ustandaryzowanych kolumn wynoszą 0, z dokładnością do zaokrągleń liczb 32-bitowych, a ich rozrzuty 1.
+Średnie wystandaryzowanych kolumn wynoszą 0, z dokładnością do zaokrągleń liczb 32-bitowych, a ich rozrzuty 1.
 
 ## Model i jego strata
 
-Predykcja dla każdego kursu to iloczyn skalarny jego cech z wagami plus wyraz wolny: $\hat{y} = Xw + b$. `X` ma kształt `[100, 2]`, więc `w` ma `[2, 1]`, po jednej wadze na cechę, a iloczyn ma `[100, 1]`, po jednej predykcji na kurs. Wagi zaczynają losowo, a wyraz wolny od 0:
+Predykcja dla każdego kursu to iloczyn skalarny jego cech i wag plus wyraz wolny: $\hat{y} = Xw + b$. `X` ma kształt `[100, 2]`, więc `w` ma kształt `[2, 1]`, po jednej wadze na cechę, a iloczyn ma kształt `[100, 1]`, po jednej predykcji na kurs. Wagi są na początku losowe, a wyraz wolny wynosi 0:
 
 ```python run
 import torch
@@ -78,11 +78,11 @@ wrong = ((y_pred - y.flatten()) ** 2).mean()
 print((y_pred - y.flatten()).shape, wrong)
 ```
 
-Strata to błąd średniokwadratowy. Dwa ostatnie wiersze pokazują pomyłkę, której PyTorch nie powstrzyma. `y_pred` ma `[100, 1]`, a `y.flatten()` ma `[100]`, i [rozgłaszanie](01-tensors.pl.md#rozgłaszanie-standaryzacja-kolumn) robi z nich tabelę `[100, 100]`, każda predykcja zestawiona z każdą opłatą. Średnia z niej to też liczba, ale to strata niczego. Trzymaj predykcje i etykiety w tym samym kształcie: obie `[100, 1]`.
+Funkcją straty jest błąd średniokwadratowy. Dwa ostatnie wiersze pokazują pomyłkę, przed którą PyTorch nie chroni. `y_pred` ma kształt `[100, 1]`, a `y.flatten()` kształt `[100]`, więc [rozgłaszanie](01-tensors.pl.md#rozgłaszanie-standaryzacja-kolumn) robi z nich tabelę `[100, 100]`, w której każda predykcja jest porównana z każdą opłatą. Jej średnia też jest liczbą, ale niczego nie mierzy. Predykcje i etykiety trzeba trzymać w tym samym kształcie: oba `[100, 1]`.
 
 ## Trening
 
-Pętla jest ta z lekcji [Autograd](02-autograd.pl.md#krok-w-dół): przód, wstecz, krok wewnątrz `torch.no_grad()` i zerowanie. Co 20 epok wypisuje epokę i stratę. **Epoka** to jedno przejście przez wszystkie dane treningowe, tutaj pojedynczy krok, bo wszystkie 100 kursów wchodzi naraz:
+Pętla jest taka sama jak w lekcji [Autograd](02-autograd.pl.md#krok-w-dół): przejście w przód, przejście wstecz, krok wewnątrz `torch.no_grad()` i zerowanie nachyleń. Co 20 epok wypisuje numer epoki i stratę. **Epoka** to jedno przejście przez wszystkie dane treningowe, tutaj jeden krok, bo wszystkie 100 kursów trafia do modelu naraz:
 
 ```python run
 import torch
@@ -115,11 +115,11 @@ for epoch in range(n_epochs):
 print(w.flatten(), b)
 ```
 
-Strata spada z 1147 do 0,71 i tam zostaje. Nie może dojść do 0 przez szum: kursy mają około 1 szumu w błędzie do kwadratu, a prosta osiąga na tej próbce 0,71. Wagi, 10,63 i 1,20, oraz wyraz wolny, 31,85, nie wyglądają jak naklejka, bo działają na cechach po standaryzacji.
+Strata spada z 1147 do 0,71 i tam się zatrzymuje. Do 0 dojść nie może z powodu szumu: kursy mają go w błędzie średniokwadratowym około 1, a prosta dopasowana do tej próbki osiąga 0,71. Wagi, 10,63 i 1,20, oraz wyraz wolny, 31,85, nie przypominają cen z naklejki, bo działają na wystandaryzowanych cechach.
 
 ## Z powrotem do złotych
 
-Ustandaryzowana cecha to $(x - \text{średnia}) / \text{rozrzut}$, więc prosta $w_1 \frac{x_1 - m_1}{s_1} + w_2 \frac{x_2 - m_2}{s_2} + b$ jest prostą także na oryginalnych cechach, z wagami $w_1 / s_1$ i $w_2 / s_2$ oraz wyrazem wolnym $b - w_1 m_1 / s_1 - w_2 m_2 / s_2$. W kodzie, z tensorami liczącymi obie cechy naraz:
+Wystandaryzowana cecha to $(x - m) / s$, gdzie $m$ to średnia, a $s$ rozrzut. Prosta $w_1 \frac{x_1 - m_1}{s_1} + w_2 \frac{x_2 - m_2}{s_2} + b$ jest więc też prostą w pierwotnych cechach, z wagami $w_1 / s_1$ i $w_2 / s_2$ oraz wyrazem wolnym $b - w_1 m_1 / s_1 - w_2 m_2 / s_2$. W kodzie, z tensorami, które obsługują obie cechy naraz:
 
 ```python run
 import torch
@@ -154,39 +154,39 @@ with torch.no_grad():
     print((new_rides - means) / stds @ w + b)
 ```
 
-Trening znalazł 3,02 zł za kilometr, 0,44 zł za minutę postoju i 8,12 zł na start, blisko 3, 0,5 i 8 z naklejki, ze stu zaszumionych kursów. Żeby przewidzieć nowe kursy, najpierw standaryzuje się je ze średnimi i rozrzutami kursów treningowych, jak mówi [rozdział o sieciach neuronowych](../04-foundations/04-neural-networks/04-inputs.pl.md#nowe-zamówienia), a `torch.no_grad()` trzyma predykcję poza zapisem.
+Trening znalazł 3,02 zł za kilometr, 0,44 zł za minutę postoju i 8,12 zł na start, czyli blisko 3, 0,5 i 8 z naklejki, i to ze stu zaszumionych kursów. Żeby przewidzieć opłaty za nowe kursy, najpierw standaryzuje się je średnimi i rozrzutami kursów treningowych, jak w [rozdziale o sieciach neuronowych](../04-foundations/04-neural-networks/04-inputs.pl.md#nowe-zamówienia), a `torch.no_grad()` sprawia, że predykcja nie trafia do zapisu obliczeń.
 
 ## Podsumowanie
 
-- Regresja liniowa na tabeli to $\hat{y} = Xw + b$: `X` ma `[n, cechy]`, `w` ma `[cechy, 1]`, a predykcje mają `[n, 1]`.
-- Trzymaj etykiety w kształcie predykcji, `[n, 1]`. Przy `[n]` rozgłaszanie robi `[n, n]` i stratę niczego, bez żadnego błędu.
-- Standaryzuj cechy ze średnimi i rozrzutami danych treningowych i tak samo standaryzuj nowe kursy.
-- Pętla to przód, wstecz, krok wewnątrz `torch.no_grad()` i zerowanie. Epoka to jedno przejście przez dane treningowe.
-- Wagi znalezione na ustandaryzowanych cechach zamieniają się z powrotem w wagi na oryginalnych cechach przez podzielenie przez rozrzut.
+- Regresja liniowa na tabeli to $\hat{y} = Xw + b$: `X` ma kształt `[n, cechy]`, `w` kształt `[cechy, 1]`, a predykcje `[n, 1]`.
+- Etykiety trzeba trzymać w kształcie predykcji, `[n, 1]`. Przy `[n]` rozgłaszanie bez żadnego błędu tworzy stratę `[n, n]`, która nic nie znaczy.
+- Cechy standaryzuje się średnimi i rozrzutami danych treningowych, a nowe kursy dokładnie tak samo.
+- Pętla to przejście w przód, przejście wstecz, krok wewnątrz `torch.no_grad()` i zerowanie. Epoka to jedno przejście przez dane treningowe.
+- Wagi znalezione dla wystandaryzowanych cech zamienia się z powrotem na wagi dla pierwotnych cech, dzieląc je przez rozrzut.
 
 ## Sprawdź się
 
 <details>
-<summary>Wagi mają kształt <code>[2, 1]</code>, a <code>X</code> ma <code>[50, 2]</code>. Jaki kształt ma <code>X @ w + b</code>?</summary>
+<summary>Wagi mają kształt <code>[2, 1]</code>, a <code>X</code> kształt <code>[50, 2]</code>. Jaki kształt ma <code>X @ w + b</code>?</summary>
 
-`[50, 1]`: iloczyn ma wiersz dla każdego z 50 wierszy `X` i kolumnę dla jedynej kolumny `w`, a wyraz wolny, pojedyncza liczba, jest dodawany do każdego.
+`[50, 1]`: iloczyn ma wiersz dla każdego z 50 wierszy `X` i kolumnę dla jedynej kolumny `w`, a wyraz wolny, pojedyncza liczba, jest dodawany do każdego elementu.
 
 </details>
 
 <details>
 <summary>Strata spada do 0,71, a nie do 0. Czy coś jest nie tak?</summary>
 
-Nie. Opłaty mają szum, którego żadna prosta nie tłumaczy, więc nawet najlepsza prosta myli się o około złotówkę. Strata dokładnie 0 byłaby powodem do niepokoju: oznaczałaby, że prosta nauczyła się szumu.
+Nie. Opłaty zawierają szum, którego żadna prosta nie wyjaśni, więc nawet najlepsza prosta myli się o mniej więcej złotówkę. Powodem do niepokoju byłaby strata równa dokładnie 0: oznaczałaby, że prosta nauczyła się szumu.
 
 </details>
 
 <details>
-<summary>Dlaczego nowy kurs standaryzuje się ze średnimi i rozrzutami kursów treningowych, a nie własnymi?</summary>
+<summary>Dlaczego nowy kurs standaryzuje się średnimi kursów treningowych, a nie jego własnymi?</summary>
 
-Wagi znaleziono na cechach o średnich i rozrzutach kursów treningowych, więc działają tylko na cechach ustandaryzowanych tak samo. Średnia pojedynczego kursu to on sam i zawsze wychodziłby z niej 0.
+Wagi znaleziono dla cech wystandaryzowanych średnimi i rozrzutami kursów treningowych, więc działają tylko na cechach wystandaryzowanych tak samo. Średnia z jednego kursu to on sam, więc po standaryzacji zawsze wychodziłoby 0.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Policz predykcje i błąd](../../exercises/05-pytorch/04-linear-regression-by-hand/01-predict-and-score/task.pl.md) policzysz predykcje i stratę dla dowolnych wag. W ćwiczeniu [Dopasuj prostą](../../exercises/05-pytorch/04-linear-regression-by-hand/02-fit-a-line/task.pl.md) wytrenujesz regresję liniową na dowolnej tabeli cech.
+W ćwiczeniu [Predykcje i strata](../../exercises/05-pytorch/04-linear-regression-by-hand/01-predict-and-score/task.pl.md) policzysz predykcje i stratę dla dowolnych wag. W ćwiczeniu [Dopasuj prostą](../../exercises/05-pytorch/04-linear-regression-by-hand/02-fit-a-line/task.pl.md) wytrenujesz regresję liniową na dowolnej tabeli cech.

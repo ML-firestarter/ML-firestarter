@@ -1,14 +1,14 @@
 ---
-description: Podawaj modelowi dane po kilka wierszy naraz przez Dataset i DataLoader, podziel kursy na zbiór treningowy, walidacyjny i testowy i oceń model metryką.
+description: Podawaj modelowi dane po kilka wierszy naraz dzięki Dataset i DataLoader, podziel kursy na zbiory treningowy, walidacyjny i testowy i oceń model za pomocą metryki.
 ---
 
 # Porcje danych i ocena
 
-Trening na stu kursach naraz był łatwy. Trening na milionie naraz oznacza tabelę, która nie mieści się w pamięci, i jeden krok spadku gradientu na przejście przez nią, co jest bardzo wolne. Dlatego prawdziwy trening pracuje na **porcji danych** (ang. batch), kilkudziesięciu wierszach naraz, i robi krok dla każdej porcji. Ta lekcja tworzy porcje przez `Dataset` i `DataLoader` z PyTorcha, dzieli kursy na trzy zbiory, trenuje model porcja po porcji i mierzy, jak jest dobry.
+Trening na stu kursach naraz był prosty. Trening na milionie kursów naraz oznacza tabelę, która nie mieści się w pamięci, i tylko jeden krok spadku gradientu na każde przejście przez nią, co trwa bardzo długo. Dlatego w prawdziwym treningu model dostaje dane **porcjami** (ang. batch), po kilkadziesiąt wierszy, i robi krok po każdej porcji. W tej lekcji przygotujesz porcje za pomocą `Dataset` i `DataLoader` z PyTorcha, podzielisz kursy na trzy zbiory, wytrenujesz model porcja po porcji i zmierzysz, jak dobry jest.
 
 ## Porcje danych
 
-`TensorDataset` przechowuje tensory z wierszem dla każdego przykładu, tutaj cechami i opłatą każdego kursu, i oddaje jeden przykład naraz. `DataLoader` bierze zbiór danych i oddaje go w porcjach, w nowej losowej kolejności w każdej epoce, gdy powiesz `shuffle=True`. Ziarno ustala kolejność, tutaj i na twoim komputerze:
+`TensorDataset` przechowuje tensory z wierszem dla każdego przykładu, tutaj cechy i opłatę każdego kursu, i zwraca po jednym przykładzie. `DataLoader` bierze taki zbiór i podaje go porcjami, a z `shuffle=True` w każdej epoce w nowej, losowej kolejności. Ziarno ustala tę kolejność, tutaj i na twoim komputerze:
 
 ```python run
 import torch
@@ -32,11 +32,11 @@ for i, (X_batch, y_batch) in enumerate(loader):
         print(i, X_batch.shape, y_batch.shape)
 ```
 
-`dataset[0]` to pierwszy kurs: jego dwie cechy i jego opłata. Loader ma 32 porcje: 31 po 32 kursy i ostatnią z 8, które zostały. Każda porcja to para, cechy jej kursów i ich opłaty, a pętla może je rozpakować: `for X_batch, y_batch in loader`.
+`dataset[0]` to pierwszy kurs: jego dwie cechy i opłata. `DataLoader` dzieli kursy na 32 porcje: 31 po 32 kursy i ostatnią z 8 pozostałymi. Każda porcja to para, cechy jej kursów i ich opłaty, którą pętla może od razu rozpakować: `for X_batch, y_batch in loader`.
 
 ## Trzy zbiory kursów
 
-Model oceniany na kursach, z których się uczył, wygląda lepiej, niż jest, więc kursy dzieli się na trzy. **Zbiór treningowy** to to, z czego model się uczy, **zbiór walidacyjny** to to, na czym go mierzysz, gdy wybierasz jego ustawienia, a **zbiór testowy** zostaje na koniec, żeby raz zmierzyć wybrany model. `random_split` tnie zbiór danych na losowe części podanych rozmiarów, a generator z ziarnem sprawia, że cięcie jest za każdym razem takie samo:
+Model mierzony na kursach, na których się uczył, wydaje się lepszy, niż jest, dlatego kursy dzieli się na trzy części. Na **zbiorze treningowym** model się uczy, na **zbiorze walidacyjnym** mierzy się go podczas dobierania ustawień, a **zbiór testowy** odkłada się na koniec, żeby jeden raz zmierzyć wybrany model. `random_split` dzieli zbiór na losowe części o podanych rozmiarach, a generator z ziarnem sprawia, że podział za każdym razem jest taki sam:
 
 ```python run
 import torch
@@ -60,11 +60,11 @@ stds = X[train_set.indices].std(dim=0, keepdim=True, correction=0)
 print(means, stds)
 ```
 
-Średnie i rozrzuty do [standaryzacji](04-linear-regression-by-hand.pl.md#cechy-po-standaryzacji) pochodzą wyłącznie z kursów treningowych, a kursy walidacyjne i testowe standaryzuje się z nimi, jak mówi [rozdział o sieciach neuronowych](../04-foundations/04-neural-networks/04-inputs.pl.md#nowe-zamówienia). Kursy testowe nie mogą przeciekać do niczego, czego uczy się model albo ty.
+Średnie i rozrzuty do [standaryzacji](04-linear-regression-by-hand.pl.md#cechy-po-standaryzacji) liczy się wyłącznie z kursów treningowych i nimi standaryzuje się też kursy walidacyjne i testowe, jak w [rozdziale o sieciach neuronowych](../04-foundations/04-neural-networks/04-inputs.pl.md#nowe-zamówienia). Kursy testowe nie mogą przeniknąć do niczego, z czego uczy się model albo ty.
 
 ## Epoka
 
-Pętla z czterech kroków ma teraz w sobie pętlę: epoka przechodzi przez wszystkie porcje zbioru treningowego, a każda porcja to krok. Wypisywana strata to średnia strat porcji. `model.train()` mówi, że model jest trenowany, co ma znaczenie dla warstw, które w treningu zachowują się inaczej niż w użyciu, a tutaj nic nie kosztuje:
+Pętla z czterema krokami ma teraz w środku drugą pętlę: epoka przechodzi przez wszystkie porcje zbioru treningowego, a każda porcja to jeden krok. Wypisywana strata to średnia ze strat porcji. `model.train()` informuje, że model jest trenowany, co ma znaczenie dla warstw, które zachowują się inaczej w treningu, a inaczej w użyciu. Tutaj niczego nie zmienia, a nic nie kosztuje:
 
 ```python run
 import torch
@@ -101,11 +101,11 @@ for epoch in range(5):
     print(epoch + 1, round(total_loss / len(train_loader), 3))
 ```
 
-Strata spada z 291 do około 1 w trzy epoki, dużo szybciej niż w 100 epokach [lekcji ręcznej](04-linear-regression-by-hand.pl.md#trening): epoka to teraz 19 kroków, a nie 1. `loss.item()` daje stratę jako zwykłą liczbę, a dodawanie tensorów, które wciąż pamiętają swój zapis, trzymałoby w pamięci graf każdej porcji.
+Strata spada z 291 do około 1 w trzy epoki, znacznie szybciej niż w ciągu 100 epok z [lekcji ręcznej](04-linear-regression-by-hand.pl.md#trening): epoka to teraz 19 kroków, a nie 1. `loss.item()` zwraca stratę jako zwykłą liczbę. Gdyby sumować tensory, które pamiętają zapis obliczeń, w pamięci zostałby graf każdej porcji.
 
 ## Ocena
 
-Żeby zmierzyć model, przechodzi on w tryb oceny, `model.eval()`, a predykcje liczy się wewnątrz `torch.no_grad()`, bo nic nie będzie się przez nie cofać. Metryka to liczba, która mówi, jak dobre są predykcje, a dla opłat **RMSE**, pierwiastek z błędu średniokwadratowego, jest w złotych, więc łatwo go odczytać. Ale ważne jest, po czym się uśrednia: średnia z RMSE każdej porcji to nie RMSE wszystkich kursów, gdy ostatnia porcja jest mniejsza. `torchmetrics` ma metryki jako obiekty, które zbierają po jednej porcji: `update` dla każdej porcji i `compute` na końcu:
+Żeby zmierzyć model, przełącza się go w tryb oceny, `model.eval()`, a predykcje liczy wewnątrz `torch.no_grad()`, bo nic nie będzie się przez nie cofać. Metryka to liczba, która mówi, jak dobre są predykcje. Dla opłat dobrze sprawdza się **RMSE**, czyli pierwiastek z błędu średniokwadratowego, bo wychodzi w złotych i łatwo go odczytać. Ważne jest jednak, po czym się uśrednia: średnia z RMSE poszczególnych porcji to nie RMSE wszystkich kursów, jeśli ostatnia porcja jest mniejsza. `torchmetrics` ma metryki w postaci obiektów, które zbierają dane porcja po porcji: `update` dla każdej porcji i `compute` na końcu:
 
 ```python run
 import torch
@@ -153,38 +153,38 @@ print(round(torch.stack(batch_rmses).mean().item(), 4))
 print(rmse.compute())
 ```
 
-RMSE na 200 kursach walidacyjnych to 1,0124: zsumuj kwadraty błędów wszystkich kursów, podziel przez ich liczbę, wyciągnij pierwiastek. Średnia z RMSE siedmiu porcji to 0,9922, trochę za mało, bo ostatnia porcja ma tylko 8 kursów, a liczy się tyle co pozostałe. `torchmetrics` robi to dobrze, 1,0124, a model myli się o około złotówkę, czyli o szum w opłatach. Pętle z tej lekcji, jedna epoka i jedna ocena, to z czego składa się trener, a ćwiczenia zapisują je jako funkcje.
+RMSE na 200 kursach walidacyjnych wynosi 1,0124: to suma kwadratów błędów wszystkich kursów podzielona przez ich liczbę, a z tego pierwiastek. Średnia z RMSE siedmiu porcji to 0,9922, czyli trochę za mało, bo ostatnia porcja ma tylko 8 kursów, a liczy się tak samo jak pozostałe. `torchmetrics` liczy poprawnie, 1,0124, a model myli się średnio o mniej więcej złotówkę, czyli o tyle, ile wynosi szum w opłatach. Pętle z tej lekcji, jedna epoka i jedna ocena, to elementy, z których składa się każdy trening, a ćwiczenia zamieniają je w funkcje.
 
 ## Podsumowanie
 
-- `TensorDataset` przechowuje tensory z wierszem dla każdego przykładu, a `DataLoader` oddaje je w porcjach, przetasowanych na potrzeby treningu. Krok spadku gradientu robi się dla każdej porcji, a epoka przechodzi przez wszystkie.
-- Kursy dzieli się na zbiór treningowy, z którego się uczy, walidacyjny, na którym mierzy się przy wyborze, i testowy, który zostaje do końca. `random_split` tnie zbiór danych, a standaryzacja używa tylko średnich i rozrzutów zbioru treningowego.
-- Oceniaj z `model.eval()` i `torch.no_grad()`. Metryka na wszystkich kursach to nie średnia metryk porcji, gdy ostatnia porcja jest mniejsza.
-- Metryki `torchmetrics` zbierają porcje przez `update` i dają wynik przez `compute`.
+- `TensorDataset` przechowuje tensory z wierszem dla każdego przykładu, a `DataLoader` podaje je porcjami, w treningu w losowej kolejności. Krok spadku gradientu robi się dla każdej porcji, a epoka przechodzi przez wszystkie.
+- Kursy dzieli się na zbiór treningowy, na którym model się uczy, walidacyjny, na którym mierzy się go przy wyborze ustawień, i testowy, odłożony na koniec. `random_split` dzieli zbiór, a do standaryzacji używa się wyłącznie średnich i rozrzutów zbioru treningowego.
+- Model ocenia się w trybie `model.eval()` i wewnątrz `torch.no_grad()`. Gdy ostatnia porcja jest mniejsza, metryka dla wszystkich kursów nie jest średnią z metryk porcji.
+- Metryki z `torchmetrics` zbierają porcje przez `update` i podają wynik przez `compute`.
 
 ## Sprawdź się
 
 <details>
-<summary>1000 kursów idzie w porcjach po 32. Ile porcji ma loader i jak duża jest ostatnia?</summary>
+<summary>1000 kursów trafia do porcji po 32. Ile jest porcji i jak duża jest ostatnia?</summary>
 
-32 porcje: 31 pełnych, czyli 992 kursy, i ostatnia z 8, które zostały. `DataLoader` zachowuje mniejszą ostatnią porcję, chyba że powiesz mu `drop_last=True`.
+32 porcje: 31 pełnych, czyli 992 kursy, i ostatnia z 8 pozostałymi. `DataLoader` zostawia mniejszą ostatnią porcję, chyba że dostanie `drop_last=True`.
 
 </details>
 
 <details>
-<summary>Dlaczego model dostaje do standaryzacji tylko średnie i rozrzuty kursów treningowych?</summary>
+<summary>Dlaczego do standaryzacji model dostaje tylko średnie i rozrzuty kursów treningowych?</summary>
 
-Standaryzacja jest częścią modelu, więc to, co do niej trafia, musi pochodzić z tego, czego model może się uczyć. Średnie obejmujące kursy walidacyjne albo testowe pozwoliłyby im przeciec do modelu, a jego wyniki wyglądałyby lepiej, niż są.
+Standaryzacja jest częścią modelu, więc wszystko, co do niej trafia, musi pochodzić z danych, z których model może się uczyć. Średnie liczone z udziałem kursów walidacyjnych albo testowych przemyciłyby je do modelu, a jego wyniki wyglądałyby lepiej, niż są naprawdę.
 
 </details>
 
 <details>
 <summary>Dlaczego <code>loss.item()</code>, a nie <code>total_loss += loss</code>?</summary>
 
-`loss` to tensor z zapisem obliczeń całej porcji, a dodawanie go trzyma ten zapis przy życiu dla każdej porcji epoki, co zapełnia pamięć bez powodu. `.item()` wyjmuje liczbę i pozwala zapisowi odejść.
+`loss` to tensor z zapisem obliczeń całej porcji, a dodawanie go utrzymuje ten zapis przy życiu dla każdej porcji w epoce, czyli niepotrzebnie zapełnia pamięć. `.item()` wyciąga samą liczbę i pozwala zapisowi zniknąć.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Wytrenuj jedną epokę](../../exercises/05-pytorch/06-batches-and-evaluation/01-train-one-epoch/task.pl.md) napiszesz pętlę po porcjach epoki. W ćwiczeniu [Oceń RMSE](../../exercises/05-pytorch/06-batches-and-evaluation/02-evaluate-the-rmse/task.pl.md) zmierzysz model na wszystkich porcjach loadera, w sposób właściwy.
+W ćwiczeniu [Wytrenuj jedną epokę](../../exercises/05-pytorch/06-batches-and-evaluation/01-train-one-epoch/task.pl.md) napiszesz pętlę po porcjach jednej epoki. W ćwiczeniu [Zmierz RMSE](../../exercises/05-pytorch/06-batches-and-evaluation/02-evaluate-the-rmse/task.pl.md) poprawnie zmierzysz model na wszystkich porcjach z `DataLoader`.

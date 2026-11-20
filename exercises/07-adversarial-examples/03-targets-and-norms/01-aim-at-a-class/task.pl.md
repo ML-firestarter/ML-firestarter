@@ -1,27 +1,27 @@
 ---
-description: Napisz ukierunkowane PGD, które zmienia obrazy tak, żeby sieć czytała klasę wybraną przez atakującego.
+description: Napisz ukierunkowane PGD, które zmienia obrazy tak, żeby sieć rozpoznała klasę wybraną przez atakującego.
 ---
 
 # Wyceluj w klasę
 
-W części [W stronę klasy](../../../../notes/07-adversarial-examples/03-targets-and-norms.pl.md#w-stronę-klasy) sieć przeczytała 1 jako 7. Napisz ten atak dla dowolnej sieci:
+W części [Atak ukierunkowany](../../../../notes/07-adversarial-examples/03-targets-and-norms.pl.md#atak-ukierunkowany) sieć rozpoznała jedynkę jako siódemkę. Napisz ten atak dla dowolnej sieci:
 
-- `targeted_pgd(model, X, target, epsilon, alpha, steps)` zaczyna od obrazów `X` i robi `steps` kroków. Każdy krok bierze nachylenia straty dla celów, `criterion(model(X_adv), target)`, względem obrazów takich, jakie są w tym momencie, przesuwa każdy piksel o `alpha` w kierunku, w którym ta strata maleje, i rzutuje wynik do kuli ε wokół `X`. Zwraca obrazy po ostatnim kroku.
+- `targeted_pgd(model, X, target, epsilon, alpha, steps)` zaczyna od obrazów `X` i wykonuje `steps` kroków. W każdym kroku liczy nachylenia straty dla klas docelowych, `criterion(model(X_adv), target)`, względem obrazów w ich bieżącym stanie, przesuwa każdy piksel o `alpha` w stronę, w którą ta strata maleje, i rzutuje wynik do kuli o promieniu ε wokół `X`. Zwraca obrazy po ostatnim kroku.
 
-`target` ma klasę, której atakujący chce dla każdego obrazu. `project` jest już napisane. Jak wcześniej, funkcja zwraca tensor, który nie wymaga gradientu, i nie zostawia żadnego oznaczenia na `X` ani niczego w `.grad` parametrów modelu.
+`target` zawiera klasę, którą atakujący chce uzyskać dla każdego obrazu. Funkcja `project` jest gotowa. Jak poprzednio, funkcja zwraca tensor, który nie wymaga gradientu, nie oznacza `X` i niczego nie zapisuje w `.grad` parametrów modelu.
 
-`darkest_pixel()` robi sieć, która mówi, który z czterech pikseli obrazu 2×2 jest najciemniejszy. Żeby wskazała wybrany piksel, ten piksel musi się przyciemnić, a pozostałe trzy rozjaśnić:
+`darkest_pixel()` tworzy sieć, która wskazuje najciemniejszy z czterech pikseli obrazu 2×2. Żeby wskazała wybrany piksel, ten musi się przyciemnić, a pozostałe trzy rozjaśnić:
 
-| `X`, jeden obraz           | `target` | `epsilon` | `alpha` | `steps` | `targeted_pgd` zwraca          | Sieć czyta |
-| -------------------------- | -------- | --------- | ------- | ------- | ------------------------------ | ---------- |
-| `[[0.9, 0.2], [0.4, 0.1]]` | `2`      | `0.1`     | `0.04`  | `1`     | `[[0.86, 0.16], [0.44, 0.06]]` | `0`        |
-| `[[0.9, 0.2], [0.4, 0.1]]` | `2`      | `0.1`     | `0.04`  | `3`     | `[[0.8, 0.1], [0.5, 0.0]]`     | `0`        |
-| `[[0.9, 0.2], [0.4, 0.1]]` | `2`      | `0.3`     | `0.1`   | `5`     | `[[0.6, 0.0], [0.7, 0.0]]`     | `2`        |
-| `[[0.9, 0.2], [0.4, 0.1]]` | `3`      | `0.5`     | `0.1`   | `6`     | `[[0.4, 0.0], [0.0, 0.6]]`     | `3`        |
-| `[[0.9, 0.2], [0.4, 0.1]]` | `0`      | `0.1`     | `0.04`  | `3`     | `[[1.0, 0.1], [0.3, 0.0]]`     | `0`        |
+| `X`, jeden obraz           | `target` | `epsilon` | `alpha` | `steps` | `targeted_pgd` zwraca          | Sieć wskazuje |
+| -------------------------- | -------- | --------- | ------- | ------- | ------------------------------ | ------------- |
+| `[[0.9, 0.2], [0.4, 0.1]]` | `2`      | `0.1`     | `0.04`  | `1`     | `[[0.86, 0.16], [0.44, 0.06]]` | `0`           |
+| `[[0.9, 0.2], [0.4, 0.1]]` | `2`      | `0.1`     | `0.04`  | `3`     | `[[0.8, 0.1], [0.5, 0.0]]`     | `0`           |
+| `[[0.9, 0.2], [0.4, 0.1]]` | `2`      | `0.3`     | `0.1`   | `5`     | `[[0.6, 0.0], [0.7, 0.0]]`     | `2`           |
+| `[[0.9, 0.2], [0.4, 0.1]]` | `3`      | `0.5`     | `0.1`   | `6`     | `[[0.4, 0.0], [0.0, 0.6]]`     | `3`           |
+| `[[0.9, 0.2], [0.4, 0.1]]` | `0`      | `0.1`     | `0.04`  | `3`     | `[[1.0, 0.1], [0.3, 0.0]]`     | `0`           |
 
-Celem pierwszych trzech wierszy jest piksel 2, ten równy 0,4. Przy ε = 0,1 atak nie wyprowadzi go ponad 0,9 piksela 0, który schodzi tylko do 0,8, i sieć dalej czyta 0. Przy ε = 0,3 oba piksele się mijają i sieć czyta 2. Najtrudniejszy cel to piksel 3, najjaśniejszy z czterech, równy 0,1. Udaje się go osiągnąć przy ε = 0,5, a wystarczyłoby każde ε powyżej 0,4: oba piksele zaczynają 0,8 od siebie, a każdy przesuwa się o ε.
+W trzech pierwszych wierszach celem jest piksel 2, ten o wartości 0,4. Przy ε = 0,1 atak nie wyniesie go ponad piksel 0, który spada z 0,9 tylko do 0,8, więc sieć dalej wskazuje 0. Przy ε = 0,3 oba piksele się mijają i sieć wskazuje 2. Najtrudniejszym celem jest piksel 3, najjaśniejszy z czterech, o wartości 0,1. Atak trafia w niego przy ε = 0,5, a wystarczyłoby każde ε większe od 0,4: piksele 0 i 3 dzieli na początku 0,8, a każdy z nich przesuwa się o ε.
 
-W ostatnim wierszu celem jest to, co sieć już czyta, i atak sprawia, że jest tego pewniejsza.
+W ostatnim wierszu celem jest piksel, który sieć już wskazuje, a atak tylko zwiększa jej pewność.
 
-Kod, od którego zaczynasz, zwraca obrazy takie, jakie są. Sprawdzenia używają też `small_network()`, sieci z warstwą ukrytą, której nachylenia zmieniają się, gdy obrazy się przesuwają, a jedno sprawdzenie patrzy na to, co twoja funkcja pokazuje sieci: żaden obraz, z którym wywoływany jest model, nie może leżeć poza kulą.
+Kod startowy zwraca obrazy bez zmian. Sprawdzenia korzystają też z `small_network()`, sieci z warstwą ukrytą, której nachylenia zmieniają się wraz z obrazami, a jedno z nich śledzi, co twoja funkcja podaje sieci: model nie może dostać żadnego obrazu spoza kuli.

@@ -4,7 +4,7 @@ description: Napisz własny nn.Module ze ścieżką szeroką i głęboką, podaw
 
 # Własne moduły
 
-`nn.Sequential` puszcza dane jedną linią warstw, a niektóre sieci nie są linią. W sieci **szerokiej i głębokiej** (ang. wide and deep) wejścia przechodzą przez stos warstw, czyli ścieżkę głęboką, *i* idą wprost do warstwy wyjściowej, czyli ścieżką szeroką, która widzi je takimi, jakie są. Ścieżka głęboka uczy się zgięć i wzorców, a szeroka niesie proste reguły obok tych wszystkich przekształceń, w których zwykły stos mógłby je rozmazać:
+`nn.Sequential` przepuszcza dane przez jeden ciąg warstw, a nie każda sieć jest takim ciągiem. W sieci **szerokiej i głębokiej** (ang. wide and deep) wejścia przechodzą przez stos warstw, czyli ścieżkę głęboką, *a także* bezpośrednio do warstwy wyjściowej, czyli ścieżką szeroką, która widzi je w pierwotnej postaci. Ścieżka głęboka może nauczyć się załamań i wzorców, a szeroka przenosi proste zależności z pominięciem wszystkich przekształceń, w których zwykły stos warstw mógłby je rozmyć:
 
 ```text
 wejścia ──► stos głęboki (Linear, ReLU, Linear, ReLU) ──┐
@@ -12,11 +12,11 @@ wejścia ──► stos głęboki (Linear, ReLU, Linear, ReLU) ──┐
    └────────────────────────────────────────────────────┘
 ```
 
-Do tego trzeba własnego modułu, a moduł to klasa, jak w lekcji o [klasach](../02-python/04-programs/01-classes.pl.md). Ta lekcja buduje jeden, a potem daje mu inne rzeczy do przyjmowania i zwracania: kolumny jednej tabeli, dwa wejścia, wejścia z nazwami i dwa wyjścia. Kursy taksówek dostają trzecią cechę, `night`, dla kursów nocą, które dodają do opłaty 3 zł.
+Do tego potrzebny jest własny moduł, a moduł to klasa, jak w lekcji o [klasach](../02-python/04-programs/01-classes.pl.md). W tej lekcji zbudujesz taki moduł, a potem nauczysz go przyjmować i zwracać inne rzeczy: kolumny jednej tabeli, dwa wejścia, wejścia z nazwami i dwa wyjścia. Kursy firmy taksówkowej dostają trzecią cechę, `night`, która oznacza kurs nocny, droższy o 3 zł.
 
 ## Własny moduł
 
-Model to podklasa `nn.Module`. Jej `__init__` najpierw wywołuje `super().__init__()`, a potem tworzy swoje warstwy i trzyma je jako atrybuty `self`. Jej `forward` mówi, jak wejście staje się wyjściem. `torch.cat([a, b], dim=1)` skleja obok siebie cechy wejścia i liczby, które policzyła ścieżka głęboka:
+Model to podklasa `nn.Module`. Jego `__init__` najpierw wywołuje `super().__init__()`, a potem tworzy warstwy i zapisuje je jako atrybuty `self`. Jego `forward` mówi, jak z wejścia powstaje wyjście. `torch.cat([a, b], dim=1)` łączy cechy z wejścia z liczbami wyliczonymi przez ścieżkę głęboką, stawiając je obok siebie:
 
 ```python run
 import torch
@@ -27,7 +27,7 @@ print(torch.cat([wide, deep], dim=1).shape)
 print(torch.cat([wide, wide], dim=0).shape)
 ```
 
-`dim=1` skleja kolumny, więc wiersze muszą się zgadzać, a kolumny się sumują: 3 + 40 = 43. `dim=0` ułożyłoby wiersze jeden pod drugim. Oto cały moduł, dla tabeli z dowolną liczbą cech:
+`dim=1` łączy kolumny, więc liczba wierszy musi się zgadzać, a kolumny się sumują: 3 + 40 = 43. `dim=0` układałoby wiersze jeden pod drugim. Oto cały moduł, dla tabeli z dowolną liczbą cech:
 
 ```python run
 import torch
@@ -58,11 +58,11 @@ print(sum(parameter.numel() for parameter in model.parameters()))
 print(model(torch.randn(5, 3)).shape)
 ```
 
-Wypisanie modelu pokazuje jego warstwy jako drzewo, z nazwami atrybutów, pod którymi je trzymano. `model.output_layer` to jedna z nich. Parametry warstw wewnątrz `deep_stack` też liczą się do modułu: 3 × 50 + 50, 50 × 40 + 40 i 43 + 1 dają 2284, które widzisz, a `model.parameters()` to to, co bierze optymalizator.
+Wypisanie modelu pokazuje jego warstwy w postaci drzewa, z nazwami atrybutów, pod którymi zostały zapisane. `model.output_layer` to jeden z nich. Parametry warstw wewnątrz `deep_stack` też liczą się jako parametry modułu: 3 × 50 + 50, 50 × 40 + 40 i 43 + 1 dają razem widoczne 2284, a `model.parameters()` to właśnie to, co przyjmuje optymalizator.
 
-`model(X)` nie jest wywołaniem napisanego przez ciebie `forward`: `nn.Module` ma `__call__`, które uruchamia `forward`, jak w zabawkowym `Module` z lekcji o klasach, i robi wokół niego jeszcze kilka rzeczy. Wywołuj model, a nie `model.forward(X)`.
+`model(X)` nie wywołuje bezpośrednio napisanego przez ciebie `forward`: `nn.Module` ma metodę `__call__`, która uruchamia `forward`, jak w zabawkowym `Module` z lekcji o klasach, i robi przy tym jeszcze kilka innych rzeczy. Wywołuj więc model, a nie `model.forward(X)`.
 
-Warstwa musi być atrybutem, żeby moduł o niej wiedział, bo `nn.Module` patrzy na to, co przypisano do `self`. Warstwa schowana w zwykłej liście Pythona zostaje pominięta razem ze swoimi parametrami, a optymalizator, który dostał `model.parameters()`, nigdy by ich nie trenował:
+Warstwa musi być atrybutem, żeby moduł o niej wiedział, bo `nn.Module` śledzi to, co jest przypisywane do `self`. Warstwa ukryta w zwykłej liście Pythona zostanie pominięta, razem ze swoimi parametrami, a optymalizator, który dostanie `model.parameters()`, nigdy ich nie wytrenuje:
 
 ```python run
 import torch.nn as nn
@@ -87,7 +87,7 @@ print(len(list(Visible().parameters())))
 
 ## Trening
 
-Własny model trenuje się jak każdy inny. `train` i `rmse_in_euros` to te z [poprzedniej lekcji](07-a-network-with-nn-sequential.pl.md), a dane to te same kursy z dodaną cechą `night`. Zwykła sieć z tamtej lekcji trenuje się obok sieci szerokiej i głębokiej, tyle samo epok, i każda dostaje ocenę na kursach walidacyjnych:
+Własny model trenuje się tak samo jak każdy inny. `train` i `rmse_in_euros` to te same funkcje co w [lekcji 7](07-a-network-with-nn-sequential.pl.md), a dane to te same kursy z dodaną cechą `night`. Zwykła sieć z tamtej lekcji trenuje obok sieci szerokiej i głębokiej, przez tyle samo epok, a każdą z nich ocenia się na kursach walidacyjnych:
 
 ```python run
 import torch
@@ -151,11 +151,11 @@ for name, model in [("network", network), ("wide and deep", wide_and_deep)]:
     print(name, rmse_in_euros(model))
 ```
 
-Obie wychodzą mniej więcej tak samo, 1,06 zł i 1,10 zł, przy szumie w opłatach równym 1 zł. Ścieżka szeroka nie ułatwia tego zadania, bo zwykły stos radzi sobie dobrze z trzema cechami. Zasługuje na swoje miejsce, gdy cech jest dużo albo gdy część z nich to reguły policzone ręcznie, których stos warstw nie powinien rozmywać.
+Obie wypadają mniej więcej tak samo, 1,06 zł i 1,10 zł, przy szumie w opłatach równym 1 zł. Ścieżka szeroka nie ułatwia tego zadania, bo przy trzech cechach zwykły stos warstw radzi sobie dobrze. Przydaje się wtedy, gdy cech jest dużo albo gdy część z nich to ręcznie wyliczone reguły, których stos warstw nie powinien rozmywać.
 
 ## Inne kolumny dla każdej ścieżki
 
-A jeśli każda ścieżka ma widzieć inne kolumny? Szeroka mogłaby brać `minutes` i `night`, proste wpływy, które łapie prosta, a głęboka `km` i `minutes`, gdzie jest zgięcie. Jeden sposób to wycinanie w `forward`, wycinkami. `X[:, :2]` to wszystkie wiersze i dwie pierwsze kolumny, a `X[:, 1:]` wszystkie wiersze i kolumny od drugiej. Mogą się nakładać, jak `minutes`:
+A gdyby każda ścieżka miała widzieć inne kolumny? Ścieżka szeroka mogłaby dostać `minutes` i `night`, czyli proste zależności, które uchwyci prosta, a głęboka `km` i `minutes`, bo tam jest załamanie. Można to zrobić, wycinając kolumny w `forward`. `X[:, :2]` to wszystkie wiersze i dwie pierwsze kolumny, a `X[:, 1:]` wszystkie wiersze i kolumny od drugiej. Wycinki mogą się nakładać, jak w przypadku `minutes`:
 
 ```python run
 import torch
@@ -183,11 +183,11 @@ torch.manual_seed(42)
 print(WideAndDeep()(X).shape)
 ```
 
-To działa, ale wiąże moduł z jedną kolejnością kolumn. Zwykle lepiej pozwolić modelowi brać to, czego potrzebuje każda ścieżka, jako osobne tensory.
+To działa, ale wiąże moduł z jedną kolejnością kolumn. Zwykle lepiej, żeby model przyjmował to, czego potrzebuje każda ścieżka, w osobnych tensorach.
 
 ## Dwa wejścia
 
-`forward` może brać więcej niż jeden argument. Tabelę cech tnie się raz, na zewnątrz, a model wywołuje się z obiema częściami. To obejmuje też wejścia, których w ogóle nie da się wsadzić w jeden tensor, jak obraz i tekst, o różnych liczbach wymiarów. `TensorDataset` bierze dowolną liczbę tensorów, więc zrobiony z niego `DataLoader` daje tyle samo, w tej samej kolejności, w każdej paczce:
+`forward` może przyjmować więcej niż jeden argument. Tabelę cech dzieli się raz, poza modelem, a model wywołuje się z obiema częściami. W ten sam sposób obsługuje się wejścia, których w ogóle nie da się zmieścić w jednym tensorze, na przykład obraz i tekst o różnej liczbie wymiarów. `TensorDataset` przyjmuje dowolną liczbę tensorów, więc `DataLoader` utworzony na jego podstawie zwraca w każdej porcji tyle samo tensorów, w tej samej kolejności:
 
 ```python run
 import torch
@@ -242,11 +242,11 @@ with torch.no_grad():
 print(round((((prediction - y_valid) ** 2).mean().sqrt() * y_std).item(), 2))
 ```
 
-Pętla rozbiera paczkę na trzy tensory i podaje pierwsze dwa modelowi w kolejności argumentów `forward`. Rozpakowanie według pozycji działa, ale przy większej liczbie wejść łatwo pomylić kolejność. Wynik, 1,02 zł, jest tak blisko szumu opłat jak modele przed nim.
+Pętla rozkłada porcję na trzy tensory i podaje dwa pierwsze modelowi w kolejności argumentów `forward`. Rozpakowywanie według pozycji działa, ale przy większej liczbie wejść łatwo pomylić kolejność. Wynik, 1,02 zł, jest tak samo bliski szumowi w opłatach jak wyniki poprzednich modeli.
 
 ## Wejścia z nazwami
 
-Własny `Dataset` może nazwać wejścia. To klasa z trzema metodami: `__init__` do trzymania danych, `__len__` mówiąca, ile jest elementów, i `__getitem__` dla elementu o danym indeksie, tak jak wywołuje ją `dataset[0]`. Tutaj element to słownik wejść i etykieta:
+Własny `Dataset` może nadawać wejściom nazwy. To klasa z trzema metodami: `__init__` zapamiętuje dane, `__len__` mówi, ile jest elementów, a `__getitem__` zwraca element o danym indeksie, tak jak wywołuje go `dataset[0]`. Tutaj elementem jest słownik wejść i etykieta:
 
 ```python run
 import torch
@@ -322,7 +322,7 @@ with torch.no_grad():
 print(round((((prediction - y_valid) ** 2).mean().sqrt() * y_std).item(), 2))
 ```
 
-`DataLoader` składa słowniki w paczki tak, jak tensory: daje słownik z tymi samymi nazwami, a w każdej pozycji paczkę tensorów. `model(**inputs)` rozkłada słownik na argumenty nazwane, `model(X_wide=..., X_deep=...)`, więc kolejność przestaje mieć znaczenie. Znaczenie ma to, że nazwy to nazwy parametrów `forward`, a błędna kończy się `TypeError`:
+`DataLoader` łączy słowniki w porcje tak samo jak tensory: zwraca słownik z tymi samymi kluczami, a pod każdym z nich porcję tensorów. `model(**inputs)` rozkłada słownik na argumenty podawane z nazwy, czyli `model(X_wide=..., X_deep=...)`, więc kolejność przestaje mieć znaczenie. Ważne jest za to, żeby klucze były nazwami parametrów `forward`, bo zła nazwa kończy się błędem `TypeError`:
 
 ```python run
 import torch
@@ -340,7 +340,7 @@ print(Adder()(X_wide=torch.ones(2), X_other=torch.ones(2)))
 
 ## Dwa wyjścia
 
-Model może zwrócić więcej niż jedną wartość, a `forward` po prostu zwraca je razem, jako krotkę. Drugie wyjście przydaje się, gdy dwa zadania dzielą jedno ciało, albo, jak tutaj, jako **wyjście pomocnicze** na ścieżce głębokiej. `aux_layer` robi predykcję z samego stosu głębokiego, a jej błąd dodaje się do straty z wagą, żeby stos głęboki musiał nauczyć się czegoś użytecznego sam, cokolwiek robi ścieżka szeroka. Na końcu odpowiedzią modelu jest tylko wyjście główne:
+Model może zwracać więcej niż jedną wartość: `forward` po prostu zwraca je razem, jako krotkę. Drugie wyjście przydaje się, gdy dwa zadania mają wspólny trzon, albo, jak tutaj, jako **wyjście pomocnicze** na ścieżce głębokiej. `aux_layer` przewiduje opłatę na podstawie samego stosu głębokiego, a jej błąd jest dodawany do straty z pewną wagą, żeby stos głęboki musiał sam nauczyć się czegoś przydatnego, niezależnie od tego, co robi ścieżka szeroka. Na koniec odpowiedzią modelu jest tylko główne wyjście:
 
 ```python run
 import torch
@@ -401,39 +401,39 @@ for name, output in [("main", main_output), ("aux", aux_output)]:
     print(name, round((((output - y_valid) ** 2).mean().sqrt() * y_std).item(), 2))
 ```
 
-Wyjście główne myli się o 1,00 zł, tak dobrze jak model bez pomocnika. Pomocnik dochodzi do 1,61 zł: nigdy nie widzi `night`, które dodaje do opłaty do 3 zł, więc nie może być lepszy. Strata to suma dwóch części, a `loss.backward()` wysyła nachylenia przez obie ścieżki naraz, tak jak przy każdym obliczeniu.
+Główne wyjście myli się o 1,00 zł, tak samo jak model bez wyjścia pomocniczego. Wyjście pomocnicze osiąga 1,61 zł: nigdy nie widzi `night`, a ta cecha podnosi opłatę nawet o 3 zł, więc lepiej być nie może. Strata jest sumą dwóch części, a `loss.backward()` wysyła nachylenia wstecz przez obie ścieżki naraz, jak przy każdym obliczeniu.
 
 ## Podsumowanie
 
-- Własny model to podklasa `nn.Module`. `__init__` wywołuje `super().__init__()` i trzyma warstwy jako atrybuty `self`, a `forward` mówi, jak wejścia stają się wyjściem. Wywołuj model, jak w `model(X)`, a nie `forward`.
-- Warstwy i ich parametry znajduje się przez atrybuty `self`: warstwa w zwykłej liście zostaje pominięta.
-- `torch.cat([a, b], dim=1)` skleja tensory obok siebie, i tak ścieżka szeroka i głęboka spotykają się przed warstwą wyjściową.
-- `forward` może brać kilka tensorów. `TensorDataset` daje je z `DataLoader` po kolei, a własny `Dataset` z `__len__` i `__getitem__` może dawać je z nazwami, które przekaże `model(**inputs)`.
-- `forward` może zwracać kilka wartości, a strata decyduje, ile każda jest warta.
+- Własny model to podklasa `nn.Module`. `__init__` wywołuje `super().__init__()` i zapisuje warstwy jako atrybuty `self`, a `forward` mówi, jak z wejść powstaje wyjście. Wywołuje się model, jak w `model(X)`, a nie `forward`.
+- Warstwy i ich parametry są wyszukiwane wśród atrybutów `self`: warstwa w zwykłej liście zostanie pominięta.
+- `torch.cat([a, b], dim=1)` łączy tensory, stawiając je obok siebie, i właśnie w ten sposób ścieżka szeroka spotyka się z głęboką przed warstwą wyjściową.
+- `forward` może przyjmować kilka tensorów. `TensorDataset` podaje je przez `DataLoader` w ustalonej kolejności, a własny `Dataset` z `__len__` i `__getitem__` może podawać je z nazwami, które `model(**inputs)` przekazuje dalej.
+- `forward` może zwracać kilka wartości, a o tym, ile każda z nich jest warta, decyduje strata.
 
 ## Sprawdź się
 
 <details>
 <summary>Co robi <code>super().__init__()</code> w <code>__init__</code> modelu?</summary>
 
-Uruchamia `__init__` z `nn.Module`, który ustawia to, czego moduł potrzebuje, żeby pamiętać swoje warstwy i parametry. Idzie pierwsze, przed przypisaniem jakiejkolwiek warstwy. Bez niego pierwsze przypisanie warstwy kończy się `AttributeError`.
+Uruchamia `__init__` z `nn.Module`, który przygotowuje to, czego moduł potrzebuje, żeby śledzić swoje warstwy i parametry. Musi być pierwsze, przed przypisaniem jakiejkolwiek warstwy. Bez niego już pierwsze przypisanie warstwy kończy się błędem `AttributeError`.
 
 </details>
 
 <details>
-<summary>Ścieżka głęboka modelu ma 40 wyjść, a szeroka bierze 2 kolumny. Ile wynosi <code>in_features</code> warstwy wyjściowej?</summary>
+<summary>Ścieżka głęboka modelu ma 40 wyjść, a szeroka przyjmuje 2 kolumny. Ile wynosi <code>in_features</code> warstwy wyjściowej?</summary>
 
-42. `torch.cat([X_wide, deep_output], dim=1)` układa 2 kolumny obok 40 wyjść, więc warstwa wyjściowa bierze 2 + 40 liczb dla każdego wiersza.
+42. `torch.cat([X_wide, deep_output], dim=1)` stawia 2 kolumny obok 40 wyjść, więc warstwa wyjściowa dostaje 2 + 40 liczb dla każdego wiersza.
 
 </details>
 
 <details>
 <summary>Dlaczego <code>model(**inputs)</code> kończy się błędem dla <code>inputs = {"X_wide": ..., "X_other": ...}</code>, gdy <code>forward(self, X_wide, X_deep)</code>?</summary>
 
-`**inputs` przekazuje każdy klucz jako nazwę argumentu, więc to jest `model(X_wide=..., X_other=...)`. `forward` nie ma parametru `X_other` i nigdy nie dostaje `X_deep`, więc Python zatrzymuje się z `TypeError`. Klucze muszą być nazwami parametrów `forward`.
+`**inputs` przekazuje każdy klucz jako nazwę argumentu, więc to wywołanie `model(X_wide=..., X_other=...)`. `forward` nie ma parametru `X_other` i nie dostaje `X_deep`, więc Python zatrzymuje się z błędem `TypeError`. Klucze muszą być nazwami parametrów `forward`.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Model szeroki i głęboki](../../exercises/05-pytorch/08-your-own-modules/01-a-wide-and-deep-model/task.pl.md) napiszesz moduł, z warstwami tam, gdzie umieściła je lekcja. W ćwiczeniu [Trening z wyjściem pomocniczym](../../exercises/05-pytorch/08-your-own-modules/02-train-with-a-helper-output/task.pl.md) napiszesz epokę treningu modelu z dwoma wejściami i dwoma wyjściami.
+W ćwiczeniu [Model szeroki i głęboki](../../exercises/05-pytorch/08-your-own-modules/01-a-wide-and-deep-model/task.pl.md) napiszesz moduł z warstwami w tych miejscach, w których umieściła je lekcja. W ćwiczeniu [Trening z wyjściem pomocniczym](../../exercises/05-pytorch/08-your-own-modules/02-train-with-a-helper-output/task.pl.md) napiszesz epokę treningu modelu z dwoma wejściami i dwoma wyjściami.

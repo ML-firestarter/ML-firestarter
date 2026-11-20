@@ -1,11 +1,11 @@
 ---
-description: Policz każdą samogłoskę w zdaniu, litera po literze, w słowniku.
+description: Policz w słowniku, ile razy każda samogłoska występuje w zdaniu, litera po literze.
 input: Monty Python
 ---
 
 # Policz samogłoski
 
-Dokończ `count_vowels(text)`. Funkcja zwraca słownik, który mówi, ile razy każda samogłoska występuje w `text`, wielka czy mała. Samogłoski to tutaj a, e, i, o, u i y, bez ą, ę i ó, a w słowniku jest każda z nich, z 0 dla tych, których w tekście nie ma.
+Dokończ `count_vowels(text)`. Funkcja zwraca słownik, który mówi, ile razy każda samogłoska występuje w `text`, bez względu na wielkość liter. Samogłoski to tutaj a, e, i, o, u i y, bez ą, ę i ó, a w słowniku jest każda z nich, także te, których w tekście nie ma, z liczbą 0.
 
 | Wywołanie                      | Zwraca                                             |
 | ------------------------------ | -------------------------------------------------- |
@@ -20,4 +20,4 @@ o: 2
 y: 2
 ```
 
-Pierwszy wiersz to to, co wczytało `input()`.
+Pierwszy wiersz to tekst wczytany przez `input()`.

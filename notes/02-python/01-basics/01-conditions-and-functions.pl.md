@@ -1,22 +1,22 @@
 ---
-description: Zmienne, wczytywanie danych, porównania, if i funkcje, do programu, który sprawdza, czy ktoś jest pełnoletni.
+description: Zmienne, wczytywanie danych, porównania, if i funkcje, czyli wszystko, czego potrzeba do programu, który sprawdza, czy ktoś jest pełnoletni.
 ---
 
 # Warunki i funkcje
 
-Na końcu tej lekcji napiszesz program, który pyta o wiek i mówi, czy to już pełnoletność. To mały program, ale potrzebuje czterech rzeczy, z których korzysta niemal każdy program:
+Na końcu tej lekcji napiszesz program, który pyta o wiek i mówi, czy ktoś jest już pełnoletni. To mały program, ale potrzebuje czterech rzeczy, z których korzysta niemal każdy program:
 
 - **zmiennych**, które przechowują wartości pod nazwą,
-- **wczytywania**, które odczytuje to, co wpisuje użytkownik,
+- **wczytywania danych**, czyli odczytywania tego, co wpisuje użytkownik,
 - **warunków**, które w różnych przypadkach uruchamiają różny kod,
 - **funkcji**, które nadają kawałkowi kodu nazwę, żeby można go było użyć ponownie.
 
 > [!TIP]
-> Każdy przykład w tej lekcji działa w twojej przeglądarce. Naciśnij **Uruchom**, żeby go uruchomić, **Edytuj**, żeby go zmienić, a **Cofnij zmiany**, żeby wrócić do wersji z lekcji. Wypróbowywanie to najszybszy sposób nauki.
+> Każdy przykład w tej lekcji działa w twojej przeglądarce. Naciśnij **Uruchom**, żeby go uruchomić, **Edytuj**, żeby go zmienić, a **Cofnij zmiany**, żeby wrócić do wersji z lekcji. Eksperymentowanie to najszybszy sposób nauki.
 
 ## Zmienne
 
-**Zmienna** to nazwa wartości. `=` nadaje nazwie wartość i od tej chwili nazwa oznacza tę wartość:
+**Zmienna** to nazwa nadana wartości. `=` nadaje nazwie wartość i od tej chwili nazwa oznacza tę wartość:
 
 ```python run
 age = 20
@@ -32,20 +32,20 @@ age = age + 1
 print(age)
 ```
 
-Drugi wiersz oblicza `age + 1`, czyli 21, i robi z tego nową wartość `age`.
+Drugi wiersz oblicza `age + 1`, czyli 21, i zapisuje wynik jako nową wartość `age`.
 
 Nazwa zmiennej może zawierać litery, cyfry i `_`, ale nie może zaczynać się od cyfry. Python odróżnia wielkie litery od małych, więc `age` i `Age` to dwie różne zmienne. Nazwy z kilku słów pisze się małymi literami, z `_` między słowami, na przykład `user_age`. W tym kursie zmienne mają angielskie nazwy, jak w większości kodu na świecie.
 
 ## Wczytywanie tego, co wpisuje użytkownik
 
-`input()` czeka, aż użytkownik wpisze wiersz, i zwraca ten wiersz. Wpisz swój wiek w polu **Wejście** pod przykładem i naciśnij **Uruchom**:
+`input()` czeka, aż użytkownik wpisze wiersz tekstu, i zwraca go. Wpisz swój wiek w polu **Wejście** pod przykładem i naciśnij **Uruchom**:
 
 ```python run
 age = input()
 print("Wpisano", age)
 ```
 
-To, co zwraca `input()`, jest zawsze tekstem, nawet gdy składa się z cyfr: `"20"`, a nie `20`. Tekst i liczby to różne rodzaje wartości, czyli **typy**. Python nazywa tekst `str`, od ang. string, czyli **napis**, a liczby całkowite `int`, od ang. integer. `type()` pokazuje, który to typ:
+To, co zwraca `input()`, jest zawsze tekstem, nawet gdy składa się z cyfr: `"20"`, a nie `20`. Tekst i liczby to różne rodzaje wartości, które nazywa się **typami**. Python nazywa tekst `str`, od ang. string, czyli **napis**, a liczby całkowite `int`, od ang. integer. `type()` pokazuje, który to typ:
 
 ```python run
 print(type("20"))
@@ -60,14 +60,14 @@ number = int(text)
 print(number + 1)
 ```
 
-Dlatego program, który wczytuje liczbę, zwykle wczytuje ją i zamienia w jednym wierszu: `age = int(input())`. Bez `int()` liczba zostaje tekstem, a tekst nie łączy się z liczbami. Python zatrzymuje się wtedy z błędem `TypeError`, błędem typu:
+Dlatego program, który wczytuje liczbę, zwykle wczytuje ją i zamienia w jednym wierszu: `age = int(input())`. Bez `int()` liczba zostaje tekstem, a tekstu nie da się dodać do liczby. Python zatrzymuje się wtedy z błędem `TypeError`, czyli błędem typu:
 
 ```python run
 age = "20"
 print(age + 1)
 ```
 
-`int()` z tekstu, który nie jest liczbą całkowitą, na przykład `int("dwadzieścia")`, kończy się za to błędem `ValueError`, błędem wartości.
+Z kolei `int()` wywołane na tekście, który nie jest liczbą całkowitą, na przykład `int("dwadzieścia")`, kończy się błędem `ValueError`, czyli błędem wartości.
 
 ## Porównania
 
@@ -90,7 +90,7 @@ print(age == 17)
 
 `True` i `False` to wartości osobnego typu, `bool`, czyli **wartości logiczne**. Uważaj na różnicę między `=` a `==`: `age = 18` ustawia `age` na 18, a `age == 18` pyta, czy tyle wynosi.
 
-Tekst można porównać z tekstem, `"tak" == "tak"` daje `True`, ale tekstu nie da się porównać z liczbą. Ten właśnie błąd czeka na ciebie w ćwiczeniu do tej lekcji:
+Tekst można porównać z tekstem: `"tak" == "tak"` daje `True`. Tekstu nie da się jednak porównać z liczbą, a dokładnie ten błąd czeka na ciebie w ćwiczeniu do tej lekcji:
 
 ```python run
 print("20" >= 18)
@@ -120,7 +120,7 @@ if age >= 18:
 print("Gotowe.")
 ```
 
-Wiersz z `if` kończy się dwukropkiem, a wiersze, które do niego należą, są pod nim wcięte o cztery spacje. Tak Python wie, gdzie blok się kończy: `print("Gotowe.")` nie jest wcięte, więc wykona się tak czy inaczej. Zmień `age` na 15 i uruchom przykład ponownie.
+Wiersz z `if` kończy się dwukropkiem, a wiersze, które do niego należą, są pod nim wcięte o cztery spacje. Tak Python wie, gdzie blok się kończy: `print("Gotowe.")` nie jest wcięte, więc wykona się niezależnie od warunku. Zmień `age` na 15 i uruchom przykład ponownie.
 
 `else` (w przeciwnym razie) dodaje blok, który wykonuje się, gdy warunek daje `False`, a `elif`, skrót od „else if”, sprawdza kolejny warunek, gdy wcześniejsze dały `False`:
 
@@ -213,4 +213,4 @@ if __name__ == "__main__":
 
 ## Twoja kolej
 
-Ćwiczenie [Czy to już pełnoletność?](../../../exercises/02-python/01-basics/01-conditions-and-functions/01-old-enough/task.pl.md) zawiera program z początku tej lekcji, niedokończony. Napiszesz funkcję, która sprawdza, czy wiek to 18 lub więcej, przy użyciu porównania i `return`, i poprawisz część programu, która wczytuje wiek.
+W ćwiczeniu [Czy to już pełnoletność?](../../../exercises/02-python/01-basics/01-conditions-and-functions/01-old-enough/task.pl.md) czeka niedokończony program z początku tej lekcji. Napiszesz funkcję, która sprawdza, czy wiek to 18 lub więcej, przy użyciu porównania i `return`, i poprawisz część programu, która wczytuje wiek.
