@@ -550,6 +550,17 @@ main {
   border-bottom: 1px solid var(--border);
 }
 
+.tree-heading {
+  margin: 1.1rem 0 0.3rem;
+  padding: 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .tree,
 .tree ol,
 .card-lessons {
@@ -969,11 +980,34 @@ main {
   margin-top: 2rem;
 }
 
+.chapter-groups {
+  display: grid;
+  gap: 2.75rem;
+  margin-top: 2.5rem;
+}
+
+.stage-header {
+  max-width: 46rem;
+  margin-bottom: 1rem;
+}
+
+.stage-header h2 {
+  margin: 0.3rem 0 0;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.stage-outcome {
+  margin: 0.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
 .chapter-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
   gap: 1rem;
-  margin-top: 2.5rem;
 }
 
 .chapter-card {
@@ -986,19 +1020,19 @@ main {
   background: var(--surface);
 }
 
-.chapter-card h2 {
+.chapter-card h3 {
   margin: 0;
   font-size: 1.2rem;
   line-height: 1.3;
   letter-spacing: -0.01em;
 }
 
-.chapter-card h2 a {
+.chapter-card h3 a {
   color: var(--text);
   text-decoration: none;
 }
 
-.chapter-card h2 a:hover {
+.chapter-card h3 a:hover {
   color: var(--link);
 }
 

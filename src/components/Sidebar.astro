@@ -1,5 +1,5 @@
 ---
-import { getCourse } from '../lib/course.ts';
+import { getCourse, type Chapter, type Group, type Lesson } from '../lib/course.ts';
 import { ui, type Lang } from '../lib/i18n.ts';
 import { NOTES_DIR, TESTS_DIR } from '../lib/paths.ts';
 import Phrase from './Phrase.astro';
@@ -18,6 +18,11 @@ interface Props {
 const { lang, current, parent, section } = Astro.props;
 const t = ui[lang];
 const course = await getCourse(lang);
+/** Whether the tests sidebar shows the node: a lesson with a test, or a chapter with tested lessons or an exam. */
+const tested = (node: Chapter | Lesson) => (node.kind === 'lesson' ? Boolean(node.test) : node.lessons.some((lesson) => lesson.test) || Boolean(node.exam));
+/** The tests sidebar leaves out groups with nothing to show, so no header stands alone. */
+const groups = section === 'tests' ? course.groups.filter((group) => group.nodes.some(tested)) : course.groups;
+const heading = (group: Group) => (group.stage ? `${t.stageNumber(group.stage)} · ${group.title}` : group.title);
 ---
 
 {
@@ -27,9 +32,14 @@ const course = await getCourse(lang);
         <div class="bar"><span></span></div>
         <p><Phrase text={t.tests.passed}><strong data-progress-label>0/{course.tests.length}</strong></Phrase></p>
       </div>
-      <ol class="tree">
-        {course.root.children.map((node) => <TreeItem node={node} lang={lang} current={current} section="tests" />)}
-      </ol>
+      {groups.map((group) => (
+        <>
+          {group.title && <h2 class="tree-heading">{heading(group)}</h2>}
+          <ol class="tree">
+            {group.nodes.map((node) => <TreeItem node={node} lang={lang} current={current} section="tests" />)}
+          </ol>
+        </>
+      ))}
       {course.tests.length === 0 && (
         <p class="empty">
           <Phrase text={t.tests.empty}><code>{TESTS_DIR}</code></Phrase>
@@ -42,9 +52,14 @@ const course = await getCourse(lang);
         <div class="bar"><span></span></div>
         <p><Phrase text={t.lessonsDone}><strong data-progress-label>0/{course.lessons.length}</strong></Phrase></p>
       </div>
-      <ol class="tree">
-        {course.root.children.map((node) => <TreeItem node={node} lang={lang} current={current} parent={parent} section="lessons" />)}
-      </ol>
+      {groups.map((group) => (
+        <>
+          {group.title && <h2 class="tree-heading">{heading(group)}</h2>}
+          <ol class="tree">
+            {group.nodes.map((node) => <TreeItem node={node} lang={lang} current={current} parent={parent} section="lessons" />)}
+          </ol>
+        </>
+      ))}
       {course.lessons.length === 0 && (
         <p class="empty">
           <Phrase text={t.empty}><code>{NOTES_DIR}</code></Phrase>
