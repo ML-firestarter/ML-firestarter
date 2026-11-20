@@ -4,7 +4,7 @@ description: Odczytaj zależności projektu i skryptu z tekstu ich plików.
 
 # Przeczytaj projekt
 
-*Korzysta z lekcji [Python na twoim komputerze](../../../../notes/02-python/04-programs/03-python-on-your-computer.pl.md), z której przydadzą się `pyproject.toml` i nagłówki skryptów, oraz z lekcji [Moduły i biblioteka standardowa](../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.pl.md), z której przydadzą się `re` i `tomllib`.*
+*Korzysta z lekcji [Python na twoim komputerze](../../../../../notes/02-python/04-programs/03-python-on-your-computer.pl.md), z której przydadzą się `pyproject.toml` i nagłówki skryptów, oraz z lekcji [Moduły i biblioteka standardowa](../../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.pl.md), z której przydadzą się `re` i `tomllib`.*
 
 `uv` zapisuje zależności projektu w pliku `pyproject.toml`, a zależności pojedynczego skryptu w komentarzu na jego początku. Dokończ cztery funkcje, które je odczytują. Każda dostaje **tekst** pliku, a `re` i `tomllib` są już zaimportowane:
 

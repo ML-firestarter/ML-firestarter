@@ -4,7 +4,7 @@ description: Sprawdź, czy wersja pakietu spełnia specyfikator wersji taki jak 
 
 # Czy wersja pasuje?
 
-*Korzysta z lekcji [Python na twoim komputerze](../../../../notes/02-python/04-programs/03-python-on-your-computer.pl.md), z której przydadzą się specyfikatory wersji, oraz z lekcji [Warunki i funkcje](../../../../notes/02-python/01-basics/01-conditions-and-functions.pl.md) i [Zakresy i listy](../../../../notes/02-python/01-basics/03-ranges-and-lists.pl.md), z których przydadzą się porównania i pętle.*
+*Korzysta z lekcji [Python na twoim komputerze](../../../../../notes/02-python/04-programs/03-python-on-your-computer.pl.md), z której przydadzą się specyfikatory wersji, oraz z lekcji [Warunki i funkcje](../../../../../notes/02-python/01-basics/01-conditions-and-functions.pl.md) i [Zakresy i listy](../../../../../notes/02-python/01-basics/03-ranges-and-lists.pl.md), z których przydadzą się porównania i pętle.*
 
 `uv add "numpy>=2.0,<3"` prosi o wersję numpy co najmniej 2.0, ale niższą niż 3. Dokończ funkcję `allows(specifier, version)`, która mówi, czy wersja spełnia specyfikator. `parse_version("2.4.6")`, które jest już w kodzie, zamienia wersję na krotkę `(2, 4, 6)`, a krotki porównuje się liczba po liczbie.
 

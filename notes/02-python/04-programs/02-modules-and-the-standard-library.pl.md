@@ -38,7 +38,7 @@ print(ceil(7.1))
 print(stats.mean([2, 4, 9]))
 ```
 
-Python ma duży zestaw modułów, **bibliotekę standardową**, której nie trzeba instalować: `math`, `random`, `json`, `re`, `datetime`, `collections`, `statistics` i wiele innych. Biblioteki z [rozdziału o PyTorchu](../05-pytorch/README.pl.md), takie jak `torch` i `numpy`, do niej nie należą. Instaluje się je osobno, a jak, mówi [następna lekcja](03-python-on-your-computer.pl.md). Moduł, którego nie ma albo który nie jest zainstalowany, zatrzymuje program błędem `ModuleNotFoundError`:
+Python ma duży zestaw modułów, **bibliotekę standardową**, której nie trzeba instalować: `math`, `random`, `json`, `re`, `datetime`, `collections`, `statistics` i wiele innych. Biblioteki z [rozdziału o PyTorchu](../../05-pytorch/README.pl.md), takie jak `torch` i `numpy`, do niej nie należą. Instaluje się je osobno, a jak, mówi [następna lekcja](03-python-on-your-computer.pl.md). Moduł, którego nie ma albo który nie jest zainstalowany, zatrzymuje program błędem `ModuleNotFoundError`:
 
 ```python run
 import tensorflow

@@ -163,7 +163,7 @@ Odczytanie takiego bloku to krótkie zadanie dla modułu `re` i `tomllib`, i to 
 
 ## Rozdział o PyTorchu na twoim komputerze
 
-Cały kod z [rozdziału o PyTorchu](../05-pytorch/README.pl.md) działa bez zmian na twoim komputerze. W nowym projekcie:
+Cały kod z [rozdziału o PyTorchu](../../05-pytorch/README.pl.md) działa bez zmian na twoim komputerze. W nowym projekcie:
 
 ```bash
 uv init torch-lessons

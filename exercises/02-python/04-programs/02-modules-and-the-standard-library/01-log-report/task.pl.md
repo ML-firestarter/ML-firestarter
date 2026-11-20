@@ -4,7 +4,7 @@ description: Przeczytaj log serwera WWW za pomocą re, datetime, Counter i json 
 
 # Raport z logu
 
-*Korzysta z lekcji [Moduły i biblioteka standardowa](../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.pl.md), z której przydadzą się `re`, `datetime`, `Counter` i `json`, oraz z lekcji [Odczyt i zapis plików](../../../../notes/02-python/01-basics/04-files.pl.md), z której przyda się czytanie pliku.*
+*Korzysta z lekcji [Moduły i biblioteka standardowa](../../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.pl.md), z której przydadzą się `re`, `datetime`, `Counter` i `json`, oraz z lekcji [Odczyt i zapis plików](../../../../../notes/02-python/01-basics/04-files.pl.md), z której przyda się czytanie pliku.*
 
 Serwer WWW zapisuje w logu jedną linijkę dla każdego żądania, które dostanie. Plik `access.log` składa się z takich linijek, z datą i godziną, metodą, ścieżką, kodem statusu i czasem odpowiedzi:
 
