@@ -4,7 +4,7 @@ description: Ukryj wiadomość w zygzaku na kilku szynach, a potem odczytaj ją 
 
 # Szyfr płotkowy
 
-Napisz `rail_fence(text, rails)`, która szyfruje `text` szyfrem płotkowym na `rails` szynach, tak jak w lekcji:
+Napisz funkcję `rail_fence(text, rails)`, która szyfruje `text` szyfrem płotkowym na `rails` szynach, tak jak w lekcji:
 
 1. Gdy szyn jest mniej niż 1, nie ma na czym zapisać liter, więc funkcja zgłasza `ValueError`.
 2. Pomija spacje.
@@ -18,4 +18,4 @@ Napisz `rail_fence(text, rails)`, która szyfruje `text` szyfrem płotkowym na `
 | `rail_fence("abc", 1)`              | `'abc'`              |
 | `rail_fence("abc", 0)`              | zgłasza `ValueError` |
 
-Na jednej szynie wszystkie litery zostają na górnej szynie, więc tekst wraca bez spacji. Uważaj, żeby zygzak nie zszedł wtedy z płotu.
+Przy jednej szynie wszystkie litery zostają na górnej, więc funkcja zwraca po prostu tekst bez spacji. Uważaj, żeby zygzak nie wyszedł wtedy poza płot.

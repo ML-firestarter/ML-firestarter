@@ -163,7 +163,7 @@ Reading the block is a short job for the `re` module and `tomllib`, and it's the
 
 ## The PyTorch chapter, on your computer
 
-Everything in the [PyTorch chapter](../05-pytorch/README.md) runs unchanged on your computer. In a new project:
+Everything in the [PyTorch chapter](../../05-pytorch/README.md) runs unchanged on your computer. In a new project:
 
 ```bash
 uv init torch-lessons

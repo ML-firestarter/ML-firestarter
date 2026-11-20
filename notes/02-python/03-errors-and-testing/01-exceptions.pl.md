@@ -1,33 +1,33 @@
 ---
-description: Łap błędy przez try i except, zgłaszaj własne i czytaj ślad stosu, do czytnika paragonów, który nie zatrzymuje się na pierwszej złej linii.
+description: Łap błędy przez try i except, zgłaszaj własne i czytaj ślad stosu, pisząc program do czytania paragonów, który nie zatrzymuje się na pierwszej złej linijce.
 ---
 
 # Wyjątki
 
-Kasa sklepu drukuje paragon z jedną pozycją w każdej linii, a ceny wpisuje się ręcznie, więc niektóre linie są błędne: litera tam, gdzie ma być liczba, brakująca cena, pusta linia. Program, który sumuje paragon, nie powinien poddawać się na pierwszej z nich. Powinien zsumować dobre linie i powiedzieć, które były złe i dlaczego.
+Kasa w sklepie drukuje paragon z jedną pozycją w każdej linijce, a ceny są wpisywane ręcznie, więc niektóre linijki są błędne: litera tam, gdzie powinna być liczba, brak ceny, pusta linijka. Program, który sumuje paragon, nie powinien się poddawać przy pierwszej z nich. Powinien zsumować poprawne linijki i powiedzieć, które były błędne i dlaczego.
 
-W ćwiczeniach do tej lekcji napiszesz czytnik paragonów i funkcję, która czyta ślad stosu. Potrzebujesz do tego:
+W ćwiczeniach do tej lekcji napiszesz program do czytania paragonów i funkcję, która czyta ślad stosu. Będą ci potrzebne:
 
-- **wyjątków**, czyli tego, co Python zgłasza, gdy nie może iść dalej,
+- **wyjątki**, czyli to, co Python zgłasza, gdy nie może kontynuować,
 - **`try` i `except`**, które je łapią,
 - **`else` i `finally`**, które mówią, co dzieje się dalej,
 - **`raise`**, z komunikatami, które mówią, co jest nie tak,
-- **śladów stosu**, które mówią, gdzie poszło nie tak.
+- **ślady stosu** (ang. traceback), które mówią, gdzie coś poszło nie tak.
 
 ## Czym jest wyjątek
 
-Gdy Python nie może pójść dalej z linią, **zgłasza wyjątek**, obiekt, który mówi, co poszło nie tak. Jeśli nic go nie obsłuży, program się zatrzymuje, a Python wypisuje **ślad stosu** (ang. traceback). Rodzaje, które spotkasz najczęściej:
+Gdy Python nie może wykonać linijki, **zgłasza wyjątek**, czyli obiekt, który mówi, co poszło nie tak. Jeśli nic go nie obsłuży, program się zatrzymuje, a Python wypisuje **ślad stosu**. Najczęściej spotkasz te rodzaje wyjątków:
 
-| Wyjątek             | Kiedy się zdarza                                        |
-| ------------------- | ------------------------------------------------------- |
-| `ValueError`        | dobry typ wartości, ale zła wartość: `int("x")`         |
-| `TypeError`         | zły typ wartości: `"a" + 1`                             |
-| `ZeroDivisionError` | dzielenie przez zero                                    |
-| `IndexError`        | indeks za końcem listy                                  |
-| `KeyError`          | klucz, którego nie ma w słowniku                        |
-| `FileNotFoundError` | otwarcie pliku, którego nie ma                          |
+| Wyjątek             | Kiedy występuje                                      |
+| ------------------- | ---------------------------------------------------- |
+| `ValueError`        | wartość właściwego typu, ale niewłaściwa: `int("x")` |
+| `TypeError`         | wartość niewłaściwego typu: `"a" + 1`                |
+| `ZeroDivisionError` | dzielenie przez zero                                 |
+| `IndexError`        | indeks poza końcem listy                             |
+| `KeyError`          | klucz, którego nie ma w słowniku                     |
+| `FileNotFoundError` | otwarcie pliku, którego nie ma                       |
 
-Oto wszystkie, złapane po jednym. `lambda:` tworzy malutką funkcję bez nazwy, żeby pętla mogła wypróbować po kolei każdą linię kodu:
+Oto wszystkie, złapane jeden po drugim. `lambda:` tworzy malutką funkcję bez nazwy, żeby pętla mogła po kolei wypróbować każdą linijkę kodu:
 
 ```python run
 actions = [
@@ -48,7 +48,7 @@ for action in actions:
 
 ## Czytanie śladu stosu
 
-Ślad stosu wypisuje wywołania, które doprowadziły do błędu, i kończy się błędem. Tutaj funkcja dostaje pustą listę:
+Ślad stosu wymienia wywołania, które doprowadziły do błędu, i kończy się samym błędem. Tutaj funkcja dostaje pustą listę:
 
 ```python run
 def average(numbers):
@@ -60,7 +60,7 @@ print(average([2, 4, 9]))
 print(average([]))
 ```
 
-Pierwsze wywołanie działa i wypisuje 5.0, a drugie zatrzymuje program śladem stosu takim jak ten:
+Pierwsze wywołanie działa i wypisuje `5.0`, a drugie zatrzymuje program ze śladem stosu takim jak ten:
 
 ```text
 Traceback (most recent call last):
@@ -73,17 +73,17 @@ Traceback (most recent call last):
 ZeroDivisionError: division by zero
 ```
 
-Czytaj go od dołu:
+Czyta się go od dołu:
 
-1. **Ostatnia linia** to błąd: jego rodzaj, dwukropek i komunikat. Tutaj `ZeroDivisionError: division by zero`.
-2. **Linia `File` nad nią** to miejsce, gdzie się zdarzyło: linia 3, w funkcji `average`, z kodem tej linii pod spodem. Na tę linię patrz najpierw.
-3. **Linie `File` wyżej** to wywołania, które tam doprowadziły, najbardziej zewnętrzne pierwsze. Linia 7, w `<module>`, to sam program, poza jakąkolwiek funkcją, i to on wywołał `average`. Znaki `~~~^^^` wskazują część linii, która zawiodła.
+1. **Ostatnia linijka** to błąd: jego rodzaj, dwukropek i komunikat. Tutaj `ZeroDivisionError: division by zero`.
+2. **Linijka `File` nad nią** mówi, gdzie błąd wystąpił: w linijce 3, w funkcji `average`, a pod spodem jest kod tej linijki. Właśnie na nią warto spojrzeć najpierw.
+3. **Linijki `File` wyżej** to wywołania, które tam doprowadziły, od najbardziej zewnętrznego. Linijka 7, w `<module>`, to sam program, poza jakąkolwiek funkcją, i to on wywołał `average`. Znaczki `~~~^^^` wskazują część linijki, która zawiodła.
 
-Błąd jest w `average`, a przyczyna w tym, z czym ją wywołano, czyli z pustą listą. Ślad stosu mówi, gdzie program się zatrzymał, a poprawka może być gdzieś wyżej.
+Błąd jest w `average`, a jego przyczyna w tym, z czym ją wywołano, czyli w pustej liście. Ślad stosu mówi, gdzie program się zatrzymał, a poprawka może być gdzieś wyżej.
 
 ## try i except
 
-`try` uruchamia kod, a jeśli zgłosi wyjątek, zamiast zatrzymać program, działa `except`:
+`try` uruchamia kod, a jeśli ten zgłosi wyjątek, zamiast zatrzymania programu uruchamia się `except`:
 
 ```python run
 text = "twenty"
@@ -97,9 +97,9 @@ except ValueError:
 print("The program goes on")
 ```
 
-Kod w `try` zatrzymuje się na linii, która zgłasza, a reszta `try` jest pomijana. Po `except` program idzie dalej. Wyjątek innego rodzaju nie jest łapany i nadal zatrzymuje program, a to właśnie jest to, czego chcesz: `except ValueError` obsługuje tylko to, do czego jest napisane.
+Kod w `try` zatrzymuje się na linijce, która zgłasza wyjątek, a reszta `try` zostaje pominięta. Po `except` program działa dalej. Wyjątek innego rodzaju nie zostaje złapany i nadal zatrzymuje program, i o to właśnie chodzi: `except ValueError` obsługuje tylko to, do czego go napisano.
 
-`as` daje ci sam wyjątek. `str(error)` to jego komunikat, a `type(error).__name__` jego rodzaj. Po jednym `try` może iść kilka bloków `except`, a jeden blok może brać kilka rodzajów, w nawiasach:
+`as` daje dostęp do samego wyjątku. `str(error)` to jego komunikat, a `type(error).__name__` jego rodzaj. Po jednym `try` może być kilka bloków `except`, a jeden blok może obsługiwać kilka rodzajów naraz, podanych w nawiasach:
 
 ```python run
 def read_age(text):
@@ -118,11 +118,11 @@ print(read_age("0"))
 ```
 
 > [!WARNING]
-> `except:` bez niczego po nim albo `except Exception:` wokół dużej ilości kodu łapie błędy, o których nie wiedziałeś, jak literówka w nazwie, i je ukrywa. Łap rodzaje błędów, których się spodziewasz, wokół linii, które mogą je zgłosić.
+> `except:` bez niczego dalej albo `except Exception:` wokół dużego kawałka kodu łapie też błędy, o których nie wiesz, na przykład literówkę w nazwie, i je ukrywa. Łap te rodzaje błędów, których się spodziewasz, i tylko wokół linijek, które mogą je zgłosić.
 
 ## else i finally
 
-`else` działa, gdy `try` niczego nie zgłosiło, i jest miejscem na to, co ma sens dopiero po sukcesie. `finally` działa niezależnie od tego, co się stało, także po błędzie, i tam idzie sprzątanie:
+`else` uruchamia się, gdy `try` niczego nie zgłosiło, i jest miejscem na to, co ma sens tylko po sukcesie. `finally` uruchamia się zawsze, także po błędzie, więc tam trafia sprzątanie:
 
 ```python run
 def to_cents(text):
@@ -142,11 +142,11 @@ print(to_cents("3.50"))
 print(to_cents("x"))
 ```
 
-`finally` działa, chociaż obie gałęzie robią `return`. Trzymanie `try` krótkiego, tylko linii, która może zawieść, a reszty w `else`, sprawia, że `except` nie złapie przypadkiem błędu z kodu po nim.
+`finally` uruchamia się, choć obie gałęzie wykonują `return`. Jeśli w `try` zostawić tylko linijkę, która może zawieść, a resztę przenieść do `else`, `except` nie złapie przypadkiem błędu z kodu, który po niej następuje.
 
-## Zgłaszanie własnych
+## Zgłaszanie własnych wyjątków
 
-`raise` zatrzymuje funkcję wyjątkiem twojego wyboru, a komunikat to to, co widzi czytelnik śladu stosu albo `str(error)` wywołującego. Funkcja, która dostanie coś, z czym nie może nic zrobić, powinna powiedzieć, co jest nie tak i co dostała:
+`raise` zatrzymuje funkcję wyjątkiem wybranym przez ciebie, a jego komunikat zobaczy osoba czytająca ślad stosu albo `str(error)` w kodzie, który wywołał funkcję. Funkcja, która dostała coś, z czym nie może pracować, powinna powiedzieć, co jest nie tak i co dostała:
 
 ```python run
 def parse_price(text):
@@ -165,11 +165,11 @@ for text in ["3.50", "", "x"]:
         print("problem:", error)
 ```
 
-Zgłoszenie `ValueError` z wnętrza `except` zastępuje własny komunikat Pythona o liczbach zmiennoprzecinkowych takim, który pasuje do twojego programu. `raise` bez niczego po nim, wewnątrz `except`, przekazuje dalej błąd, który właśnie złapałeś, jeśli chcesz coś zapisać i mimo to się zatrzymać. Własny rodzaj błędu to klasa pochodząca od `Exception`, a [lekcja o klasach](../04-programs/01-classes.pl.md) to miejsce, gdzie się takie pisze.
+Zgłoszenie `ValueError` z wnętrza `except` zastępuje komunikat Pythona o liczbach zmiennoprzecinkowych komunikatem, który pasuje do twojego programu. Samo `raise`, bez niczego dalej, użyte wewnątrz `except` przekazuje dalej właśnie złapany błąd, kiedy chcesz coś zapisać w logu, a mimo to zatrzymać program. Własny rodzaj błędu to klasa wywodząca się z `Exception`, a takie klasy pisze się w lekcji [Klasy](../04-programs/01-classes.pl.md).
 
 ## Nie zatrzymywać się na pierwszym błędzie
 
-Pętla, która sama obsługuje błąd każdego elementu, może przejść całą listę i zebrać to, co poszło źle. Taki kształt ma czytnik paragonów:
+Pętla, która sama obsługuje błąd każdego elementu, może przejść przez całą listę i zebrać wszystko, co poszło nie tak. Tak wygląda szkielet programu do czytania paragonów:
 
 ```python run
 def parse_price(text):
@@ -193,8 +193,8 @@ print(total)
 print(problems)
 ```
 
-`enumerate()` liczy elementy listy, idąc po nich, od `start`. Suma ma tylko dobre ceny, a `problems` mówi, które elementy były złe, przez ich numer, i dlaczego.
+`enumerate()` numeruje elementy listy w trakcie przechodzenia przez nią, zaczynając od `start`. Suma zawiera tylko poprawne ceny, a `problems` mówi, które pozycje były błędne, podając ich numery, i dlaczego.
 
 ## Twoja kolej
 
-W ćwiczeniu [Przeczytaj paragon](../../../exercises/02-python/03-errors-and-testing/01-exceptions/01-read-the-receipt/task.pl.md) sparsujesz linie paragonu, zgłaszając błąd dla każdego rodzaju pomyłki, i zsumujesz dobre, zbierając złe. W ćwiczeniu [Przeczytaj ślad stosu](../../../exercises/02-python/03-errors-and-testing/01-exceptions/02-read-the-traceback/task.pl.md) wyciągniesz z tekstu śladu stosu rodzaj błędu, funkcję i linię.
+W ćwiczeniu [Przeczytaj paragon](../../../exercises/02-python/03-errors-and-testing/01-exceptions/01-read-the-receipt/task.pl.md) przetworzysz linijki paragonu, zgłaszając błąd dla każdego rodzaju pomyłki, i zsumujesz poprawne linijki, zbierając błędne. W ćwiczeniu [Przeczytaj ślad stosu](../../../exercises/02-python/03-errors-and-testing/01-exceptions/02-read-the-traceback/task.pl.md) wyciągniesz z tekstu śladu stosu rodzaj błędu, funkcję i linijkę.

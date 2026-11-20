@@ -1,8 +1,10 @@
 /**
  * Turns the files in notes/ into a course: folders are chapters, Markdown files are lessons.
  * Numbered files and folders (01-, 02-, …) come first, in number order; the rest follow
- * alphabetically by title. A note's translations sit next to it: `sft.pl.md` is the
- * Polish version of `sft.md`, and pages without a translation show the original.
+ * alphabetically by title. Top-level chapters follow the groups of the learning path in
+ * site.config.ts, and keep that order inside each group. A note's translations sit next to
+ * it: `sft.pl.md` is the Polish version of `sft.md`, and pages without a translation show the
+ * original.
  * Tests live in tests/, each at the same path as the lesson it tests. Exam questions live in
  * exams/ the same way, and each top-level chapter with some gets an exam that draws from them;
  * a chapter's folder in exams/ can also hold practical tasks in a `tasks/` folder, which the
@@ -201,10 +203,23 @@ export interface PoolInstance {
   expected: string[];
 }
 
+/** Top-level chapters under one header of the learning path, from `groups` in site.config.ts. */
+export interface Group {
+  /** Its number among the stages of the path; undefined for groups that aren't stages. */
+  stage?: number;
+  /** In the course's language; undefined for the chapters and loose lessons in no group, which come first. */
+  title?: string;
+  outcome?: string;
+  /** Top-level chapters and loose lessons, in reading order. */
+  nodes: (Chapter | Lesson)[];
+}
+
 export interface Course {
   lang: Lang;
   /** notes/ itself; its README.md is the home page intro. */
   root: Chapter;
+  /** The root's children under the headers of the learning path, in reading order; groups with nothing in them are left out. */
+  groups: Group[];
   /** Every lesson in reading order. */
   lessons: Lesson[];
   /** Every folder except the root, in reading order. */
@@ -297,8 +312,12 @@ async function buildCourse(lang: Lang): Promise<Course> {
     return titleCollator.compare(a.title, b.title) || nameCollator.compare(nameA, nameB);
   }
 
+  const groupOf = groupIndexes(root);
+  /** Top-level chapters go in the order of their groups, the chapters in no group first. */
+  const compareTop = (a: Chapter | Lesson, b: Chapter | Lesson) => (groupOf.get(a.path) ?? 0) - (groupOf.get(b.path) ?? 0) || compare(a, b);
+
   function finish(chapter: Chapter): Lesson[] {
-    chapter.children.sort(compare);
+    chapter.children.sort(chapter === root ? compareTop : compare);
     chapter.lessons = chapter.children.flatMap((child) => {
       claimPath(byPath, child);
       if (child.kind === 'lesson') return [child];
@@ -315,7 +334,41 @@ async function buildCourse(lang: Lang): Promise<Course> {
   const exams = await addExams(lang, root, byPath, drafts);
   await addExercises(lang, byPath, drafts);
   const exercises = lessons.flatMap((lesson) => lesson.exercises);
-  return { lang, root, lessons, chapters, tests, testsIntro, exams, exercises, byPath };
+  const groups = groupNodes(root, groupOf, lang);
+  return { lang, root, groups, lessons, chapters, tests, testsIntro, exams, exercises, byPath };
+}
+
+/**
+ * Maps the path of each top-level chapter in `groups` (site.config.ts) to its group's number,
+ * counting from 1; chapters in no group aren't in the map. A path that isn't a top-level
+ * chapter, or a chapter in two groups, fails the build.
+ */
+function groupIndexes(root: Chapter): Map<string, number> {
+  const topLevel = new Set(root.children.filter((node) => node.kind === 'chapter').map((chapter) => chapter.path));
+  const indexes = new Map<string, number>();
+  site.groups.forEach((group, index) => {
+    for (const path of group.chapters) {
+      if (!topLevel.has(path)) {
+        throw new Error(
+          `groups in site.config.ts lists "${path}", which isn't a top-level chapter. Use the path of a folder in ${NOTES_DIR}/ without its number, like "/python/": ${[...topLevel].join(', ')}.`,
+        );
+      }
+      if (indexes.has(path)) throw new Error(`groups in site.config.ts lists "${path}" in two groups. Keep it in one.`);
+      indexes.set(path, index + 1);
+    }
+  });
+  return indexes;
+}
+
+/** The root's children under their groups' headers, in reading order, with the stages numbered. */
+function groupNodes(root: Chapter, groupOf: Map<string, number>, lang: Lang): Group[] {
+  const groups: Group[] = [{ nodes: [] }];
+  let stage = 0;
+  for (const group of site.groups) {
+    groups.push({ stage: group.stage ? ++stage : undefined, title: group.title[lang], outcome: group.outcome?.[lang], nodes: [] });
+  }
+  for (const node of root.children) groups[groupOf.get(node.path) ?? 0].nodes.push(node);
+  return groups.filter((group) => group.nodes.length > 0);
 }
 
 /**

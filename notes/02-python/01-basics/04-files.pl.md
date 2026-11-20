@@ -1,12 +1,12 @@
 ---
-description: Zapis i odczyt plików, słowniki list i sortowanie, do programu, który grupuje słowa według długości.
+description: Zapis i odczyt plików, słowniki list i sortowanie, czyli wszystko, czego potrzeba do programu, który grupuje słowa według długości.
 ---
 
 # Odczyt i zapis plików
 
 Wszystko, co program trzyma w zmiennych, znika, gdy się kończy. Żeby zachować dane na później albo pracować na danych, które przygotował ktoś inny, programy czytają i zapisują **pliki**. W ćwiczeniu do tej lekcji wczytasz z pliku listę słów, pogrupujesz je według długości i zapiszesz grupy w nowym pliku. Potrzebujesz do tego:
 
-- `open()` i `with`, które odczytują i zapisują pliki,
+- `open()` i `with`, dzięki którym program czyta i zapisuje pliki,
 - `split()`, które tnie wiersz na słowa,
 - **słownika list**, który grupuje wartości,
 - `sorted()`, które je porządkuje.
@@ -27,7 +27,7 @@ print("Zapisano.")
 
 `"w"` tworzy plik, a jeśli już istnieje, opróżnia go, więc używaj go ostrożnie. `write()`, w odróżnieniu od `print()`, sama nie kończy wiersza: robi to `"\n"`, czyli znak **nowego wiersza**.
 
-`with` trzyma plik otwarty przez blok pod nim i zamyka go, gdy blok się kończy, nawet jeśli program zatrzyma błąd. W zamkniętym pliku wszystko, co do niego zapisano, jest już zachowane.
+`with` trzyma plik otwarty przez blok pod nim i zamyka go, gdy blok się kończy, nawet jeśli program zatrzyma się z błędem. W zamkniętym pliku wszystko, co do niego zapisano, jest już zachowane.
 
 ## Czytanie pliku
 
@@ -89,7 +89,7 @@ print(name)
 print(int(age) + 1)
 ```
 
-Kawałki to napisy, więc liczba wśród nich potrzebuje `int()`.
+Kawałki to napisy, więc liczbę trzeba jeszcze zamienić przez `int()`.
 
 ## Słowniki list
 
@@ -105,18 +105,18 @@ for fruit in ["arbuz", "banan", "awokado", "borówka", "czereśnia"]:
 print(groups)
 ```
 
-Gdy litera pojawia się po raz pierwszy, nie jest jeszcze kluczem, więc pętla daje jej pustą listę. Po tym `if` litera ma listę tak czy inaczej, więc `groups[first].append()` dodaje do niej owoc.
+Gdy litera pojawia się po raz pierwszy, nie jest jeszcze kluczem, więc pętla daje jej pustą listę. Po tym `if` litera ma już swoją listę w każdym przypadku, więc `groups[first].append()` dodaje do niej owoc.
 
 ## Sortowanie
 
-`sorted()` zwraca nową listę z elementami listy albo innego ciągu, uporządkowanymi: liczby od najmniejszej, a napisy alfabetycznie.
+`sorted()` zwraca nową listę z uporządkowanymi elementami listy albo innego ciągu: liczby idą od najmniejszej, a napisy alfabetycznie.
 
 ```python run
 print(sorted([5, 2, 9, 1]))
 print(sorted(["gruszka", "arbuz", "figa"]))
 ```
 
-Słownik trzyma klucze w kolejności, w jakiej je dodano. `sorted()` ze słownika daje jego klucze po kolei, a to wystarczy, żeby przejść przez słownik w tej kolejności:
+Słownik trzyma klucze w kolejności, w jakiej je dodano. `sorted()` wywołane na słowniku daje jego klucze po kolei, a to wystarczy, żeby przejść przez słownik w tej kolejności:
 
 ```python run
 counts = {"gruszka": 3, "arbuz": 5, "figa": 1}
@@ -125,7 +125,7 @@ for fruit in sorted(counts):
     print(f"{fruit}: {counts[fruit]}")
 ```
 
-Żeby dostać cały nowy słownik z kluczami po kolei, posortuj pary, które daje `items()`, co ustawia je w kolejności kluczy, i zamień je z powrotem na słownik przez `dict()`:
+Żeby dostać cały nowy słownik z kluczami po kolei, posortuj pary, które daje `items()`. Ustawią się w kolejności kluczy, a `dict()` zamieni je z powrotem na słownik:
 
 ```python run
 counts = {"gruszka": 3, "arbuz": 5, "figa": 1}
@@ -137,4 +137,4 @@ print(dict(sorted(counts.items())))
 
 ## Twoja kolej
 
-W ćwiczeniu [Pogrupuj słowa według długości](../../../exercises/02-python/01-basics/04-files/01-group-words-by-length/task.pl.md) w każdym wierszu pliku jest jedno słowo. Pogrupujesz słowa według długości w słowniku list, od najkrótszej długości do najdłuższej, i zapiszesz każdą grupę w innym pliku, w wierszu takim jak `2: if, in`.
+W ćwiczeniu [Pogrupuj słowa według długości](../../../exercises/02-python/01-basics/04-files/01-group-words-by-length/task.pl.md) w każdym wierszu pliku jest jedno słowo. Pogrupujesz słowa według długości w słowniku list, od najkrótszych do najdłuższych, i zapiszesz grupy w drugim pliku, każdą w wierszu takim jak `2: if, in`.

@@ -1,14 +1,14 @@
 ---
-description: Wytrenuj tę samą regresję liniową z nn.Linear, optymalizatorem i funkcją straty z PyTorcha i zobacz, że liczby zgadzają się z wersją ręczną.
+description: Wytrenuj tę samą regresję liniową z warstwą nn.Linear, optymalizatorem i funkcją straty z PyTorcha i przekonaj się, że liczby zgadzają się z wersją ręczną.
 ---
 
 # Regresja liniowa z nn.Linear
 
-[Poprzednia lekcja](04-linear-regression-by-hand.pl.md) wypisała wszystko: wagi, iloczyn, stratę i kroki. Każdy model ma te same części, więc PyTorch ma gotową do każdej z nich, a trening modelu dowolnej wielkości wygląda jak w tej lekcji, ile by miał warstw. Tutaj zastępują one części ręczne, jedna po drugiej, na tych samych stu kursach.
+[Poprzednia lekcja](04-linear-regression-by-hand.pl.md) rozpisywała wszystko ręcznie: wagi, iloczyn, stratę i kroki. Każdy model składa się z tych samych części, więc PyTorch ma gotowy element do każdej z nich, a trening modelu dowolnej wielkości, niezależnie od liczby warstw, wygląda tak jak w tej lekcji. Tutaj gotowe elementy zastępują ręczne, jeden po drugim, na tych samych stu kursach.
 
 ## Warstwa dla prostej
 
-`nn.Linear(in_features, out_features)` to $Xw + b$ z parametrami w środku: wagą dla każdej pary wejścia i wyjścia i wyrazem wolnym dla każdego wyjścia. Model wywołuje się jak funkcję, na tabeli cech, a on liczy predykcję dla każdego wiersza:
+`nn.Linear(in_features, out_features)` to $Xw + b$ z parametrami w środku: po jednej wadze na każdą parę wejścia i wyjścia i po jednym wyrazie wolnym na każde wyjście. Model wywołuje się jak funkcję, na tabeli cech, a on liczy predykcję dla każdego wiersza:
 
 ```python run
 import torch
@@ -27,13 +27,13 @@ X = torch.tensor([[0.5, -1.0], [1.5, 2.0]])
 print(model(X))
 ```
 
-Wagi to `Parameter`, tensor, który już ma `requires_grad`, więc niczego nie trzeba oznaczać. Jego kształt to `[1, 2]`: `[out_features, in_features]`, transpozycja `[2, 1]`, które miało `w` ręcznie, bo warstwa liczy $Xw^\top + b$. Model ma do nauczenia 3 liczby: 2 wagi i wyraz wolny. `model.parameters()` wymienia je wszystkie, a tego potrzebuje optymalizator. Liczby są losowe, a `manual_seed` sprawia, że na twoim komputerze są takie same.
+Wagi to `Parameter`, czyli tensor, który ma już `requires_grad`, więc nie trzeba go oznaczać. Mają kształt `[1, 2]`, czyli `[out_features, in_features]`: to transpozycja kształtu `[2, 1]`, jaki miało `w` w wersji ręcznej, bo warstwa liczy $Xw^\top + b$. Model ma 3 liczby do nauczenia: 2 wagi i wyraz wolny. `model.parameters()` zwraca je wszystkie, a właśnie tego potrzebuje optymalizator. Liczby są losowe, a `manual_seed` sprawia, że na twoim komputerze wyjdą takie same.
 
-`grad_fn` predykcji to `AddmmBackward0`: iloczyn macierzy i dodawanie w jednym kroku, który wykonuje warstwa.
+`grad_fn` predykcji to `AddmmBackward0`: iloczyn macierzy i dodawanie w jednym kroku, z którego korzysta warstwa.
 
 ## Strata i optymalizator
 
-`nn.MSELoss()` to błąd średniokwadratowy, funkcja predykcji i etykiet, a `torch.optim.SGD` wykonuje kroki spadku gradientu: `step()` zmienia każdy parametr przeciwnie do jego nachylenia, a `zero_grad()` zeruje nachylenia. PyTorch nazywa funkcję straty **kryterium** (ang. criterion):
+`nn.MSELoss()` to błąd średniokwadratowy, czyli funkcja predykcji i etykiet, a `torch.optim.SGD` robi kroki spadku gradientu: `step()` przesuwa każdy parametr przeciwnie do jego nachylenia, a `zero_grad()` zeruje nachylenia. Funkcję straty PyTorch nazywa **kryterium** (ang. criterion):
 
 ```python run
 import torch
@@ -43,11 +43,11 @@ criterion = nn.MSELoss()
 print(criterion(torch.tensor([1.0, 2.0]), torch.tensor([2.0, 4.0])))
 ```
 
-Błędy do kwadratu to 1 i 4, a ich średnia to 2,5.
+Kwadraty błędów wynoszą 1 i 4, a ich średnia 2,5.
 
 ## Trening
 
-Żeby porównać z lekcją ręczną, model zaczyna od wag, które miało tam `w`, a wyraz wolny od 0. Dane i standaryzacja są takie same. Pętla ma te same cztery kroki, przód, wstecz, krok i zerowanie, a dwa wiersze kroku i zerowania to teraz po jednym:
+Żeby dało się porównać wyniki z lekcją ręczną, model zaczyna od wag, jakie miało tam `w`, a wyraz wolny od 0. Dane i standaryzacja też są te same. Pętla ma te same cztery kroki: przejście w przód, przejście wstecz, krok i zerowanie, tyle że krok i zerowanie zajmują teraz po jednym wierszu:
 
 ```python run
 import torch
@@ -84,11 +84,11 @@ print(model.weight)
 print(model.bias)
 ```
 
-Straty są te z lekcji ręcznej, od 1147 do 0,71, tak samo jak wagi, 10,63 i 1,20, i wyraz wolny, 31,85: ten sam trening, w mniejszej liczbie wierszy. `model.weight.copy_(...)` kopiuje liczby do wag, w miejscu, i to wewnątrz `torch.no_grad()`, bo wagi wymagają gradientu. Bez tego model zaczynałby od własnych losowych wag i i tak skończył na tej samej prostej.
+Straty są takie same jak w lekcji ręcznej, od 1147 do 0,71, podobnie wagi, 10,63 i 1,20, i wyraz wolny, 31,85: to ten sam trening, tylko krótszy w zapisie. `model.weight.copy_(...)` kopiuje liczby do wag w miejscu, i to wewnątrz `torch.no_grad()`, bo wagi wymagają gradientu. Bez tego model zacząłby od własnych losowych wag, a i tak skończyłby na tej samej prostej.
 
-## Predykcja
+## Przewidywanie
 
-Wytrenowany model przewiduje nowe kursy, ustandaryzowane ze średnimi i rozrzutami kursów treningowych, jak wcześniej. `torch.no_grad()` trzyma predykcje poza zapisem:
+Wytrenowany model przewiduje opłaty za nowe kursy, wystandaryzowane, jak wcześniej, średnimi i rozrzutami kursów treningowych. `torch.no_grad()` sprawia, że predykcje nie trafiają do zapisu obliczeń:
 
 ```python run
 import torch
@@ -118,39 +118,39 @@ with torch.no_grad():
     print(model((new_rides - means) / stds))
 ```
 
-Ten model zaczął od losowych wag i trenował 200 epok, a przewiduje te same opłaty co ręczny: 24,98 zł za 5 km z 4 minutami postoju i 38,34 zł za 10 km bez postoju.
+Ten model zaczynał od losowych wag i trenował przez 200 epok, a przewiduje te same opłaty co model z lekcji ręcznej: 24,98 zł za 5 km z 4 minutami postoju i 38,34 zł za 10 km bez postoju.
 
 ## Podsumowanie
 
-- `nn.Linear(in_features, out_features)` to warstwa z wagą dla każdego wejścia i wyjścia oraz wyrazem wolnym dla każdego wyjścia. Jej waga ma kształt `[out_features, in_features]`. Model wywołuje się na tabeli, a `model.parameters()` wymienia to, czego się uczy.
-- `nn.MSELoss()` to błąd średniokwadratowy, a funkcje straty nazywa się kryteriami. `torch.optim.SGD(model.parameters(), lr=...)` wykonuje kroki.
-- Pętla to przód, `loss.backward()`, `optimizer.step()` i `optimizer.zero_grad()`.
-- Z tym samym startem, tymi samymi danymi i tym samym współczynnikiem uczenia ten trening daje te same liczby co ręczny.
+- `nn.Linear(in_features, out_features)` to warstwa z wagą dla każdej pary wejścia i wyjścia oraz wyrazem wolnym dla każdego wyjścia. Jej waga ma kształt `[out_features, in_features]`. Model wywołuje się na tabeli, a `model.parameters()` zwraca to, czego się uczy.
+- `nn.MSELoss()` to błąd średniokwadratowy, a funkcje straty nazywa się kryteriami. Kroki robi `torch.optim.SGD(model.parameters(), lr=...)`.
+- Pętla to przejście w przód, `loss.backward()`, `optimizer.step()` i `optimizer.zero_grad()`.
+- Przy tym samym starcie, tych samych danych i tym samym współczynniku uczenia ten trening daje te same liczby co ręczny.
 - Predykcje liczy się wewnątrz `torch.no_grad()`.
 
 ## Sprawdź się
 
 <details>
-<summary>Ile parametrów ma <code>nn.Linear(5, 3)</code> i jaki kształt ma jego waga?</summary>
+<summary>Ile parametrów ma <code>nn.Linear(5, 3)</code> i jaki kształt ma jej waga?</summary>
 
-18 parametrów: waga dla każdego z 5 wejść i każdego z 3 wyjść, razem 15, i wyraz wolny dla każdego wyjścia, jeszcze 3. Waga ma `[3, 5]`: `[out_features, in_features]`.
+18 parametrów: po jednej wadze na każdą parę z 5 wejść i 3 wyjść, czyli 15, i po jednym wyrazie wolnym na każde wyjście, czyli jeszcze 3. Waga ma kształt `[3, 5]`, czyli `[out_features, in_features]`.
 
 </details>
 
 <details>
 <summary>Co się stanie, jeśli w pętli zabraknie <code>optimizer.zero_grad()</code>?</summary>
 
-Nachylenia się sumują, jak w części [Nachylenia się sumują](02-autograd.pl.md#nachylenia-się-sumują): każdy krok używa sumy wszystkich dotychczasowych nachyleń i trening idzie źle. Optymalizator sam ich nie zeruje.
+Nachylenia będą się kumulować, jak w części [Nachylenia się sumują](02-autograd.pl.md#nachylenia-się-sumują): każdy krok użyje sumy wszystkich dotychczasowych nachyleń i trening się rozjedzie. Optymalizator sam ich nie zeruje.
 
 </details>
 
 <details>
-<summary>Dlaczego <code>copy_</code> jest w przykładzie treningu wewnątrz <code>torch.no_grad()</code>?</summary>
+<summary>Dlaczego w przykładzie z treningiem <code>copy_</code> jest wewnątrz <code>torch.no_grad()</code>?</summary>
 
-Wagi wymagają gradientu, a zmiana w miejscu tensora, który wymaga gradientu, jest poza `no_grad` błędem. Kopiowanie liczb startowych do modelu nie jest krokiem modelu, więc też nie powinno być zapisywane.
+Wagi wymagają gradientu, a zmiana w miejscu tensora, który wymaga gradientu, jest poza `no_grad` błędem. Poza tym kopiowanie początkowych liczb do modelu nie jest krokiem modelu, więc nie powinno trafić do zapisu obliczeń.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Model z wybranymi wagami](../../exercises/05-pytorch/05-linear-regression-with-nn-linear/01-a-model-with-chosen-weights/task.pl.md) zrobisz warstwę, która ma wagi, które jej podasz. W ćwiczeniu [Wytrenuj model](../../exercises/05-pytorch/05-linear-regression-with-nn-linear/02-train-a-model/task.pl.md) wytrenujesz dowolny model optymalizatorem i zachowasz jego straty.
+W ćwiczeniu [Model z wybranymi wagami](../../exercises/05-pytorch/05-linear-regression-with-nn-linear/01-a-model-with-chosen-weights/task.pl.md) utworzysz warstwę z wagami, które jej podasz. W ćwiczeniu [Wytrenuj model](../../exercises/05-pytorch/05-linear-regression-with-nn-linear/02-train-a-model/task.pl.md) wytrenujesz dowolny model optymalizatorem i zapiszesz jego kolejne straty.

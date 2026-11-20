@@ -1,5 +1,5 @@
 ---
-description: Reszta z dzielenia, range, listy i błędy, które nie zatrzymują programu, do programu, który szuka liczb pierwszych.
+description: Reszta z dzielenia, range, listy i błędy, które nie zatrzymują programu, na przykładzie programu, który szuka liczb pierwszych.
 ---
 
 # Zakresy i listy
@@ -138,7 +138,7 @@ print(" - ".join(["a", "b", "c"]))
 
 ## Błędy, które nie zatrzymują programu
 
-Niektóre błędy zatrzymują program z komunikatem, który mówi, co poszło nie tak i gdzie, jak `TypeError` przy porównaniu liczby z tekstem. Błąd w logice, na przykład `range`, który kończy się o jedną liczbę za wcześnie, nie daje żadnego komunikatu: program dochodzi do końca ze złym wynikiem i nic cię o tym nie informuje.
+Niektóre błędy zatrzymują program z komunikatem, który mówi, co poszło nie tak i gdzie, jak `TypeError` przy porównaniu liczby z tekstem. Błąd w logice, na przykład `range`, który kończy się o jedną liczbę za wcześnie, nie daje żadnego komunikatu: program dochodzi do końca ze złym wynikiem i nic cię przed tym nie ostrzega.
 
 ```python run
 def count_up_to(n):

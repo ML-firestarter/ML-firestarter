@@ -1,14 +1,14 @@
 ---
-description: Ułóż warstwy w nn.Sequential z ReLU w sieć neuronową, wytrenuj ją na opłatach, do których nie pasuje żadna prosta, i policz jej parametry.
+description: Połącz warstwy i ReLU w sieć neuronową za pomocą nn.Sequential, wytrenuj ją na opłatach, do których nie pasuje żadna prosta, i policz jej parametry.
 ---
 
 # Sieć z nn.Sequential
 
-Regresja liniowa potrafi narysować tylko prostą, a dla większej liczby cech płaską płaszczyznę. Opłaty nie muszą jej podlegać: powiedzmy, że taksówka liczy 4 zł za każdy z pierwszych 6 kilometrów kursu, a za każdy kolejny tylko 2 zł. [Sieci neuronowe](../04-foundations/04-neural-networks/) rysują zakręty, a PyTorch buduje je z warstw z [poprzednich lekcji](05-linear-regression-with-nn-linear.pl.md) ułożonych w `nn.Sequential`.
+Regresja liniowa potrafi narysować tylko prostą, a przy większej liczbie cech płaszczyznę. Opłaty nie muszą się do niej stosować: powiedzmy, że taksówka bierze 4 zł za każdy z pierwszych 6 kilometrów kursu, a za każdy następny już tylko 2 zł. [Sieci neuronowe](../04-foundations/04-neural-networks/) potrafią odtworzyć takie załamania, a PyTorch buduje sieć z warstw z [poprzednich lekcji](05-linear-regression-with-nn-linear.pl.md), ułożonych jedna za drugą w `nn.Sequential`.
 
 ## Układanie warstw
 
-`nn.Sequential` bierze warstwy i wywołuje je jedna po drugiej, a wyjście każdej trafia do następnej. Między dwiema warstwami `nn.Linear` stoi funkcja aktywacji, tutaj `nn.ReLU()` z [rozdziału o sieciach neuronowych](../04-foundations/04-neural-networks/01-layers.pl.md#relu). Rozmiary muszą się spotkać: `out_features` jednej warstwy to `in_features` następnej.
+`nn.Sequential` przyjmuje warstwy i wywołuje je po kolei, a wyjście każdej z nich trafia do następnej. Między dwiema warstwami `nn.Linear` stoi funkcja aktywacji, tutaj `nn.ReLU()` z [rozdziału o sieciach neuronowych](../04-foundations/04-neural-networks/01-layers.pl.md#relu). Rozmiary muszą do siebie pasować: `out_features` jednej warstwy to `in_features` następnej.
 
 ```python run
 import torch
@@ -30,11 +30,11 @@ print(sum(parameter.numel() for parameter in model.parameters()))
 print(model(torch.randn(3, 2)).shape)
 ```
 
-Sieć bierze 2 cechy, rozszerza je do 50 liczb, potem do 40 i kończy się na 1, czyli opłacie. Jej warstwy są ponumerowane, a `model[0]` to pierwsza. `ReLU` nie ma parametrów, więc sześć tensorów to wagi i wyrazy wolne trzech warstw. Razem to 2231 liczb do nauczenia: 2 × 50 + 50, 50 × 40 + 40 i 40 × 1 + 1. Ile wierszy by nie weszło, dla każdego wychodzi jedna opłata.
+Sieć przyjmuje 2 cechy, rozszerza je do 50 liczb, potem do 40, a kończy na 1, czyli na opłacie. Jej warstwy są ponumerowane, a `model[0]` to pierwsza z nich. `ReLU` nie ma parametrów, więc sześć tensorów to wagi i wyrazy wolne trzech warstw. Razem daje to 2231 liczb do nauczenia: 2 × 50 + 50, 50 × 40 + 40 i 40 × 1 + 1. Niezależnie od tego, ile wierszy trafia na wejście, dla każdego z nich wychodzi jedna opłata.
 
 ## Po co ReLU
 
-Bez ReLU warstwy złożyłyby się w jedną prostą, bo funkcja liniowa funkcji liniowej jest liniowa. [Pierwsza sieć](../04-foundations/04-neural-networks/01-layers.pl.md#po-co-jest-funkcja-aktywacji) z rozdziału o sieciach neuronowych tłumaczy to na liczbach, a trening to pokazuje. Oto zwykła regresja liniowa, dwie warstwy `nn.Linear` z niczym pomiędzy i sieć z ReLU, trenowane na tych samych opłatach:
+Bez ReLU warstwy złożyłyby się w jedną prostą, bo funkcja liniowa funkcji liniowej też jest liniowa. Dlaczego, pokazuje na liczbach [pierwsza sieć](../04-foundations/04-neural-networks/01-layers.pl.md#po-co-jest-funkcja-aktywacji) z rozdziału o sieciach neuronowych, a widać to także w treningu. Oto zwykła regresja liniowa, dwie warstwy `nn.Linear` bez niczego pomiędzy i sieć z ReLU, wytrenowane na tych samych opłatach:
 
 ```python run
 import torch
@@ -82,11 +82,11 @@ for name, model in [("linear", linear), ("two linear layers", two_linear), ("net
     print(name, rmse_in_euros(model))
 ```
 
-Prosta myli się o około 1,88 zł, a dwie warstwy bez ReLU, z 50 razy większą liczbą parametrów, nie robią tego lepiej: 2,04 zł. Sieć z ReLU myli się o około 1,07 zł, a szum w opłatach to 1 zł, więc dużo lepiej już nie może. Liczby to pierwiastek z błędu średniokwadratowego na 200 kursach walidacyjnych, w złotych.
+Prosta myli się średnio o około 1,88 zł, a dwie warstwy bez ReLU, mimo 50 razy większej liczby parametrów, nie radzą sobie lepiej: 2,04 zł. Sieć z ReLU myli się o około 1,07 zł, a szum w opłatach wynosi 1 zł, więc trudno o wiele lepiej. Te liczby to pierwiastek z błędu średniokwadratowego na 200 kursach walidacyjnych, w złotych.
 
 ## Trening sieci
 
-W porównaniu z poprzednimi lekcjami zmieniło się jedno, co ma znaczenie. **Etykiety też są standaryzowane**, tak jak cechy, a RMSE na końcu zamienia się z powrotem na złote, mnożąc przez rozrzut opłat. Sieć zaczyna od małych losowych wag, więc jej pierwsze predykcje są bliskie 0, a opłaty około 30 sprawiłyby, że jej pierwsze kroki byłyby ogromne: trening skakałby albo wybuchł. Przy etykietach wokół 0 ten sam współczynnik uczenia jest łagodny.
+W porównaniu z poprzednimi lekcjami zmieniła się jedna ważna rzecz: **etykiety też są standaryzowane**, tak jak cechy, a na końcu RMSE wraca do złotych przez pomnożenie przez rozrzut opłat. Sieć zaczyna od małych losowych wag, więc jej pierwsze predykcje są bliskie 0, a przy opłatach rzędu 30 pierwsze kroki byłyby ogromne: trening skakałby w tę i z powrotem albo zupełnie by się rozjechał. Gdy etykiety są w okolicy 0, ten sam współczynnik uczenia działa łagodnie.
 
 ```python run
 import torch
@@ -130,38 +130,38 @@ with torch.no_grad():
 print(fares.flatten())
 ```
 
-Strata jest w jednostkach standaryzowanych, więc 0,0098 to setna część wariancji opłat. Ostatnie wiersze przewidują trzy kursy bez postoju: 3, 6 i 12 km. Naklejka tej taksówki daje dla nich 8 + 4 × 3 = 20, 8 + 4 × 6 = 32 i 8 + 4 × 6 + 2 × 6 = 44, a sieć mówi 19,9, 31,3 i 43,5. Predykcję zamienia się z powrotem na złote tak, jak zamieniono etykiety: razy rozrzut, plus średnia. Prosta nie potrafi dobrze oddać zakrętu przy 6 km, a sieć tak.
+Strata jest w jednostkach standardowych, więc 0,0098 to setna część wariancji opłat. Ostatnie wiersze przewidują opłaty za trzy kursy bez postoju: 3, 6 i 12 km. Naklejka tej taksówki daje za nie 8 + 4 × 3 = 20, 8 + 4 × 6 = 32 i 8 + 4 × 6 + 2 × 6 = 44, a sieć 19,9, 31,3 i 43,5. Predykcję zamienia się z powrotem na złote tak jak etykiety, tylko w drugą stronę: razy rozrzut, plus średnia. Prosta nie trafi w załamanie przy 6 km, a sieć tak.
 
 ## Podsumowanie
 
-- `nn.Sequential(layer, layer, ...)` wywołuje swoje warstwy jedna po drugiej. Rozmiar wyjścia warstwy to rozmiar wejścia następnej, a `model[0]` to pierwsza warstwa.
-- Warstwy potrzebują między sobą funkcji aktywacji, zwykle `nn.ReLU()`. Bez niej dowolna liczba warstw liniowych to jedna warstwa liniowa.
-- Parametry sieci to wagi i wyrazy wolne jej warstw, a `sum(p.numel() for p in model.parameters())` je liczy.
-- Standaryzuj też etykiety, gdy są daleko od 0, i zamieniaj predykcje z powrotem na oryginalne jednostki.
+- `nn.Sequential(warstwa, warstwa, ...)` wywołuje swoje warstwy po kolei. Rozmiar wyjścia warstwy to rozmiar wejścia następnej, a `model[0]` to pierwsza warstwa.
+- Między warstwami potrzebna jest funkcja aktywacji, zwykle `nn.ReLU()`. Bez niej dowolna liczba warstw liniowych to jedna warstwa liniowa.
+- Parametry sieci to wagi i wyrazy wolne jej warstw, a policzyć je można przez `sum(p.numel() for p in model.parameters())`.
+- Etykiety odległe od 0 też warto standaryzować, a predykcje zamieniać z powrotem na pierwotne jednostki.
 
 ## Sprawdź się
 
 <details>
 <summary>Ile parametrów ma <code>nn.Sequential(nn.Linear(3, 4), nn.ReLU(), nn.Linear(4, 1))</code>?</summary>
 
-21: pierwsza warstwa ma 3 × 4 wag i 4 wyrazy wolne, razem 16, a druga 4 × 1 wag i 1 wyraz wolny, jeszcze 5. `ReLU` nie ma żadnych.
+21: pierwsza warstwa ma 3 × 4 wagi i 4 wyrazy wolne, razem 16, a druga 4 × 1 wagi i 1 wyraz wolny, czyli jeszcze 5. `ReLU` nie ma żadnych.
 
 </details>
 
 <details>
-<summary>Co jest nie tak w <code>nn.Sequential(nn.Linear(2, 50), nn.Linear(40, 1))</code>?</summary>
+<summary>Co jest nie tak z <code>nn.Sequential(nn.Linear(2, 50), nn.Linear(40, 1))</code>?</summary>
 
-Pierwsza warstwa daje 50 liczb dla każdego wiersza, a druga bierze 40, więc pierwsze wywołanie kończy się błędem o kształtach, których nie da się pomnożyć. Rozmiary muszą się spotkać: druga warstwa musi być `nn.Linear(50, 1)`.
+Pierwsza warstwa daje 50 liczb dla każdego wiersza, a druga przyjmuje 40, więc już pierwsze wywołanie kończy się błędem o kształtach, których nie da się pomnożyć. Rozmiary muszą do siebie pasować: druga warstwa musi być `nn.Linear(50, 1)`.
 
 </details>
 
 <details>
-<summary>Dlaczego opłaty standaryzuje się przed treningiem sieci?</summary>
+<summary>Dlaczego przed treningiem sieci standaryzuje się opłaty?</summary>
 
-Pierwsze predykcje sieci są bliskie 0, a opłaty około 30 dają ogromne straty i nachylenia na pierwszych krokach, więc ten sam współczynnik uczenia może sprawić, że trening zacznie skakać. Ustandaryzowane opłaty też są blisko 0 i trening jest łagodny. Predykcje zamienia się potem z powrotem na złote.
+Pierwsze predykcje sieci są bliskie 0, a przy opłatach rzędu 30 pierwsze straty i nachylenia są ogromne, więc ten sam współczynnik uczenia może sprawić, że trening zacznie skakać. Wystandaryzowane opłaty też są bliskie 0 i trening przebiega łagodnie. Predykcje zamienia się potem z powrotem na złote.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Zbuduj sieć](../../exercises/05-pytorch/07-a-network-with-nn-sequential/01-build-a-network/task.pl.md) zrobisz sieć z listy rozmiarów warstw. W ćwiczeniu [Policz parametry](../../exercises/05-pytorch/07-a-network-with-nn-sequential/02-count-the-parameters/task.pl.md) policzysz, czego model musi się nauczyć, i wypiszesz kształty jego warstw.
+W ćwiczeniu [Zbuduj sieć](../../exercises/05-pytorch/07-a-network-with-nn-sequential/01-build-a-network/task.pl.md) utworzysz sieć na podstawie listy rozmiarów warstw. W ćwiczeniu [Policz parametry](../../exercises/05-pytorch/07-a-network-with-nn-sequential/02-count-the-parameters/task.pl.md) policzysz, czego model musi się nauczyć, i wypiszesz kształty jego warstw.

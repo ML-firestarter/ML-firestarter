@@ -4,7 +4,7 @@ description: Read the dependencies of a project and of a script from the text of
 
 # Read the project
 
-*Draws on [Python on your computer](../../../../notes/02-python/04-programs/03-python-on-your-computer.md) for `pyproject.toml` and script headers, and on [Modules and the standard library](../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.md) for `re` and `tomllib`.*
+*Draws on [Python on your computer](../../../../../notes/02-python/04-programs/03-python-on-your-computer.md) for `pyproject.toml` and script headers, and on [Modules and the standard library](../../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.md) for `re` and `tomllib`.*
 
 `uv` keeps a project's dependencies in the file `pyproject.toml`, and a single script's in a comment at its top. Finish four functions that read them. Each gets the **text** of a file, and the code already imports `re` and `tomllib`:
 

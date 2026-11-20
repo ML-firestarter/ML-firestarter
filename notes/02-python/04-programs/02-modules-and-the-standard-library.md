@@ -38,7 +38,7 @@ print(ceil(7.1))
 print(stats.mean([2, 4, 9]))
 ```
 
-Python comes with a large set of modules, the **standard library**, and they need nothing to be installed: `math`, `random`, `json`, `re`, `datetime`, `collections`, `statistics` and many more. The libraries of the [PyTorch chapter](../05-pytorch/README.md), like `torch` and `numpy`, aren't in it. They're installed separately, and [the next lesson](03-python-on-your-computer.md) says how. A module that doesn't exist, or isn't installed, stops the program with a `ModuleNotFoundError`:
+Python comes with a large set of modules, the **standard library**, and they need nothing to be installed: `math`, `random`, `json`, `re`, `datetime`, `collections`, `statistics` and many more. The libraries of the [PyTorch chapter](../../05-pytorch/README.md), like `torch` and `numpy`, aren't in it. They're installed separately, and [the next lesson](03-python-on-your-computer.md) says how. A module that doesn't exist, or isn't installed, stops the program with a `ModuleNotFoundError`:
 
 ```python run
 import tensorflow

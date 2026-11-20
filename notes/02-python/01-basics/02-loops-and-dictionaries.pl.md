@@ -1,10 +1,10 @@
 ---
-description: Napisy, pętle for i słowniki, do programu, który liczy samogłoski w zdaniu.
+description: Napisy, pętle for i słowniki, czyli wszystko, czego potrzeba do programu, który liczy samogłoski w zdaniu.
 ---
 
 # Pętle i słowniki
 
-W ćwiczeniu do tej lekcji policzysz samogłoski w zdaniu: ile ma liter a, ile liter e i tak dalej. Ręcznie przechodzi się przez zdanie litera po literze i dla każdej samogłoski stawia kreski. Python robi to tak samo, za pomocą:
+W ćwiczeniu do tej lekcji policzysz samogłoski w zdaniu: ile ma liter a, ile liter e i tak dalej. Licząc ręcznie, przechodzi się przez zdanie litera po literze i przy każdej samogłosce stawia kreskę. Python robi to tak samo, za pomocą:
 
 - **pętli for**, która wykonuje ten sam kod dla każdej litery tekstu albo każdego elementu listy,
 - **słownika**, który przechowuje wartość, na przykład liczbę kresek, pod kluczem, na przykład literą.
@@ -37,7 +37,7 @@ print(text.upper())
 print(text)
 ```
 
-Ostatni wiersz pokazuje, że sam `text` się nie zmienił. Napis nigdy się nie zmienia: metody takie jak `lower()` zwracają nowy. Żeby go zachować, zapisz go w zmiennej, nawet tej samej: `text = text.lower()`.
+Ostatni wiersz pokazuje, że sam `text` się nie zmienił. Napisów nie da się zmienić: metody takie jak `lower()` zwracają nowy napis. Żeby go zachować, zapisz go w zmiennej, nawet tej samej: `text = text.lower()`.
 
 ## Pętla for
 
@@ -49,7 +49,7 @@ for letter in "kot":
 print("Gotowe.")
 ```
 
-Tak jak przy `if`, wiersz z `for` kończy się dwukropkiem, a blok pod nim jest wcięty. Za pierwszym wykonaniem bloku `letter` to `"k"`, potem `"o"`, a potem `"t"`. Po ostatniej literze program idzie dalej, za pętlę.
+Tak jak przy `if`, wiersz z `for` kończy się dwukropkiem, a blok pod nim jest wcięty. Przy pierwszym wykonaniu bloku `letter` ma wartość `"k"`, potem `"o"`, a potem `"t"`. Po ostatniej literze program idzie dalej, za pętlę.
 
 Pętla często buduje wynik po kawałku. Żeby coś policzyć, zacznij od zmiennej równej 0 i dodawaj do niej 1 za każdym razem, gdy to znajdziesz:
 
@@ -83,7 +83,7 @@ print(ages)
 print(len(ages))
 ```
 
-Odczytanie klucza, którego nie ma, zatrzymuje program z błędem `KeyError`, więc najpierw sprawdź. `in` sprawdza, czy słownik ma dany klucz:
+Odczytanie klucza, którego nie ma, zatrzymuje program z błędem `KeyError`, więc najpierw warto sprawdzić, czy klucz istnieje. `in` sprawdza, czy słownik ma dany klucz:
 
 ```python run
 ages = {"Ada": 36, "Alan": 41}
@@ -125,7 +125,7 @@ for name, age in ages.items():
     print(name, age)
 ```
 
-Klucze idą w kolejności, w jakiej je dodano do słownika. To nie jest kolejność alfabetyczna ani żadna inna, chyba że w takiej je dodano.
+Klucze pojawiają się w kolejności, w jakiej dodano je do słownika. To nie jest kolejność alfabetyczna ani żadna inna, chyba że w takiej je dodano.
 
 ## f-stringi
 
@@ -148,4 +148,4 @@ for letter, count in counts.items():
 
 ## Twoja kolej
 
-W ćwiczeniu [Policz samogłoski](../../../exercises/02-python/01-basics/02-loops-and-dictionaries/01-count-the-vowels/task.pl.md) napiszesz funkcję, która liczy w słowniku każdą samogłoskę tekstu, także zapisaną wielką literą, i pętlę, która wypisuje te liczby w alfabetycznej kolejności samogłosek.
+W ćwiczeniu [Policz samogłoski](../../../exercises/02-python/01-basics/02-loops-and-dictionaries/01-count-the-vowels/task.pl.md) napiszesz funkcję, która zlicza w słowniku każdą samogłoskę tekstu, także zapisaną wielką literą, i pętlę, która wypisuje wyniki w alfabetycznej kolejności samogłosek.

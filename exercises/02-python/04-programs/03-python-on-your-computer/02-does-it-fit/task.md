@@ -4,7 +4,7 @@ description: Decide whether a version of a package satisfies a version specifier
 
 # Does it fit
 
-*Draws on [Python on your computer](../../../../notes/02-python/04-programs/03-python-on-your-computer.md) for version specifiers, and on [Conditions and functions](../../../../notes/02-python/01-basics/01-conditions-and-functions.md) and [Ranges and lists](../../../../notes/02-python/01-basics/03-ranges-and-lists.md) for the comparisons and loops.*
+*Draws on [Python on your computer](../../../../../notes/02-python/04-programs/03-python-on-your-computer.md) for version specifiers, and on [Conditions and functions](../../../../../notes/02-python/01-basics/01-conditions-and-functions.md) and [Ranges and lists](../../../../../notes/02-python/01-basics/03-ranges-and-lists.md) for the comparisons and loops.*
 
 `uv add "numpy>=2.0,<3"` asks for a version of numpy that is at least 2.0 and below 3. Finish `allows(specifier, version)`, which says whether a version fits a specifier. The code gives you `parse_version("2.4.6")`, which turns a version into the tuple `(2, 4, 6)`, and tuples compare number by number.
 

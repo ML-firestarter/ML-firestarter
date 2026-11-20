@@ -22,6 +22,10 @@ const { root } = course;
 const contentLang = langAttr(root.lang, lang);
 const Intro = root.intro ? (await render(root.intro)).Content : undefined;
 const chapters = root.children.filter((node) => node.kind === 'chapter');
+/** The learning path's groups, each with its chapters; loose lessons are listed above them. */
+const groups = course.groups
+  .map((group) => ({ ...group, chapters: group.nodes.filter((node) => node.kind === 'chapter') }))
+  .filter((group) => group.chapters.length > 0);
 const looseLessons = root.children.filter((node) => node.kind === 'lesson');
 const minutes = course.lessons.reduce((sum, lesson) => sum + lesson.minutes, 0);
 const first = course.lessons[0];
@@ -89,38 +93,51 @@ const paths = (lessons: Lesson[]) => JSON.stringify(lessons.map((lesson) => less
 
   {
     chapters.length > 0 && (
-      <section class="chapter-grid" aria-label={t.chaptersNav}>
-        {chapters.map((chapter, index) => (
-          <article class="chapter-card" data-progress={paths(chapter.lessons)}>
-            <p class="eyebrow">{t.chapterNumber(index + 1)}</p>
-            <h2 lang={langAttr(chapter.lang, lang)}>
-              <a href={chapter.url}>{chapter.title}</a>
-            </h2>
-            {chapter.description && (
-              <p class="card-description" lang={langAttr(chapter.lang, lang)}>
-                {chapter.description}
-              </p>
+      <section class="chapter-groups" aria-label={t.chaptersNav}>
+        {groups.map((group) => (
+          <div class="chapter-group">
+            {group.title && (
+              <header class="stage-header">
+                {group.stage && <p class="eyebrow">{t.stageNumber(group.stage)}</p>}
+                <h2>{group.title}</h2>
+                {group.outcome && <p class="stage-outcome">{group.outcome}</p>}
+              </header>
             )}
-            <ol class="card-lessons">
-              {chapter.lessons.slice(0, PREVIEW_LESSONS).map((lesson) => (
-                <li>
-                  <a class="lesson-link" href={lesson.url} data-lesson={lesson.path}>
-                    <span class="status"><Icon name="check" /></span>
-                    <span lang={langAttr(lesson.lang, lang)}>{lesson.title}</span>
-                  </a>
-                </li>
+            <div class="chapter-grid">
+              {group.chapters.map((chapter) => (
+                <article class="chapter-card" data-progress={paths(chapter.lessons)}>
+                  <p class="eyebrow">{t.chapterNumber(chapters.indexOf(chapter) + 1)}</p>
+                  <h3 lang={langAttr(chapter.lang, lang)}>
+                    <a href={chapter.url}>{chapter.title}</a>
+                  </h3>
+                  {chapter.description && (
+                    <p class="card-description" lang={langAttr(chapter.lang, lang)}>
+                      {chapter.description}
+                    </p>
+                  )}
+                  <ol class="card-lessons">
+                    {chapter.lessons.slice(0, PREVIEW_LESSONS).map((lesson) => (
+                      <li>
+                        <a class="lesson-link" href={lesson.url} data-lesson={lesson.path}>
+                          <span class="status"><Icon name="check" /></span>
+                          <span lang={langAttr(lesson.lang, lang)}>{lesson.title}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                  {chapter.lessons.length > PREVIEW_LESSONS && (
+                    <a class="more-link" href={chapter.url}>
+                      {t.moreLessons(chapter.lessons.length - PREVIEW_LESSONS)}
+                    </a>
+                  )}
+                  <div class="card-footer">
+                    <div class="bar"><span></span></div>
+                    <span data-progress-label>0/{chapter.lessons.length}</span>
+                  </div>
+                </article>
               ))}
-            </ol>
-            {chapter.lessons.length > PREVIEW_LESSONS && (
-              <a class="more-link" href={chapter.url}>
-                {t.moreLessons(chapter.lessons.length - PREVIEW_LESSONS)}
-              </a>
-            )}
-            <div class="card-footer">
-              <div class="bar"><span></span></div>
-              <span data-progress-label>0/{chapter.lessons.length}</span>
             </div>
-          </article>
+          </div>
         ))}
       </section>
     )

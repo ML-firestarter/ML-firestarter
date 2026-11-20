@@ -16,9 +16,9 @@ Ada 5
 
 Napisz trzy funkcje:
 
-- `read_grades(path)` wczytuje plik spod ścieżki `path` i zwraca słownik z imieniem każdego ucznia i listą jego ocen, jako liczb, w kolejności z pliku: `{'Max': [5, 4], 'Eva': [3, 4, 5], ...}`.
+- `read_grades(path)` wczytuje plik spod ścieżki `path` i zwraca słownik, w którym imieniu każdego ucznia odpowiada lista jego ocen jako liczb, w kolejności z pliku: `{'Max': [5, 4], 'Eva': [3, 4, 5], ...}`.
 - `average_grades(grades)` dostaje taki słownik i zwraca słownik ze średnią oceną każdego ucznia: sumą jego ocen podzieloną przez ich liczbę. `average_grades({'Ada': [5, 4]})` zwraca `{'Ada': 4.5}`.
-- `write_report(averages, path)` zapisuje średnie w pliku pod ścieżką `path`, po wierszu dla każdego ucznia, na przykład `Ada: 4.5`, w kolejności alfabetycznej imion.
+- `write_report(averages, path)` zapisuje średnie w pliku pod ścieżką `path`, po jednym wierszu na ucznia, na przykład `Ada: 4.5`, z imionami w kolejności alfabetycznej.
 
 Program pod funkcjami wczytuje `grades.txt`, zapisuje raport w `report.txt` i go wypisuje. Gdy twoje funkcje zadziałają, program wypisze:
 

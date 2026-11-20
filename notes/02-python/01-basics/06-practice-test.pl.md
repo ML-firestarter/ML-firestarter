@@ -4,9 +4,9 @@ description: Pięć zadań, które łączą wszystko z podstaw, od najłatwiejsz
 
 # Test praktyczny
 
-Masz za sobą wszystkie lekcje z podstaw, a ten test pokazuje, ile z nich zostało ci w głowie. Ma pięć zadań, od najłatwiejszego do najtrudniejszego, które znajdziesz poniżej. Każde łączy rzeczy z kilku lekcji i mówi z których, więc wiadomo, gdzie szukać, gdy utkniesz. Tak jak w ćwiczeniach do lekcji, **Sprawdź** mówi, które części twojego kodu działają, a gdy działają wszystkie, możesz porównać swój kod z naszym rozwiązaniem.
+Masz za sobą wszystkie lekcje z podstaw, a ten test pokazuje, ile z nich zostało ci w głowie. Ma pięć zadań, od najłatwiejszego do najtrudniejszego, które znajdziesz poniżej. Każde łączy materiał z kilku lekcji i podaje z których, więc wiesz, gdzie szukać, gdy utkniesz. Tak jak w ćwiczeniach do lekcji, **Sprawdź** mówi, które części twojego kodu działają, a gdy działają wszystkie, możesz porównać swój kod z naszym rozwiązaniem.
 
-Oto czego uczyła każda lekcja:
+Oto, czego uczyły poszczególne lekcje:
 
 | Lekcja                                                  | Czego uczyła                                                                                      |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |

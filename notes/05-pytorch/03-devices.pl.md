@@ -1,17 +1,17 @@
 ---
-description: Dowiedz się, gdzie PyTorch może liczyć twoje tensory, na procesorze czy na karcie graficznej, napisz kod, który wybiera najlepsze urządzenie, i przenieś na nie tensory.
+description: Sprawdź, gdzie PyTorch może trzymać tensory, na procesorze czy na karcie graficznej, napisz kod, który wybiera najlepsze urządzenie, i przenieś na nie tensory.
 ---
 
 # Urządzenia
 
-Policzenie predykcji dla kilku kursów taksówki nie zajmuje wcale czasu. Trening sieci na milionach z nich trwa godzinami, chyba że arytmetyka działa na **karcie graficznej**, czyli GPU, która liczy tysiące małych działań naraz. PyTorch potrafi liczyć tensory na takiej karcie i prosi tylko o jedno: żebyś powiedział, gdzie każdy tensor leży. Ta lekcja jest o tym, jak to powiedzieć.
+Policzenie predykcji dla kilku kursów taksówki nie zajmuje praktycznie żadnego czasu. Trening sieci na milionach kursów trwa godzinami, chyba że obliczenia wykonuje **karta graficzna** (GPU), która robi tysiące drobnych rachunków naraz. PyTorch potrafi trzymać na niej tensory i wymaga przy tym tylko jednego: żeby wskazać, gdzie ma leżeć każdy tensor. O tym jest ta lekcja.
 
 > [!NOTE]
-> Ta strona nie ma karty graficznej, więc wszystko tutaj działa na procesorze, czyli **CPU**. Kod jest napisany tak, jak napisałbyś go dla komputera z GPU, a na takim komputerze ten sam kod działa na karcie bez żadnej zmiany. [PyTorch na stronie](../01-start-here/01-how-this-works.pl.md#pytorch-na-stronie) mówi, co jeszcze jest inne.
+> Na tej stronie nie ma karty graficznej, więc wszystko działa tu na procesorze, czyli **CPU**. Kod jest napisany tak, jak pisze się go na komputer z GPU, i na takim komputerze działa bez żadnych zmian. Co jeszcze jest tu inaczej, opisuje część [PyTorch na stronie](../01-start-here/01-how-this-works.pl.md#pytorch-na-stronie).
 
 ## Gdzie leży tensor
 
-Każdy tensor ma `device` (urządzenie): `cpu` to procesor, `cuda` to karta graficzna NVIDIA, a `mps` to układ graficzny komputera Apple. Nowy tensor leży na CPU, chyba że powiesz inaczej:
+Każdy tensor ma swoje urządzenie, `device`: `cpu` to procesor, `cuda` karta graficzna NVIDIA, a `mps` układ graficzny komputera Apple. Nowy tensor trafia na CPU, chyba że wskażesz inaczej:
 
 ```python run
 import torch
@@ -24,7 +24,7 @@ print(torch.device("cpu"))
 
 ## Wybór urządzenia
 
-O to, jakie urządzenia ma komputer, możesz zapytać PyTorcha. Zwykle wybiera się kartę graficzną, gdy jest, a procesor, gdy jej nie ma, żeby ten sam kod działał wszędzie:
+O to, jakie urządzenia ma komputer, można zapytać PyTorch. Zwykle wybiera się kartę graficzną, jeśli jest, a procesor, jeśli jej nie ma, żeby ten sam kod działał wszędzie:
 
 ```python run
 import torch
@@ -39,11 +39,11 @@ else:
 print(device)
 ```
 
-Tutaj wypisuje `cpu`, a na komputerze z kartą NVIDIA `cuda`. Napisz to raz, na początku programu, i używaj `device` wszędzie dalej, a nic innego w programie nie musi wiedzieć, co ma komputer.
+Tutaj wypisuje się `cpu`, a na komputerze z kartą NVIDIA `cuda`. Wystarczy napisać to raz, na początku programu, i dalej wszędzie używać `device`, a reszta programu nie musi wiedzieć, w co wyposażony jest komputer.
 
 ## Przenoszenie tensorów
 
-`.to(device)` daje kopię tensora na urządzeniu, a `device=` od razu tworzy tensor na nim. Operacje wykonują się tam, gdzie leżą ich tensory, i tam też leżą ich wyniki:
+`.to(device)` zwraca kopię tensora na danym urządzeniu, a `device=` od razu tworzy tensor na nim. Działania wykonują się tam, gdzie leżą ich tensory, i tam też trafiają ich wyniki:
 
 ```python run
 import torch
@@ -60,18 +60,18 @@ print(R.device)
 print(R)
 ```
 
-Na GPU drugie `M` i `N` leżałyby na karcie graficznej, a razem z nimi `R`, policzone właśnie tam. `.to` zmienia też typ: `M.to(torch.float64)` zostawia urządzenie i zmienia `dtype`, a `M.to("cpu", torch.float64)` zmienia oba.
+Na GPU drugie `M` i `N` leżałyby na karcie graficznej, podobnie jak `R`, które zostałoby tam policzone. `.to` zmienia też typ: `M.to(torch.float64)` zostawia urządzenie i zmienia `dtype`, a `M.to("cpu", torch.float64)` zmienia jedno i drugie.
 
-Dwa tensory muszą leżeć na tym samym urządzeniu, żeby można ich było użyć razem. Dodaj tensor z CPU do tensora z GPU, a PyTorch zatrzyma się z błędem, że znalazł tensory na dwóch urządzeniach. Dlatego cały model przenosi się na urządzenie raz, `model.to(device)`, jak w [następnych lekcjach](04-linear-regression-by-hand.pl.md), i tak samo każdą porcję danych, tuż przed użyciem jej przez model. Tensor, który wraca na procesor, żeby go wypisać albo zamienić w tablicę NumPy, przenosi się przez `.cpu()`.
+Tensory, których używa się razem, muszą leżeć na tym samym urządzeniu. Dodanie tensora z CPU do tensora z GPU kończy się błędem, w którym PyTorch pisze, że znalazł tensory na dwóch urządzeniach. Dlatego cały model przenosi się na urządzenie raz, przez `model.to(device)`, jak w [kolejnych lekcjach](04-linear-regression-by-hand.pl.md), a każdą porcję danych tuż przed tym, jak użyje jej model. Tensor, który ma wrócić na procesor, żeby go wypisać albo zamienić na tablicę NumPy, przenosi się przez `.cpu()`.
 
 > [!NOTE]
-> Poproszenie o urządzenie, którego komputer nie ma, jak tutaj `device="cuda"`, to błąd. Dlatego najpierw sprawdza się `is_available()`.
+> Prośba o urządzenie, którego komputer nie ma, jak tutaj `device="cuda"`, kończy się błędem. Właśnie dlatego najpierw sprawdza się `is_available()`.
 
 ## Podsumowanie
 
-- Tensor leży na urządzeniu: `cpu`, `cuda` (karta graficzna NVIDIA) albo `mps` (karta Apple). Nowe tensory leżą na CPU.
-- Wybierz urządzenie raz, przez `torch.cuda.is_available()` i `torch.backends.mps.is_available()`, i używaj go wszędzie.
-- `.to(device)` daje kopię na urządzeniu, `device=` tworzy tam tensor, a wyniki leżą tam, gdzie ich tensory.
+- Tensor leży na urządzeniu: `cpu`, `cuda` (karta graficzna NVIDIA) albo `mps` (układ graficzny Apple). Nowe tensory trafiają na CPU.
+- Urządzenie wybiera się raz, przez `torch.cuda.is_available()` i `torch.backends.mps.is_available()`, i używa go wszędzie.
+- `.to(device)` zwraca kopię na danym urządzeniu, `device=` od razu tworzy tensor na nim, a wyniki trafiają tam, gdzie leżą ich tensory.
 - Tensory używane razem muszą leżeć na tym samym urządzeniu.
 
 ## Sprawdź się
@@ -79,24 +79,24 @@ Dwa tensory muszą leżeć na tym samym urządzeniu, żeby można ich było uży
 <details>
 <summary>Dlaczego nie napisać po prostu <code>device = "cuda"</code>?</summary>
 
-Na komputerze bez karty NVIDIA każdy tensor utworzony na `"cuda"` zgłasza błąd, więc program działa tylko na komputerach takich jak twój. Sprawdzenie `is_available()` pozwala temu samemu kodowi użyć karty graficznej tam, gdzie jest, a CPU tam, gdzie jej nie ma.
+Na komputerze bez karty NVIDIA każda próba utworzenia tensora na `"cuda"` zgłosi błąd, więc program zadziała tylko na komputerach takich jak twój. Sprawdzenie `is_available()` pozwala temu samemu kodowi korzystać z karty graficznej tam, gdzie jest, a z CPU tam, gdzie jej nie ma.
 
 </details>
 
 <details>
-<summary><code>a</code> leży na GPU, a <code>b</code> na CPU. Co robi <code>a + b</code>?</summary>
+<summary><code>a</code> leży na GPU, a <code>b</code> na CPU. Co zrobi <code>a + b</code>?</summary>
 
-Zatrzymuje się z błędem o dwóch urządzeniach. PyTorch nigdy nie przenosi tensorów za twoimi plecami: przenieś jeden z nich, `b.to(a.device)`, a suma zostanie policzona tam, gdzie leży `a`.
+Zatrzyma się z błędem o dwóch urządzeniach. PyTorch nigdy nie przenosi tensorów za twoimi plecami: przenieś jeden z nich, `b.to(a.device)`, a suma policzy się tam, gdzie leży `a`.
 
 </details>
 
 <details>
-<summary>Utworzyłeś <code>W</code> z <code>device="cuda"</code> i liczysz <code>y = W @ x</code>. Na jakim urządzeniu leży <code>y</code>?</summary>
+<summary><code>W</code> utworzono z <code>device="cuda"</code>, a potem policzono <code>y = W @ x</code>. Na którym urządzeniu jest <code>y</code>?</summary>
 
-Na `cuda`, o ile `x` też tam leży. Operacja jest liczona tam, gdzie leżą jej tensory, a jej wynik tam zostaje.
+Na `cuda`, o ile `x` też tam leży. Działanie wykonuje się tam, gdzie leżą jego tensory, i tam zostaje jego wynik.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Wybierz urządzenie](../../exercises/05-pytorch/03-devices/01-pick-the-device/task.pl.md) napiszesz wybór urządzenia dla dowolnego komputera. W ćwiczeniu [Przenieś porcję danych](../../exercises/05-pytorch/03-devices/02-move-a-batch/task.pl.md) przeniesiesz na urządzenie wszystkie tensory porcji danych.
+W ćwiczeniu [Wybierz urządzenie](../../exercises/05-pytorch/03-devices/01-pick-the-device/task.pl.md) napiszesz wybór urządzenia dla dowolnego komputera. W ćwiczeniu [Przenieś porcję danych](../../exercises/05-pytorch/03-devices/02-move-a-batch/task.pl.md) przeniesiesz na wybrane urządzenie wszystkie tensory z porcji.

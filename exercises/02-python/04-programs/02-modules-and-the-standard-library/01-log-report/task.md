@@ -4,7 +4,7 @@ description: Read a web server's log with re, datetime, Counter and json, and re
 
 # Log report
 
-*Draws on [Modules and the standard library](../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.md) for `re`, `datetime`, `Counter` and `json`, and on [Reading and writing files](../../../../notes/02-python/01-basics/04-files.md) for reading a file.*
+*Draws on [Modules and the standard library](../../../../../notes/02-python/04-programs/02-modules-and-the-standard-library.md) for `re`, `datetime`, `Counter` and `json`, and on [Reading and writing files](../../../../../notes/02-python/01-basics/04-files.md) for reading a file.*
 
 A web server writes one line to its log for every request it gets. The file `access.log` has lines like these, with a time, a method, a path, a status code and how long the answer took:
 

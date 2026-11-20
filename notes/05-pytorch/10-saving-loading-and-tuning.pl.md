@@ -1,16 +1,16 @@
 ---
-description: Zapisz wagi wytrenowanego modelu razem z ustawieniami, które go zbudowały, wczytaj je do nowego modelu i poszukaj współczynnika uczenia i rozmiaru warstwy, które działają dobrze.
+description: Zapisz wagi wytrenowanego modelu razem z ustawieniami, które go zbudowały, wczytaj je do nowego modelu i poszukaj współczynnika uczenia i rozmiaru warstwy, które dobrze działają.
 ---
 
 # Zapis, wczytywanie i strojenie
 
-Model, który uczył się godzinę, jest wart zachowania, tak samo jak wiedza, jakie ustawienia wytrenowały go najlepiej. Ta lekcja zapisuje model i wczytuje go z powrotem, a potem próbuje kilku ustawień sieci z [poprzedniej lekcji](09-classifying-images.pl.md) i zachowuje najlepsze.
+Model, którego trening zajął godzinę, warto zachować, podobnie jak wiedzę o tym, z jakimi ustawieniami trenował się najlepiej. W tej lekcji zapiszesz model i wczytasz go z powrotem, a potem wypróbujesz kilka ustawień sieci z [poprzedniej lekcji](09-classifying-images.pl.md) i zachowasz najlepsze.
 
 ## Zapis modelu
 
-Liczby, których model się nauczył, są w jego **słowniku stanu** (ang. state dict): słowniku wag i wyrazów wolnych, według nazw ich warstw. `torch.save` zapisuje taki słownik do pliku, a `torch.load` wczytuje go z powrotem. Modelu nie da się zbudować z samych wag, bo nie mówią, ile jest warstw ani jak szerokich, więc plik zawiera też **hiperparametry**, z którymi model zrobiono: ustawienia, które wybierasz, w odróżnieniu od wag, które znajduje trening.
+To, czego model się nauczył, przechowuje jego **słownik stanu** (ang. state dict): słownik wag i wyrazów wolnych zapisanych pod nazwami ich warstw. `torch.save` zapisuje taki słownik do pliku, a `torch.load` go wczytuje. Same wagi nie wystarczą, żeby zbudować model, bo nie mówią, ile jest warstw ani jak są szerokie, dlatego w pliku zapisuje się też **hiperparametry**, z którymi model został utworzony: ustawienia, które wybierasz sam, w przeciwieństwie do wag, które znajduje trening.
 
-Tutaj sieć trenuje się przez 5 epok, zapisuje w punkcie kontrolnym i wczytuje do nowego modelu. Punkt kontrolny trafia tu do pamięci, przez `io.BytesIO`, i do pliku `digits.pt`, co na komputerze jest tym samym:
+Tutaj sieć trenuje przez 5 epok, zostaje zapisana w **punkcie kontrolnym** (ang. checkpoint) i wczytana z powrotem do nowego modelu. Punkt kontrolny trafia tu do pamięci, przez `io.BytesIO`, i do pliku `digits.pt`, co na komputerze działa tak samo:
 
 ```python run
 import io
@@ -85,16 +85,16 @@ with torch.no_grad():
     print(torch.equal(model(X[:5]), new_model(X[:5])))
 ```
 
-Słownik stanu nazywa swoje tensory według położenia warstwy w `nn.Sequential`: `1.weight`, `1.bias`, `3.weight` i tak dalej. Warstwy bez parametrów, `0` i `2`, ich nie mają.
+Słownik stanu nazywa swoje tensory według pozycji warstwy w `nn.Sequential`: `1.weight`, `1.bias`, `3.weight` i tak dalej. Warstwy bez parametrów, `0` i `2`, nie mają w nim żadnych wpisów.
 
-Wczytane hiperparametry budują model o tej samej strukturze, a on na początku nic nie wie: jego dokładność to 0,0976, zgadywanie wśród 10 cyfr. `load_state_dict` wkłada zapisane liczby, a dokładność to 0,8687 zapisanego modelu, z tymi samymi predykcjami, co do ostatniej liczby. `weights_only=True` sprawia, że `torch.load` przyjmuje tylko tensory i zwykłe dane Pythona, więc plik nie może sprawić, żeby uruchomił kod, a tego chcesz od pliku, którego sam nie napisałeś.
+Wczytane hiperparametry budują model o tej samej budowie, który na początku nic nie umie: jego dokładność to 0,0976, czyli tyle, co zgadywanie jednej z 10 cyfr. `load_state_dict` wkłada do niego zapisane liczby i dokładność wynosi tyle co w zapisanym modelu, 0,8687, a predykcje są identyczne co do ostatniej liczby. `weights_only=True` sprawia, że `torch.load` przyjmuje tylko tensory i zwykłe dane Pythona, więc plik nie może kazać mu uruchomić żadnego kodu. Właśnie tego trzeba od pliku z nieznanego źródła.
 
 > [!NOTE]
-> Pliki są zachowywane tylko, dopóki działa kod strony, więc zapisany plik następnym razem zniknie. A PyTorch na stronie zapisuje pliki we własnym formacie, który czyta tylko on: plik zrobiony na twoim komputerze nie wczyta się tutaj, ani odwrotnie. Na twoim komputerze `torch.save` zapisuje zwykły plik `.pt`.
+> Pliki istnieją tylko wtedy, gdy działa kod strony, więc przy kolejnym uruchomieniu zapisanego pliku już nie ma. Do tego PyTorch na stronie zapisuje pliki we własnym formacie, który rozumie tylko on: pliku utworzonego na twoim komputerze nie da się tu wczytać i na odwrót. Na komputerze `torch.save` zapisuje zwykły plik `.pt`.
 
 ## Model o innym kształcie
 
-`load_state_dict` jest ścisłe: model musi mieć warstwy i kształty wag, które zapisano, inaczej się zatrzyma i powie o tym:
+`load_state_dict` jest bezwzględne: model musi mieć te same warstwy i te same kształty wag co zapisany, inaczej zatrzymuje się i mówi dlaczego:
 
 ```python run
 import torch
@@ -118,15 +118,15 @@ print("same shape: loaded")
 make_model(64, 40, 10).load_state_dict(saved)
 ```
 
-Model z 40 liczbami ukrytymi nie przyjmie wag modelu z 50, a komunikat wylicza każdą warstwę, która nie pasuje. Dlatego hiperparametry trzyma się razem z wagami.
+Model z 40 liczbami ukrytymi nie przyjmie wag modelu z 50, a komunikat wymienia każdą warstwę, która nie pasuje. Właśnie dlatego hiperparametry zapisuje się razem z wagami.
 
-Jeszcze jedno robi się po wczytaniu, przed użyciem modelu: `model.eval()`, jak dla każdego modelu, który nie jest trenowany. Nowy model jest w trybie treningu, tak samo świeżo wczytany.
+Po wczytaniu, a przed użyciem modelu, trzeba jeszcze wywołać `model.eval()`, jak w przypadku każdego modelu, który nie jest trenowany. Nowy model jest w trybie treningowym, a dopiero co wczytany również.
 
 ## Strojenie hiperparametrów
 
-Hiperparametry się nie uczą: współczynnik uczenia, liczba liczb ukrytych, liczba epok. Wybiera się je próbując: trenuje się model z jakimiś, mierzy na kursach walidacyjnych i zachowuje najlepszy. Wypróbowanie wszystkich kombinacji trwałoby za długo, więc częstym sposobem jest **wyszukiwanie losowe**: losuje się ustawienia, kilka razy, i zachowuje to, co wypadło najlepiej. Współczynnik uczenia losuje się w **skali logarytmicznej**, wykładnik między 10⁻² a 10^−0,5, bo różnica między 0,001 a 0,01 liczy się tak samo jak między 0,01 a 0,1.
+Hiperparametrów model się nie uczy: to współczynnik uczenia, liczba liczb ukrytych, liczba epok. Wybiera się je metodą prób: trenuje się model z jakimiś ustawieniami, mierzy go na danych walidacyjnych i zostawia najlepsze. Wypróbowanie wszystkich kombinacji trwa za długo, dlatego często stosuje się **przeszukiwanie losowe** (ang. random search): kilka razy losuje się ustawienia i zostawia te, które dały najlepszy wynik. Współczynnik uczenia losuje się w **skali logarytmicznej**, z wykładnikiem między −2 a −0,5, bo różnica między 0,001 a 0,01 ma takie samo znaczenie jak między 0,01 a 0,1.
 
-Ustawienia losuje się z własnego generatora, żeby liczby losowe treningu, który tasuje porcje, ich nie zmieniały. Każda próba zaczyna od tego samego ziarna:
+Ustawienia losuje osobny generator, żeby nie wpływały na nie liczby losowe treningu, który miesza porcje. Każda próba zaczyna od tego samego ziarna:
 
 ```python run
 import torch
@@ -191,38 +191,38 @@ for trial in range(6):
 print("best", round(best[0], 3), round(best[1], 4), best[2])
 ```
 
-Z sześciu prób najlepsza ma współczynnik uczenia 0,0975 i 31 liczb ukrytych, z dokładnością 0,855 po 5 epokach. Trzy z pozostałych, ze współczynnikiem uczenia między 0,02 a 0,04, uczyły się za wolno w tych 5 epokach: poniżej 0,52. W prawdziwym strojeniu zwycięzcę trenuje się jeszcze raz, dłużej, i mierzy na zbiorze testowym, raz. Biblioteki jak Optuna losują sprytniej: patrzą na dotychczasowe próby i losują stamtąd, gdzie były dobre ustawienia, a próby, które idą źle, przerywają wcześnie. Działają na twoim komputerze, bo ta strona ich nie ma.
+Spośród sześciu prób najlepsza ma współczynnik uczenia 0,0975 i 31 liczb ukrytych, z dokładnością 0,855 po 5 epokach. Trzy inne, ze współczynnikiem uczenia między 0,02 a 0,04, uczyły się za wolno jak na 5 epok: poniżej 0,52. Przy prawdziwym strojeniu zwycięzcę trenuje się jeszcze raz, dłużej, i jeden raz mierzy na zbiorze testowym. Biblioteki takie jak Optuna losują sprytniej: patrzą na dotychczasowe próby, losują tam, gdzie wypadały dobre ustawienia, i wcześnie przerywają próby, które idą źle. Działają na twoim komputerze, bo na tej stronie ich nie ma.
 
 ## Podsumowanie
 
-- Liczby, których model się nauczył, to jego `state_dict()`. `torch.save` zapisuje punkt kontrolny, czyli słownik ze słownikiem stanu i hiperparametrami, które zbudowały model, a `torch.load(..., weights_only=True)` go wczytuje.
-- Żeby wczytać: zbuduj model z zapisanych hiperparametrów, wczytaj do niego wagi przez `load_state_dict` i wywołaj `eval()`. Kształty muszą się dokładnie zgadzać.
-- Hiperparametry, jak współczynnik uczenia i rozmiary warstw, się nie uczą. Wybiera się je, trenując z kilkoma i porównując wyniki walidacji.
-- Wyszukiwanie losowe losuje ustawienia, współczynnik uczenia w skali logarytmicznej, i zachowuje najlepsze. Zbiór testowy zostaje nietknięty, dopóki nie wybierze się najlepszego modelu.
+- To, czego model się nauczył, zwraca `state_dict()`. `torch.save` zapisuje punkt kontrolny, czyli słownik ze słownikiem stanu i hiperparametrami, które zbudowały model, a `torch.load(..., weights_only=True)` go wczytuje.
+- Wczytywanie: zbuduj model z zapisanych hiperparametrów, wczytaj do niego wagi przez `load_state_dict` i wywołaj `eval()`. Kształty muszą się zgadzać co do joty.
+- Hiperparametrów, takich jak współczynnik uczenia czy rozmiary warstw, model się nie uczy. Wybiera się je, trenując z kilkoma zestawami ustawień i porównując wyniki na zbiorze walidacyjnym.
+- Przeszukiwanie losowe losuje ustawienia, współczynnik uczenia w skali logarytmicznej, i zostawia najlepsze. Zbioru testowego nie rusza się, dopóki nie zostanie wybrany najlepszy model.
 
 ## Sprawdź się
 
 <details>
-<summary>Dlaczego punkt kontrolny zawiera hiperparametry, a nie tylko wagi?</summary>
+<summary>Dlaczego punkt kontrolny zawiera hiperparametry, a nie same wagi?</summary>
 
-Wagi to słownik tensorów i nie mówią, jak warstwy do siebie pasują. Żeby je wczytać, trzeba najpierw zbudować model o dokładnie tej samej strukturze, a hiperparametry, jak rozmiary warstw, go budują.
+Wagi to słownik tensorów i nie mówią, jak łączą się warstwy. Żeby je wczytać, najpierw trzeba zbudować model o dokładnie takiej samej budowie, a budują go właśnie hiperparametry, takie jak rozmiary warstw.
 
 </details>
 
 <details>
-<summary>Dlaczego współczynnik uczenia losuje się jako <code>10 ** uniform(-2, -0.5)</code>, a nie <code>uniform(0.01, 0.3)</code>?</summary>
+<summary>Dlaczego współczynnik uczenia losuje się jako <code>10 ** uniform(-2, -0.5)</code>, a nie jako <code>uniform(0.01, 0.3)</code>?</summary>
 
-Losowanie między 0,01 a 0,3 dałoby dziewięć na dziesięć współczynników powyżej 0,03, a prawie żadnego blisko 0,01. Współczynniki uczenia liczą się krotnościami, więc równomiernie losuje się wykładnik: tyle samo prób między 0,01 a 0,03, co między 0,1 a 0,3.
+Losowanie między 0,01 a 0,3 dałoby w dziewięciu przypadkach na dziesięć współczynnik większy od 0,03 i prawie żadnego w okolicy 0,01. Współczynniki uczenia liczą się w krotnościach, więc równomiernie losuje się wykładnik: tyle samo prób wypada między 0,01 a 0,03 co między 0,1 a 0,3.
 
 </details>
 
 <details>
 <summary>Najlepszą z losowych prób wybiera się na zbiorze walidacyjnym. Dlaczego nie na testowym?</summary>
 
-Wybieranie według wyniku testowego robi ze zbioru testowego część wyboru, a najlepsza z wielu prób wypada dobrze po części ze szczęścia. Zbiór testowy zostaje do zmierzenia wybranego modelu raz, jako oszacowanie, jak sobie radzi na kursach, do których nigdy nie był używany.
+Wybór na podstawie wyniku testowego włącza zbiór testowy do wyboru, a najlepsza z wielu prób wypada dobrze częściowo dzięki szczęściu. Zbiór testowy zostaje po to, żeby raz zmierzyć wybrany model i oszacować, jak radzi sobie z danymi, których nigdy nie użyto.
 
 </details>
 
 ## Twoja kolej
 
-W ćwiczeniu [Zapisz i wczytaj punkt kontrolny](../../exercises/05-pytorch/10-saving-loading-and-tuning/01-save-and-load-a-checkpoint/task.pl.md) napiszesz dwie połowy punktu kontrolnego: zapisanie modelu z jego ustawieniami i zbudowanie go z powrotem. W ćwiczeniu [Wyszukiwanie losowe](../../exercises/05-pytorch/10-saving-loading-and-tuning/02-random-search/task.pl.md) wylosujesz ustawienia i wybierzesz najlepsze.
+W ćwiczeniu [Zapisz i wczytaj punkt kontrolny](../../exercises/05-pytorch/10-saving-loading-and-tuning/01-save-and-load-a-checkpoint/task.pl.md) napiszesz obie połowy punktu kontrolnego: zapis modelu z jego ustawieniami i odtworzenie go. W ćwiczeniu [Przeszukiwanie losowe](../../exercises/05-pytorch/10-saving-loading-and-tuning/02-random-search/task.pl.md) wylosujesz ustawienia i wybierzesz najlepsze.

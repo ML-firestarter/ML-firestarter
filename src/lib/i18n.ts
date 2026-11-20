@@ -52,6 +52,8 @@ const en = {
 
   eyebrow: 'Learning log',
   chapterNumber: (n: number) => `Chapter ${n}`,
+  /** A numbered step of the learning path; see `groups` in site.config.ts. */
+  stageNumber: (n: number) => `Stage ${n}`,
   chapterCount: (n: number) => plural('en', n, { one: '# chapter', other: '# chapters' }),
   readingTotal: (minutes: number) => `about ${minutes} min of reading`,
   moreLessons: (n: number) => plural('en', n, { one: '+ # more lesson', other: '+ # more lessons' }),
@@ -393,6 +395,7 @@ const pl: typeof en = {
 
   eyebrow: 'Dziennik nauki',
   chapterNumber: (n) => `Rozdział ${n}`,
+  stageNumber: (n) => `Etap ${n}`,
   chapterCount: (n) => plural('pl', n, { one: '# rozdział', few: '# rozdziały', many: '# rozdziałów', other: '# rozdziału' }),
   readingTotal: (minutes) => `około ${minutes} min czytania`,
   moreLessons: (n) =>

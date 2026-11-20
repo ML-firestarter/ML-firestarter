@@ -1,10 +1,10 @@
 ---
-description: Indeksy, wycinki, listy list i własne błędy, do szyfru płotkowego.
+description: Indeksy, wycinki, listy list i własne błędy, czyli wszystko, czego potrzeba do szyfru płotkowego.
 ---
 
 # Listy list
 
-**Szyfr płotkowy** to dawny sposób ukrywania wiadomości. Jej litery zapisuje się zygzakiem w kilku wierszach, zwanych szynami, a potem odczytuje szyny jedną po drugiej. Oto „Podstawy pythona” na 3 szynach, bez spacji:
+**Szyfr płotkowy** to dawny sposób ukrywania wiadomości. Litery wiadomości zapisuje się zygzakiem w kilku wierszach, zwanych szynami, a potem odczytuje szyny jedną po drugiej. Oto „Podstawy pythona” na 3 szynach, bez spacji:
 
 ```text
 P . . . t . . . p . . . o . .
@@ -12,9 +12,9 @@ P . . . t . . . p . . . o . .
 . . d . . . w . . . t . . . a
 ```
 
-Szyna po szynie daje to `Ptpo`, `osayyhn` i `dwta`, więc tajna wiadomość to `Ptpoosayyhndwta`. Łatwo ją odwrócić tylko wtedy, gdy się wie, że szyny były 3.
+Szyny czytane po kolei dają `Ptpo`, `osayyhn` i `dwta`, więc tajna wiadomość to `Ptpoosayyhndwta`. Łatwo ją odszyfrować tylko temu, kto wie, że szyny były trzy.
 
-W ćwiczeniu do tej lekcji napiszesz ten szyfr w Pythonie. Każda szyna to lista liter, więc cały płot to lista list, a numer wiersza chodzi po nim w dół i w górę. Potrzebujesz do tego:
+W ćwiczeniu do tej lekcji napiszesz ten szyfr w Pythonie. Każda szyna to lista liter, więc cały płot to lista list, a numer wiersza wędruje po nim w dół i w górę. Potrzebujesz do tego:
 
 - **indeksów** i **wycinków**, które wybierają elementy z list i napisów,
 - **list list**,
@@ -23,7 +23,7 @@ W ćwiczeniu do tej lekcji napiszesz ten szyfr w Pythonie. Każda szyna to lista
 
 ## Indeksy i wycinki
 
-Indeks elementu to jego pozycja na liście, liczona od 0. Ujemne indeksy liczą od końca: `-1` to ostatni element, a `-2` przedostatni. Indeks z `=` zmienia element:
+Indeks elementu to jego pozycja na liście, liczona od 0. Ujemne indeksy liczą od końca: `-1` to ostatni element, a `-2` przedostatni. Przypisanie do indeksu przez `=` zmienia element:
 
 ```python run
 letters = ["a", "b", "c", "d", "e"]
@@ -33,14 +33,14 @@ letters[1] = "B"
 print(letters)
 ```
 
-Indeks za końcem listy zatrzymuje program z błędem `IndexError`: lista 5 elementów ma indeksy od 0 do 4.
+Indeks za końcem listy zatrzymuje program z błędem `IndexError`: lista pięciu elementów ma indeksy od 0 do 4.
 
 ```python run
 letters = ["a", "b", "c", "d", "e"]
 print(letters[5])
 ```
 
-**Wycinek** (ang. slice) wybiera kilka elementów naraz: `[start:stop]` daje te od `start` do `stop`, ale bez niego, tak jak `range()`. Bez `start` wycinek zaczyna się od początku, a bez `stop` biegnie do końca. Wycinki działają też na napisach:
+**Wycinek** (ang. slice) wybiera kilka elementów naraz: `[start:stop]` daje elementy od `start` do `stop`, ale bez samego `stop`, tak jak `range()`. Bez `start` wycinek zaczyna się od początku, a bez `stop` biegnie do końca. Wycinki działają też na napisach:
 
 ```python run
 letters = ["a", "b", "c", "d", "e"]
@@ -93,7 +93,7 @@ print(rails)
 
 ## Tam i z powrotem
 
-Zygzak potrzebuje numeru wiersza, który idzie 0, 1, 2, wraca przez 1 do 0 i znów idzie w dół. Trzymaj wiersz w jednej zmiennej, a kierunek w drugiej, `step`: 1 w dół i -1 w górę. Po każdej literze wiersz przesuwa się o `step`, a `step` zawraca na górnej i dolnej szynie:
+Zygzak potrzebuje numeru wiersza, który idzie 0, 1, 2, wraca przez 1 do 0 i znów idzie w dół. Trzymaj wiersz w jednej zmiennej, a kierunek w drugiej, `step`: 1 w dół i -1 w górę. Po każdej literze wiersz przesuwa się o `step`, a na górnej i dolnej szynie `step` zmienia znak:
 
 ```python run
 rails = 3
@@ -138,7 +138,7 @@ print(word)
 
 ## Zgłaszanie błędów
 
-Niektóre argumenty nie mają sensu dla funkcji: płot nie może mieć 0 szyn. Zamiast zwracać zły wynik, funkcja może się zatrzymać z błędem, tak jak robią to wbudowane funkcje Pythona, przez `raise` (zgłoś):
+Niektóre argumenty nie mają dla funkcji sensu: płot nie może mieć zera szyn. Zamiast zwracać zły wynik, funkcja może się zatrzymać z błędem, tak jak robią to wbudowane funkcje Pythona. Służy do tego `raise` (zgłoś):
 
 ```python run
 def average(numbers):
@@ -151,7 +151,7 @@ print(average([2, 4, 9]))
 print(average([]))
 ```
 
-`sum()` dodaje liczby z listy. `ValueError` to rodzaj błędu dla argumentu dobrego typu, ale ze złą wartością, jak tekst w `int("dwadzieścia")`. Komunikat w nawiasach mówi, co poszło nie tak, i pojawia się w ostatnim wierszu błędu. W ćwiczeniach sprawdzenie takie jak `rail_fence('abc', 0)`, które oczekuje `ValueError`, przechodzi, gdy funkcja taki błąd zgłosi.
+`sum()` dodaje liczby z listy. `ValueError` to błąd argumentu, który ma dobry typ, ale złą wartość, jak tekst w `int("dwadzieścia")`. Komunikat w nawiasach mówi, co poszło nie tak, i pojawia się w ostatnim wierszu błędu. W ćwiczeniach sprawdzenie takie jak `rail_fence('abc', 0)`, które oczekuje `ValueError`, przechodzi, gdy funkcja taki błąd zgłosi.
 
 ## Twoja kolej
 

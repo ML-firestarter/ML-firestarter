@@ -8,8 +8,8 @@ description: Policz, ile razy każde słowo występuje w tekście, i znajdź naj
 
 Napisz dwie funkcje:
 
-- `count_words(text)` zwraca słownik z każdym słowem z `text` i liczbą jego wystąpień. Wielkość liter nie ma znaczenia: `The` i `the` to to samo słowo, które słownik zapisuje małymi literami. Słowa są rozdzielone spacjami, a w tekstach nie ma znaków interpunkcyjnych.
-- `most_common(text)` zwraca słowo, które występuje w `text` najczęściej, zapisane małymi literami. Gdy kilka słów występuje równie często, to to z nich, które pojawia się w tekście najwcześniej.
+- `count_words(text)` zwraca słownik z każdym słowem z `text` i liczbą jego wystąpień. Wielkość liter nie ma znaczenia: `The` i `the` to to samo słowo, a w słowniku jest zapisane małymi literami. Słowa są rozdzielone spacjami, a w tekstach nie ma znaków interpunkcyjnych.
+- `most_common(text)` zwraca słowo, które występuje w `text` najczęściej, zapisane małymi literami. Gdy kilka słów występuje równie często, zwraca to, które pojawia się w tekście najwcześniej.
 
 | Wywołanie                                | Zwraca                                     |
 | ---------------------------------------- | ------------------------------------------ |

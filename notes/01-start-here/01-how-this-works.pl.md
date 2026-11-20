@@ -161,14 +161,15 @@ CHECKS = [
 
 ## PyTorch na stronie
 
-Sam PyTorch nie uruchomi się w przeglądarce, więc lekcje i ćwiczenia, które zaczynają się od `import torch`, dostają mały PyTorch, który ta witryna ma ze sobą. Jest napisany w NumPy i ma to, czego używają lekcje: tensory, autograd, `torch.nn`, `torch.optim`, `torch.utils.data` i `torchmetrics`. Wypisuje tensory tak jak PyTorch, kończy się tymi samymi komunikatami błędów i po `torch.manual_seed(42)` tworzy te same liczby losowe co PyTorch, więc liczby w lekcji to te, które dostaniesz na swoim komputerze, z dokładnością do ostatniej cyfry ułamka. Różnice:
+Sam PyTorch nie działa w przeglądarce, dlatego lekcje i ćwiczenia, które zaczynają się od `import torch`, dostają mały PyTorch dołączony do tej strony. Jest napisany w NumPy i ma to, czego używają lekcje: tensory, autograd, `torch.nn`, `torch.optim`, `torch.utils.data` i `torchmetrics`. Wypisuje tensory tak jak PyTorch, zgłasza te same błędy, a po `torch.manual_seed(42)` tworzy te same liczby losowe, więc liczby w lekcjach są takie, jakie zobaczysz na swoim komputerze, z dokładnością do ostatniej cyfry po przecinku. Różnice są następujące:
 
-- Nie ma karty graficznej. `torch.cuda.is_available()` zwraca `False`, a prośba o `device="cuda"` kończy się błędem, tak jak na komputerze bez niej.
-- Liczby całkowite NumPy mają w przeglądarce 32 bity, a na komputerze zwykle 64, więc `torch.tensor(np.array([1, 2, 3]))` jest tu tensorem `int32`. Napisz `dtype=torch.int64`, gdy ma to znaczenie.
-- To mała biblioteka, zbudowana na potrzeby lekcji. Kilku rzeczy, które ma prawdziwy PyTorch, jak splotów, jeszcze w niej nie ma, a `torch.save` zapisuje własny plik, którego PyTorch nie odczyta.
-- Jest wolniejsza od prawdziwej, więc lekcje trzymają dane małe.
+- Nie ma karty graficznej. `torch.cuda.is_available()` zwraca `False`, a prośba o `device="cuda"` kończy się błędem, tak jak na komputerze bez karty.
+- Liczby całkowite NumPy mają w przeglądarce 32 bity, a na komputerze zwykle 64, więc `torch.tensor(np.array([1, 2, 3]))` jest tutaj tensorem typu `int32`. Gdy ma to znaczenie, podaj `dtype=torch.int64`.
+- To mała biblioteka, napisana na potrzeby lekcji. Kilku rzeczy, które ma prawdziwy PyTorch, na przykład splotów, jeszcze w niej nie ma, a `torch.save` zapisuje plik we własnym formacie, którego PyTorch nie odczyta.
+- Dropout zeruje tu inne liczby niż na komputerze, nawet po `torch.manual_seed`, więc sieć trenowana z dropoutem kończy trening z nieco innymi liczbami niż tam. Lekcja, która go używa, o tym uprzedza.
+- Jest wolniejsza od prawdziwej, dlatego lekcje korzystają z małych danych.
 
-Reszta działa tak samo, więc żeby pójść dalej, zainstaluj PyTorch na swoim komputerze przez `pip install torch` i uruchom tam ten sam kod.
+Poza tym wszystko działa tak samo, więc żeby pójść dalej, zainstaluj PyTorch na swoim komputerze przez `pip install torch` i uruchom tam ten sam kod.
 
 ## Śledzenie postępów
 
